@@ -342,6 +342,79 @@ def render_roadmap(items: list[str]) -> None:
         )
 
 
+_ROLE_LABEL_PT = {
+    StakeholderRole.CEO: "CEO",
+    StakeholderRole.CTO: "CTO",
+    StakeholderRole.CFO: "CFO",
+    StakeholderRole.PROCUREMENT: "Procurement",
+    StakeholderRole.CHAMPION: "Champion interno",
+    StakeholderRole.END_USER: "Usuário final",
+    StakeholderRole.LEGAL_COMPLIANCE: "Jurídico/Compliance",
+    StakeholderRole.SECURITY: "Segurança",
+}
+
+
+def render_manual_account_form() -> AccountContext | None:
+    """Form to build an AccountContext from scratch: company, pitch, committee
+    roles, and one real stakeholder (name + known facts) grounded as the
+    digital twin instead of a generic archetype."""
+    account_name = st.text_input("Empresa", placeholder="Ex: iFood")
+    pitch_summary = st.text_area("Resumo do pitch", placeholder="O que está sendo vendido e para quem")
+    proposed_solution = st.text_area("Solução proposta", placeholder="Detalhes técnicos/comerciais da proposta")
+    deal_stage = st.text_input("Estágio do deal", value="Proposal sent, awaiting committee review")
+    deal_value = st.number_input("Valor do deal (US$)", min_value=0, value=0, step=10_000)
+
+    committee_roles = st.multiselect(
+        "Papéis no comitê",
+        options=list(StakeholderRole),
+        default=[StakeholderRole.CHAMPION, StakeholderRole.CTO, StakeholderRole.CFO, StakeholderRole.PROCUREMENT],
+        format_func=lambda r: _ROLE_LABEL_PT.get(r, r.value),
+    )
+
+    st.markdown("**Stakeholder real (digital twin)**")
+    if not committee_roles:
+        st.caption("Selecione ao menos um papel no comitê acima.")
+        real_role = None
+    else:
+        real_role = st.selectbox(
+            "Qual papel é o stakeholder real?",
+            options=committee_roles,
+            format_func=lambda r: _ROLE_LABEL_PT.get(r, r.value),
+        )
+    stakeholder_name = st.text_input("Nome do stakeholder", placeholder="Ex: Diego Barreto")
+    stakeholder_facts = st.text_area(
+        "Fatos conhecidos sobre essa pessoa (um por linha)",
+        placeholder="Ex: Assumiu como CEO em 2026\nFoco declarado em IA generativa e consolidação do iFood Pago",
+        height=120,
+    )
+    st.caption(
+        "Sem fatos preenchidos, esse papel também cai para o arquétipo genérico. "
+        "Os demais papéis do comitê são sempre arquétipos."
+    )
+
+    if not account_name or not pitch_summary or not proposed_solution or not committee_roles:
+        return None
+
+    real_data = {}
+    real_names = {}
+    facts = [line.strip() for line in stakeholder_facts.splitlines() if line.strip()]
+    if real_role and facts:
+        real_data[real_role] = facts
+        if stakeholder_name:
+            real_names[real_role] = stakeholder_name
+
+    return AccountContext(
+        account_name=account_name,
+        deal_stage=deal_stage,
+        pitch_summary=pitch_summary,
+        proposed_solution=proposed_solution,
+        deal_value_usd=deal_value or None,
+        roles_in_committee=committee_roles,
+        real_data=real_data,
+        real_names=real_names,
+    )
+
+
 def main() -> None:
     st.set_page_config(page_title="Sales Digital Twins — Board Simulator", layout="wide")
     _inject_avanade_theme()
@@ -349,7 +422,7 @@ def main() -> None:
     with st.sidebar:
         st.header("Configuração da rodada")
 
-        account_options = {"Northwind Logistics (exemplo)": None}
+        account_options = {"Digitar manualmente": "manual", "Northwind Logistics (exemplo)": None}
         if ACCOUNTS_DIR.exists():
             for f in sorted(ACCOUNTS_DIR.glob("*.json")):
                 account_options[f.stem] = f
@@ -357,8 +430,11 @@ def main() -> None:
 
         choice = st.selectbox("Conta", list(account_options.keys()))
         uploaded = None
+        manual_account = None
         if account_options[choice] == "upload":
             uploaded = st.file_uploader("AccountContext (.json)", type="json")
+        elif account_options[choice] == "manual":
+            manual_account = render_manual_account_form()
 
         mock_mode = st.checkbox("Modo mock (sem API, gratuito)", value=True)
         api_key = None
@@ -370,7 +446,12 @@ def main() -> None:
         run_clicked = st.button("Rodar simulação", type="primary", use_container_width=True)
 
     if run_clicked:
-        if account_options[choice] == "upload":
+        if account_options[choice] == "manual":
+            if manual_account is None:
+                st.error("Preencha empresa, pitch, solução proposta e ao menos um papel no comitê.")
+                st.stop()
+            account = manual_account
+        elif account_options[choice] == "upload":
             if uploaded is None:
                 st.error("Envie um arquivo JSON de conta antes de rodar.")
                 st.stop()

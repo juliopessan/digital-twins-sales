@@ -9,13 +9,12 @@ from dataclasses import dataclass
 class Settings:
     anthropic_api_key: str | None = os.getenv("ANTHROPIC_API_KEY")
 
-    # Model tiers — split so the cheap/fast model can run high-volume persona
-    # turns while a stronger model handles the facilitator's escalation
-    # judgment and the final synthesis. Override via env if you want every
-    # node on the same model.
+    # Default everything to Haiku 4.5 for cost — override per-node via env if
+    # you want stronger judgment on the facilitator/synthesizer at higher cost
+    # (e.g. DT_FACILITATOR_MODEL=claude-sonnet-5).
     persona_model: str = os.getenv("DT_PERSONA_MODEL", "claude-haiku-4-5-20251001")
-    facilitator_model: str = os.getenv("DT_FACILITATOR_MODEL", "claude-sonnet-5")
-    synthesizer_model: str = os.getenv("DT_SYNTHESIZER_MODEL", "claude-sonnet-5")
+    facilitator_model: str = os.getenv("DT_FACILITATOR_MODEL", "claude-haiku-4-5-20251001")
+    synthesizer_model: str = os.getenv("DT_SYNTHESIZER_MODEL", "claude-haiku-4-5-20251001")
 
     max_tokens_persona_turn: int = 400
     max_tokens_facilitator: int = 300

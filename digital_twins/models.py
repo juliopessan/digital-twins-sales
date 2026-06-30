@@ -88,6 +88,14 @@ class AccountContext(BaseModel):
             "falls back to the archetype for that role."
         ),
     )
+    real_names: dict[StakeholderRole, str] = Field(
+        default_factory=dict,
+        description=(
+            "Optional real person name per role (e.g. 'Diego Barreto' for CEO). "
+            "Only used when the role also has real_data; otherwise the archetype's "
+            "generic name (e.g. 'Generic CEO') is used."
+        ),
+    )
     roles_in_committee: list[StakeholderRole] = Field(
         default_factory=lambda: [
             StakeholderRole.CHAMPION,

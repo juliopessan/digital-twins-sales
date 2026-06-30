@@ -120,4 +120,7 @@ class PersonaFactory:
         base.source = DataSource.REAL
         base.company = account.account_name
         base.grounding_facts = real_facts
+        real_name = account.real_names.get(role)
+        if real_name:
+            base.name = real_name
         return base
