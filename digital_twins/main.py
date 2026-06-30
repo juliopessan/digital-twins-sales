@@ -22,7 +22,7 @@ from digital_twins.llm.client import build_default_client
 from digital_twins.models import AccountContext, StakeholderRole
 from digital_twins.orchestration.graph import build_board_graph
 from digital_twins.personas.resolver import PersonaFactory
-from digital_twins.reporting import build_markdown_report
+from digital_twins.reporting import build_html_report, build_markdown_report
 
 
 def _sample_account() -> AccountContext:
@@ -125,14 +125,22 @@ def main() -> int:
     print(f"\nRisk summary: {verdict.risk_summary}")
 
     if not args.no_report:
-        report = build_markdown_report(account, personas, final_state["transcript"], verdict)
+        transcript = final_state["transcript"]
         report_dir = Path(args.report_dir)
         report_dir.mkdir(parents=True, exist_ok=True)
         slug = re.sub(r"[^a-z0-9]+", "-", account.account_name.lower()).strip("-")
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-        report_path = report_dir / f"{slug}-{timestamp}.md"
-        report_path.write_text(report, encoding="utf-8")
-        print(f"\nReport written to: {report_path}")
+
+        md_report = build_markdown_report(account, personas, transcript, verdict)
+        md_path = report_dir / f"{slug}-{timestamp}.md"
+        md_path.write_text(md_report, encoding="utf-8")
+
+        html_report = build_html_report(account, personas, transcript, verdict)
+        html_path = report_dir / f"{slug}-{timestamp}.html"
+        html_path.write_text(html_report, encoding="utf-8")
+
+        print(f"\nReport written to: {md_path}")
+        print(f"Styled HTML report written to: {html_path}")
 
     return 0
 

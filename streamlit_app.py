@@ -22,7 +22,7 @@ from digital_twins.llm.client import build_default_client
 from digital_twins.models import AccountContext, StakeholderRole
 from digital_twins.orchestration.graph import build_board_graph
 from digital_twins.personas.resolver import PersonaFactory
-from digital_twins.reporting import build_markdown_report
+from digital_twins.reporting import build_html_report, build_markdown_report
 
 ACCOUNTS_DIR = Path(__file__).parent / "accounts"
 
@@ -377,12 +377,25 @@ def main() -> None:
     st.write(verdict.risk_summary)
 
     report_md = build_markdown_report(account, personas, transcript, verdict)
-    st.download_button(
-        "Baixar relatório (.md)",
-        data=report_md,
-        file_name=f"{account.account_name.lower().replace(' ', '-')}-report.md",
-        mime="text/markdown",
-    )
+    report_html = build_html_report(account, personas, transcript, verdict)
+    slug = account.account_name.lower().replace(" ", "-")
+    dl_col1, dl_col2 = st.columns(2)
+    with dl_col1:
+        st.download_button(
+            "Baixar relatório (.md)",
+            data=report_md,
+            file_name=f"{slug}-report.md",
+            mime="text/markdown",
+            use_container_width=True,
+        )
+    with dl_col2:
+        st.download_button(
+            "Baixar relatório estilizado (.html)",
+            data=report_html,
+            file_name=f"{slug}-report.html",
+            mime="text/html",
+            use_container_width=True,
+        )
 
     st.markdown(
         '<div class="ava-footnote">Visual: tokens de design Avanade Style Guide v1.1 · '
