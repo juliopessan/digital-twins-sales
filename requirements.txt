@@ -4,3 +4,4 @@ pydantic>=2.7
 python-dotenv>=1.0
 pytest>=8.0
 streamlit>=1.38
+exa_py>=1.10

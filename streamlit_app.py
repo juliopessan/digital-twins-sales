@@ -37,6 +37,7 @@ from digital_twins.office import (
 from digital_twins.orchestration.graph import build_board_graph
 from digital_twins.personas.resolver import PersonaFactory
 from digital_twins.reporting import build_html_report, build_markdown_report
+from digital_twins.research import ResearchError, research_stakeholder
 
 ACCOUNTS_DIR = Path(__file__).parent / "accounts"
 
@@ -357,7 +358,8 @@ _ROLE_LABEL_PT = {
 def render_manual_account_form() -> AccountContext | None:
     """Form to build an AccountContext from scratch: company, pitch, committee
     roles, and one real stakeholder (name + known facts) grounded as the
-    digital twin instead of a generic archetype."""
+    digital twin instead of a generic archetype. The facts field can be
+    filled by hand or auto-populated via EXA web research."""
     account_name = st.text_input("Empresa", placeholder="Ex: iFood")
     pitch_summary = st.text_area("Resumo do pitch", placeholder="O que está sendo vendido e para quem")
     proposed_solution = st.text_area("Solução proposta", placeholder="Detalhes técnicos/comerciais da proposta")
@@ -382,10 +384,33 @@ def render_manual_account_form() -> AccountContext | None:
             format_func=lambda r: _ROLE_LABEL_PT.get(r, r.value),
         )
     stakeholder_name = st.text_input("Nome do stakeholder", placeholder="Ex: Diego Barreto")
+
+    exa_key = st.text_input(
+        "EXA API Key (opcional, para pesquisa automática)",
+        value=settings.exa_api_key or "",
+        type="password",
+    )
+    st.caption("Usada só em memória nesta sessão — não é salva em disco.")
+    research_clicked = st.button("🔎 Pesquisar fatos com EXA", use_container_width=True)
+
+    if research_clicked:
+        if not (account_name and stakeholder_name and real_role and exa_key):
+            st.error("Preencha empresa, nome do stakeholder, papel e a EXA API Key antes de pesquisar.")
+        else:
+            with st.spinner("Pesquisando fatos públicos..."):
+                try:
+                    role_label = _ROLE_LABEL_PT.get(real_role, real_role.value)
+                    facts = research_stakeholder(stakeholder_name, role_label, account_name, exa_key)
+                    st.session_state["manual_facts_input"] = "\n".join(facts)
+                except ResearchError as exc:
+                    st.error(str(exc))
+            st.rerun()
+
     stakeholder_facts = st.text_area(
         "Fatos conhecidos sobre essa pessoa (um por linha)",
         placeholder="Ex: Assumiu como CEO em 2026\nFoco declarado em IA generativa e consolidação do iFood Pago",
         height=120,
+        key="manual_facts_input",
     )
     st.caption(
         "Sem fatos preenchidos, esse papel também cai para o arquétipo genérico. "

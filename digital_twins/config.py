@@ -8,6 +8,7 @@ from dataclasses import dataclass
 @dataclass(frozen=True)
 class Settings:
     anthropic_api_key: str | None = os.getenv("ANTHROPIC_API_KEY")
+    exa_api_key: str | None = os.getenv("EXA_API_KEY")
 
     # Default everything to Haiku 4.5 for cost — override per-node via env if
     # you want stronger judgment on the facilitator/synthesizer at higher cost
