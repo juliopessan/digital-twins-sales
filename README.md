@@ -56,6 +56,23 @@ python -m digital_twins.main -v
 python -m digital_twins.main --account minha_conta.json -v
 ```
 
+## Interface Streamlit
+
+```bash
+streamlit run streamlit_app.py
+```
+
+UI com tokens de design Avanade Style Guide (paleta, tipografia, componentes
+hero/arc/roadmap) e a transcrição do debate renderizada em estilo pixel-art
+(avatares por papel, balões de fala), inspirada em
+[pixel-agents-hq/pixel-agents](https://github.com/pixel-agents-hq/pixel-agents)
+— reimplementada nativamente em HTML/CSS aqui, já que aquele projeto é um
+visualizador TypeScript de sessões Claude Code (VS Code/terminal), não uma
+biblioteca Python embutível. Permite escolher conta (exemplo, arquivo em
+`accounts/`, ou upload de JSON customizado), rodar em modo mock ou com chave
+Anthropic real (digitada na sessão, nunca salva em disco), e baixar o
+relatório `.md` ao final.
+
 ## Testes
 
 ```bash

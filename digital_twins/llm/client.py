@@ -33,15 +33,16 @@ class LLMClient(ABC):
 class AnthropicLLMClient(LLMClient):
     """Thin wrapper over the real Anthropic API."""
 
-    def __init__(self) -> None:
+    def __init__(self, api_key: str | None = None) -> None:
         import anthropic  # local import: keeps the package importable without the SDK installed
 
-        if not settings.anthropic_api_key:
+        resolved_key = api_key or settings.anthropic_api_key
+        if not resolved_key:
             raise RuntimeError(
-                "ANTHROPIC_API_KEY not set. Export it, or use --mock to run "
-                "this demo with MockLLMClient instead."
+                "ANTHROPIC_API_KEY not set. Export it, pass api_key explicitly, "
+                "or use --mock to run this demo with MockLLMClient instead."
             )
-        self._client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+        self._client = anthropic.Anthropic(api_key=resolved_key)
 
     def complete(
         self,
@@ -126,5 +127,5 @@ class MockLLMClient(LLMClient):
         )
 
 
-def build_default_client(mock: bool = False) -> LLMClient:
-    return MockLLMClient() if mock else AnthropicLLMClient()
+def build_default_client(mock: bool = False, api_key: str | None = None) -> LLMClient:
+    return MockLLMClient() if mock else AnthropicLLMClient(api_key=api_key)
