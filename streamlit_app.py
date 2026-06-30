@@ -107,8 +107,6 @@ def _inject_avanade_theme() -> None:
     st.markdown(
         """
         <style>
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
-
         :root {
             --ava-orange: #FF5800;
             --ava-dark-orange: #DC4600;
@@ -179,36 +177,6 @@ def _inject_avanade_theme() -> None:
         }
         .ava-roadmap-step p { margin: 0; font-size: 14px; color: var(--ava-grey-80); }
 
-        /* Pixel office — debate transcript */
-        .pixel-office {
-            background: var(--ava-grey-80);
-            background-image:
-                linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
-                linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
-            background-size: 24px 24px;
-            border-radius: 8px; padding: 24px; margin-bottom: 12px;
-        }
-        .pixel-round-label {
-            font-family: 'Press Start 2P', monospace; font-size: 11px; color: var(--ava-solar);
-            margin: 18px 0 12px 0; letter-spacing: .05em;
-        }
-        .pixel-turn { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 16px; }
-        .pixel-avatar {
-            flex: 0 0 48px; width: 48px; height: 48px;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 22px; border-radius: 4px; image-rendering: pixelated;
-            border: 3px solid rgba(0,0,0,.35); box-shadow: 0 0 0 2px rgba(255,255,255,.15) inset;
-        }
-        .pixel-bubble {
-            background: #fff; border-radius: 0 10px 10px 10px; padding: 12px 16px;
-            max-width: 720px; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,.25);
-        }
-        .pixel-name {
-            font-family: 'Press Start 2P', monospace; font-size: 10px; margin-bottom: 6px;
-            display: inline-block; padding: 2px 8px; border-radius: 3px; color: #fff;
-        }
-        .pixel-text { font-size: 14px; color: var(--ava-grey-80); line-height: 1.5; }
-
         .ava-footnote { font-size: 11.5px; color: var(--ava-grey-40); margin-top: 18px; }
         </style>
         """,
@@ -250,7 +218,47 @@ def render_arc(verdict) -> None:
     )
 
 
+_PIXEL_TRANSCRIPT_CSS = """
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+body { margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; }
+.pixel-office {
+    background: #333333;
+    background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+    border-radius: 8px; padding: 24px; box-sizing: border-box;
+}
+.pixel-round-label {
+    font-family: 'Press Start 2P', monospace; font-size: 11px; color: #FFD700;
+    margin: 18px 0 12px 0; letter-spacing: .05em;
+}
+.pixel-turn { display: flex; gap: 14px; align-items: flex-start; margin-bottom: 16px; }
+.pixel-avatar {
+    flex: 0 0 48px; width: 48px; height: 48px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 22px; border-radius: 4px; image-rendering: pixelated;
+    border: 3px solid rgba(0,0,0,.35); box-shadow: 0 0 0 2px rgba(255,255,255,.15) inset;
+}
+.pixel-bubble {
+    background: #fff; border-radius: 0 10px 10px 10px; padding: 12px 16px;
+    max-width: 720px; position: relative; box-shadow: 0 4px 10px rgba(0,0,0,.25);
+}
+.pixel-name {
+    font-family: 'Press Start 2P', monospace; font-size: 10px; margin-bottom: 6px;
+    display: inline-block; padding: 2px 8px; border-radius: 3px; color: #fff;
+}
+.pixel-text { font-size: 14px; color: #333333; line-height: 1.5; }
+"""
+
+
 def render_pixel_office(transcript) -> None:
+    """Renders the transcript as a standalone HTML document via st.iframe
+    instead of st.markdown(unsafe_allow_html=True). A single large block of
+    concatenated <div>s passed through Streamlit's CommonMark markdown parser
+    can lose track mid-document (a blank line between divs ends the "raw
+    HTML block" early), causing later turns to render as literal text/code
+    instead of HTML. An iframe sidesteps markdown parsing entirely."""
     parts = ['<div class="pixel-office">']
     last_round = 0
     for turn in transcript:
@@ -262,18 +270,18 @@ def render_pixel_office(transcript) -> None:
         sent_color = SENTIMENT_COLOR.get(turn.sentiment.value, "#666")
         sent_label = SENTIMENT_LABEL_PT.get(turn.sentiment.value, turn.sentiment.value)
         parts.append(
-            f"""
-            <div class="pixel-turn">
+            f"""<div class="pixel-turn">
                 <div class="pixel-avatar" style="background:{color};">{icon}</div>
                 <div class="pixel-bubble">
                     <span class="pixel-name" style="background:{sent_color};">{html.escape(turn.name)} · {sent_label}</span>
                     <div class="pixel-text">{html.escape(turn.statement)}</div>
                 </div>
-            </div>
-            """
+            </div>"""
         )
     parts.append("</div>")
-    st.markdown("".join(parts), unsafe_allow_html=True)
+    inner_html = "".join(parts)
+    full_html = f'<!DOCTYPE html><html><head><meta charset="utf-8"><style>{_PIXEL_TRANSCRIPT_CSS}</style></head><body>{inner_html}</body></html>'
+    st.iframe(full_html, height="content")
 
 
 def _run_debate_with_events(app, initial_state: dict, q: Queue) -> None:
