@@ -12,6 +12,7 @@ for VS Code/terminal hook events, not portable as a Python dependency.
 """
 from __future__ import annotations
 
+import html
 import json
 from pathlib import Path
 
@@ -207,10 +208,10 @@ def render_hero(account: AccountContext) -> None:
         f"""
         <div class="ava-hero">
             <div class="kicker">Sales Digital Twins · Board Simulator</div>
-            <h1>Simulação de comitê — <b>{account.account_name}</b></h1>
-            <div class="lede">{account.pitch_summary}</div>
+            <h1>Simulação de comitê — <b>{html.escape(account.account_name)}</b></h1>
+            <div class="lede">{html.escape(account.pitch_summary)}</div>
             <div class="lede" style="margin-top:8px; font-weight:600;">
-                Estágio: {account.deal_stage} &nbsp;·&nbsp; Valor: {value}
+                Estágio: {html.escape(account.deal_stage)} &nbsp;·&nbsp; Valor: {value}
             </div>
         </div>
         """,
@@ -236,29 +237,29 @@ def render_arc(verdict) -> None:
 
 
 def render_pixel_office(transcript) -> None:
-    html = ['<div class="pixel-office">']
+    parts = ['<div class="pixel-office">']
     last_round = 0
     for turn in transcript:
         if turn.round_number != last_round:
             last_round = turn.round_number
-            html.append(f'<div class="pixel-round-label">ROUND {last_round}</div>')
+            parts.append(f'<div class="pixel-round-label">ROUND {last_round}</div>')
         icon = ROLE_ICON.get(turn.role, "🧑")
         color = _role_color(turn.role.value)
         sent_color = SENTIMENT_COLOR.get(turn.sentiment.value, "#666")
         sent_label = SENTIMENT_LABEL_PT.get(turn.sentiment.value, turn.sentiment.value)
-        html.append(
+        parts.append(
             f"""
             <div class="pixel-turn">
                 <div class="pixel-avatar" style="background:{color};">{icon}</div>
                 <div class="pixel-bubble">
-                    <span class="pixel-name" style="background:{sent_color};">{turn.name} · {sent_label}</span>
-                    <div class="pixel-text">{turn.statement}</div>
+                    <span class="pixel-name" style="background:{sent_color};">{html.escape(turn.name)} · {sent_label}</span>
+                    <div class="pixel-text">{html.escape(turn.statement)}</div>
                 </div>
             </div>
             """
         )
-    html.append("</div>")
-    st.markdown("".join(html), unsafe_allow_html=True)
+    parts.append("</div>")
+    st.markdown("".join(parts), unsafe_allow_html=True)
 
 
 def render_roadmap(items: list[str]) -> None:
@@ -267,7 +268,7 @@ def render_roadmap(items: list[str]) -> None:
             f"""
             <div class="ava-roadmap-step">
                 <div class="ava-roadmap-num">{i}</div>
-                <p>{item}</p>
+                <p>{html.escape(item)}</p>
             </div>
             """,
             unsafe_allow_html=True,
