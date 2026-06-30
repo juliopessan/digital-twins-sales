@@ -1,8 +1,8 @@
 {
   "account_name": "iFood",
-  "deal_stage": "Proposal sent, awaiting committee review",
-  "pitch_summary": "Multi-agent Gen AI platform to automate freight/logistics document processing, replacing a 14-person manual review team with a 3-person oversight team.",
-  "proposed_solution": "Azure-hosted agentic pipeline: OCR + extraction agents + human-in-the-loop exception handling, 18-week implementation, $640k Year 1 (license + services).",
+  "deal_stage": "Proposta enviada, aguardando revisão do comitê",
+  "pitch_summary": "Plataforma multiagente de Gen AI para automatizar o processamento de documentos de frete/logística, substituindo uma equipe de revisão manual de 14 pessoas por uma equipe de supervisão de 3.",
+  "proposed_solution": "Pipeline agêntico hospedado na Azure: agentes de OCR + extração + tratamento de exceções com humano no loop, implementação de 18 semanas, $640 mil no Ano 1 (licença + serviços).",
   "deal_value_usd": 640000,
   "roles_in_committee": ["ceo", "cto", "cfo", "procurement"],
   "real_data": {

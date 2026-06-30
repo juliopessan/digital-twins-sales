@@ -77,14 +77,14 @@ def _role_color(role_value: str) -> str:
 def _sample_account() -> AccountContext:
     return AccountContext(
         account_name="Northwind Logistics",
-        deal_stage="Proposal sent, awaiting committee review",
+        deal_stage="Proposta enviada, aguardando revisão do comitê",
         pitch_summary=(
-            "Multi-agent Gen AI platform to automate freight document processing, "
-            "replacing a 14-person manual review team with a 3-person oversight team."
+            "Plataforma multiagente de Gen AI para automatizar o processamento de documentos de frete, "
+            "substituindo uma equipe de revisão manual de 14 pessoas por uma equipe de supervisão de 3."
         ),
         proposed_solution=(
-            "Azure-hosted agentic pipeline: OCR + extraction agents + human-in-the-loop "
-            "exception handling, 18-week implementation, $640k Year 1 (license + services)."
+            "Pipeline agêntico hospedado na Azure: agentes de OCR + extração + tratamento de exceções "
+            "com humano no loop, implementação de 18 semanas, $640 mil no Ano 1 (licença + serviços)."
         ),
         deal_value_usd=640_000,
         roles_in_committee=[
@@ -95,9 +95,9 @@ def _sample_account() -> AccountContext:
         ],
         real_data={
             StakeholderRole.CFO: [
-                "Posted on LinkedIn last quarter about 'doing more with less' after a hiring freeze",
-                "Previously rejected a similar automation vendor over unclear ROI math",
-                "Reports to a CEO who publicly committed to 15% opex reduction this fiscal year",
+                "Publicou no LinkedIn no trimestre passado sobre 'fazer mais com menos' após um congelamento de contratações",
+                "Já rejeitou um fornecedor de automação parecido por matemática de ROI pouco clara",
+                "Reporta a um CEO que assumiu publicamente o compromisso de reduzir o opex em 15% neste ano fiscal",
             ]
         },
     )
@@ -264,7 +264,7 @@ def render_pixel_office(transcript) -> None:
     for turn in transcript:
         if turn.round_number != last_round:
             last_round = turn.round_number
-            parts.append(f'<div class="pixel-round-label">ROUND {last_round}</div>')
+            parts.append(f'<div class="pixel-round-label">RODADA {last_round}</div>')
         icon = ROLE_ICON.get(turn.role, "🧑")
         color = _role_color(turn.role.value)
         sent_color = SENTIMENT_COLOR.get(turn.sentiment.value, "#666")
@@ -469,11 +469,8 @@ def main() -> None:
         elif account_options[choice] == "manual":
             manual_account = render_manual_account_form()
 
-        mock_mode = st.checkbox("Modo mock (sem API, gratuito)", value=True)
-        api_key = None
-        if not mock_mode:
-            api_key = st.text_input("Anthropic API Key", type="password")
-            st.caption("A chave é usada só em memória nesta sessão — não é salva em disco.")
+        api_key = st.text_input("Anthropic API Key", type="password", value=settings.anthropic_api_key or "")
+        st.caption("A chave é usada só em memória nesta sessão — não é salva em disco.")
 
         max_rounds = st.slider("Máximo de rounds", 1, 5, settings.max_rounds)
         run_clicked = st.button("Rodar simulação", type="primary", use_container_width=True)
@@ -494,12 +491,12 @@ def main() -> None:
         else:
             account = AccountContext.model_validate(json.loads(account_options[choice].read_text(encoding="utf-8")))
 
-        if not mock_mode and not api_key:
-            st.error("Informe a Anthropic API Key ou marque o modo mock.")
+        if not api_key:
+            st.error("Informe a Anthropic API Key na barra lateral antes de rodar.")
             st.stop()
 
         personas = PersonaFactory.build_committee(account)
-        llm = build_default_client(mock=mock_mode, api_key=api_key)
+        llm = build_default_client(api_key=api_key)
         app = build_board_graph(llm)
         initial_state = {
             "account": account,

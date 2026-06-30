@@ -20,8 +20,9 @@ logger = logging.getLogger(__name__)
 
 _SENTIMENT_TAGGING_SUFFIX = """
 
-After your in-character statement, on a NEW final line, output exactly one
-machine-readable tag in this format and nothing else on that line:
+Depois da sua fala em personagem, em uma NOVA linha final, gere exatamente
+uma tag legível por máquina neste formato e nada mais nessa linha (a
+palavra em si deve ficar em inglês, mesmo que sua fala esteja em português):
 SENTIMENT: supportive|neutral|skeptical|blocking
 """
 
@@ -35,8 +36,8 @@ def _find_persona(personas: list[StakeholderProfile], role_value: str) -> Stakeh
 
 def _format_transcript_so_far(transcript: list[DebateTurn]) -> str:
     if not transcript:
-        return "(No statements yet — you are opening the debate.)"
-    lines = [f"[Round {t.round_number}] {t.name}: {t.statement}" for t in transcript]
+        return "(Nenhuma fala ainda — você está abrindo o debate.)"
+    lines = [f"[Rodada {t.round_number}] {t.name}: {t.statement}" for t in transcript]
     return "\n".join(lines)
 
 
@@ -65,9 +66,9 @@ def make_persona_turn_node(llm: LLMClient):
         persona = _find_persona(state["personas"], role_value)
 
         user_prompt = (
-            "Debate transcript so far:\n"
+            "Transcrição do debate até agora:\n"
             f"{_format_transcript_so_far(state.get('transcript', []))}\n\n"
-            "It is now your turn to speak. Give your statement for this round."
+            "Agora é a sua vez de falar. Dê sua fala para esta rodada."
         )
 
         raw = llm.complete(

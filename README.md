@@ -47,25 +47,19 @@ têm lógica de orquestração — só geram conteúdo de personagem.
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
-# 2. Instale as dependências (inclui o Streamlit)
+# 2. Instale as dependências (inclui o Streamlit e o cliente EXA)
 pip install -r requirements.txt
 
-# 3. (Opcional, só se for rodar com Claude de verdade) configure a chave
+# 3. Configure a chave da Anthropic (obrigatória — não há mais modo mock)
 cp .env.example .env
 # edite o .env e preencha ANTHROPIC_API_KEY=sk-ant-...
+# opcional: EXA_API_KEY=... (pesquisa automática de stakeholder no Streamlit)
 ```
-
-Sem o passo 3, tudo funciona em **modo mock** (determinístico, sem custo de
-API) — tanto na CLI (`--mock`) quanto no Streamlit (checkbox "Modo mock"
-já vem marcado por padrão).
 
 ## CLI
 
 ```bash
-# Sem chave de API — usa MockLLMClient, determinístico, valida o grafo:
-python -m digital_twins.main --mock -v
-
-# Com Claude de verdade (precisa do .env ou export ANTHROPIC_API_KEY=sk-ant-...):
+# Precisa de ANTHROPIC_API_KEY (no .env ou exportada):
 python -m digital_twins.main -v
 
 # Com uma conta real (JSON no shape de AccountContext, ex: accounts/ifood.json):
@@ -107,11 +101,21 @@ processa; os estados precisos (`done`/`error`) só aparecem no rerender
 pós-conclusão.
 
 Na barra lateral dá pra escolher a conta (exemplo Northwind, qualquer
-arquivo em `accounts/`, ou upload de um JSON customizado), alternar entre
-modo mock e chave Anthropic real (digitada na sessão, nunca salva em
-disco), e ajustar o número máximo de rounds. Ao final, dois botões de
-download: relatório `.md` simples e relatório `.html` estilizado
-(Avanade), prontos pra enviar pro time de vendas.
+arquivo em `accounts/`, **digitar manualmente** empresa + stakeholder real,
+ou upload de um JSON customizado), informar a chave Anthropic (obrigatória,
+digitada na sessão, nunca salva em disco), e ajustar o número máximo de
+rounds. Ao final, dois botões de download: relatório `.md` simples e
+relatório `.html` estilizado (Avanade), prontos pra enviar pro time de
+vendas.
+
+### Pesquisa automática de stakeholder (EXA)
+
+No formulário "Digitar manualmente", em vez de digitar à mão os fatos
+conhecidos sobre o stakeholder real, dá pra informar uma **EXA API Key**
+(opcional) e clicar em "🔎 Pesquisar fatos com EXA" — `digital_twins/research.py`
+usa a Answer API da Exa para trazer fatos públicos, específicos e citados
+sobre a pessoa (mesmo tipo de pesquisa feita manualmente para a conta de
+teste do iFood, agora automatizada).
 
 ## Testes
 
@@ -119,26 +123,39 @@ download: relatório `.md` simples e relatório `.html` estilizado
 pytest tests/ -v
 ```
 
+Os testes de `PersonaFactory` rodam sempre (não usam LLM). O teste do
+grafo completo (`test_full_graph_runs_end_to_end_with_real_client`) precisa
+de `ANTHROPIC_API_KEY` configurada — sem mock no projeto, ele é pulado
+automaticamente se a chave não estiver presente.
+
 ## Modelo por camada (custo)
 
-Configurável via env (`digital_twins/config.py`):
+Configurável via env (`digital_twins/config.py`) — tudo usa **Haiku 4.5**
+por padrão para reduzir custo:
 
-- `DT_PERSONA_MODEL` — modelo barato/rápido para as falas de cada persona
-  (volume alto). Default: `claude-haiku-4-5-20251001`.
-- `DT_FACILITATOR_MODEL` / `DT_SYNTHESIZER_MODEL` — modelo mais forte para
-  julgamento de convergência e síntese final. Default: `claude-sonnet-5`.
+- `DT_PERSONA_MODEL` — falas de cada persona (volume alto). Default: `claude-haiku-4-5-20251001`.
+- `DT_FACILITATOR_MODEL` / `DT_SYNTHESIZER_MODEL` — julgamento de
+  convergência e síntese final. Default: `claude-haiku-4-5-20251001` (troque
+  para `claude-sonnet-5` se quiser mais qualidade nesses dois nós).
+
+## Idioma
+
+Todo o pipeline — UI, CLI, relatórios e os prompts que geram a fala das
+personas — está em português do Brasil. Os únicos tokens que permanecem em
+inglês são valores de enum internos usados para parsing de código (ex: a
+tag `SENTIMENT: supportive|neutral|skeptical|blocking` e os campos
+`decision`/role values no JSON do facilitador e do sintetizador) — eles
+nunca aparecem para o usuário final, só circulam entre os nós do grafo.
 
 ## Próximos passos (backlog sugerido)
 
-1. **Conector de dados reais**: popular `AccountContext.real_data` a partir
-   de CRM/Gmail/LinkedIn automaticamente (hoje é manual ou via JSON).
+1. **Conector de dados reais**: expandir a pesquisa EXA (hoje só no
+   formulário manual) para enriquecer também contas carregadas via JSON.
 2. **Persistência de sessão**: LangGraph suporta checkpointers nativos —
    plugar um (SQLite/Postgres) para retomar debates e fazer replay.
 3. **Guardrail de governança**: ao usar `DataSource.REAL` sobre pessoas
    reais identificáveis, definir política explícita de consentimento e
    retenção de dados antes de produção (ver `legal:compliance-check`).
-4. **Streaming**: expor `app.stream(...)` em vez de `app.invoke(...)` para
-   o vendedor acompanhar o debate em tempo real em uma UI.
-5. **Avaliação**: dataset de debates anotados para medir se as objeções
+4. **Avaliação**: dataset de debates anotados para medir se as objeções
    geradas batem com objeções reais coletadas pós-call (precision/recall
    de objeção).
