@@ -12,13 +12,17 @@ from __future__ import annotations
 import argparse
 import json
 import logging
+import re
 import sys
+from datetime import datetime, timezone
+from pathlib import Path
 
 from digital_twins.config import settings
 from digital_twins.llm.client import build_default_client
 from digital_twins.models import AccountContext, StakeholderRole
 from digital_twins.orchestration.graph import build_board_graph
 from digital_twins.personas.resolver import PersonaFactory
+from digital_twins.reporting import build_markdown_report
 
 
 def _sample_account() -> AccountContext:
@@ -62,6 +66,11 @@ def main() -> int:
     parser.add_argument("--mock", action="store_true", help="Use MockLLMClient (no API key needed)")
     parser.add_argument("--account", type=str, default=None, help="Path to a JSON AccountContext file")
     parser.add_argument("--max-rounds", type=int, default=settings.max_rounds)
+    parser.add_argument(
+        "--report-dir", type=str, default="reports",
+        help="Directory to write the sales-facing Markdown report into (default: reports/)",
+    )
+    parser.add_argument("--no-report", action="store_true", help="Skip writing the Markdown report")
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
@@ -114,6 +123,16 @@ def main() -> int:
     for t in verdict.recommended_talk_track:
         print(f"  - {t}")
     print(f"\nRisk summary: {verdict.risk_summary}")
+
+    if not args.no_report:
+        report = build_markdown_report(account, personas, final_state["transcript"], verdict)
+        report_dir = Path(args.report_dir)
+        report_dir.mkdir(parents=True, exist_ok=True)
+        slug = re.sub(r"[^a-z0-9]+", "-", account.account_name.lower()).strip("-")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        report_path = report_dir / f"{slug}-{timestamp}.md"
+        report_path.write_text(report, encoding="utf-8")
+        print(f"\nReport written to: {report_path}")
 
     return 0
 
