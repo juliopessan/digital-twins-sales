@@ -5,6 +5,7 @@ import json
 import logging
 
 from digital_twins.config import settings
+from digital_twins.i18n import to_pt_br, to_pt_br_list
 from digital_twins.llm.client import LLMClient
 from digital_twins.models import DebateVerdict, Sentiment, StakeholderRole
 from digital_twins.orchestration.state import BoardState
@@ -58,10 +59,10 @@ def make_synthesize_node(llm: LLMClient):
             verdict = DebateVerdict(
                 consensus_reached=parsed["consensus_reached"],
                 overall_sentiment=Sentiment(parsed["overall_sentiment"]),
-                top_objections=parsed["top_objections"],
+                top_objections=to_pt_br_list(parsed["top_objections"]),
                 blocking_stakeholders=[StakeholderRole(r) for r in parsed["blocking_stakeholders"]],
-                recommended_talk_track=parsed["recommended_talk_track"],
-                risk_summary=parsed["risk_summary"],
+                recommended_talk_track=to_pt_br_list(parsed["recommended_talk_track"]),
+                risk_summary=to_pt_br(parsed["risk_summary"]),
             )
         except (json.JSONDecodeError, KeyError, ValueError) as exc:
             logger.error("Synthesizer output failed validation (%s); raw=%r", exc, raw)

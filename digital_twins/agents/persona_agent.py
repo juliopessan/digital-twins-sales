@@ -12,6 +12,7 @@ import json
 import logging
 
 from digital_twins.config import settings
+from digital_twins.i18n import to_pt_br
 from digital_twins.llm.client import LLMClient
 from digital_twins.models import DebateTurn, Sentiment, StakeholderProfile, StakeholderRole
 from digital_twins.orchestration.state import BoardState
@@ -78,6 +79,7 @@ def make_persona_turn_node(llm: LLMClient):
             max_tokens=settings.max_tokens_persona_turn,
         )
         statement, sentiment = _parse_sentiment(raw)
+        statement = to_pt_br(statement)
 
         turn = DebateTurn(
             round_number=state["round_number"],

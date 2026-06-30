@@ -5,3 +5,5 @@ python-dotenv>=1.0
 pytest>=8.0
 streamlit>=1.38
 exa_py>=1.10
+deep-translator>=1.11
+langdetect>=1.0.9

@@ -147,6 +147,16 @@ tag `SENTIMENT: supportive|neutral|skeptical|blocking` e os campos
 `decision`/role values no JSON do facilitador e do sintetizador) — eles
 nunca aparecem para o usuário final, só circulam entre os nós do grafo.
 
+**Rede de segurança de tradução** (`digital_twins/i18n.py`): mesmo com os
+prompts em português, LLMs ocasionalmente escorregam para o inglês em
+trechos curtos. `to_pt_br()`/`to_pt_br_list()` detectam o idioma
+(`langdetect`) e traduzem automaticamente (`deep-translator`/Google
+Translate) qualquer fala de persona, objeção, item de talk track ou resumo
+de risco que não esteja em português — aplicado em `persona_agent.py` e
+`synthesizer.py`. Falha de forma segura: se a detecção/tradução der erro
+(sem rede, texto curto demais), o texto original é mantido em vez de
+quebrar o debate.
+
 ## Próximos passos (backlog sugerido)
 
 1. **Conector de dados reais**: expandir a pesquisa EXA (hoje só no
