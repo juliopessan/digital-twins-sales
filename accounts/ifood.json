@@ -1,0 +1,19 @@
+{
+  "account_name": "iFood",
+  "deal_stage": "Proposal sent, awaiting committee review",
+  "pitch_summary": "Multi-agent Gen AI platform to automate freight/logistics document processing, replacing a 14-person manual review team with a 3-person oversight team.",
+  "proposed_solution": "Azure-hosted agentic pipeline: OCR + extraction agents + human-in-the-loop exception handling, 18-week implementation, $640k Year 1 (license + services).",
+  "deal_value_usd": 640000,
+  "roles_in_committee": ["ceo", "cto", "cfo", "procurement"],
+  "real_data": {
+    "ceo": [
+      "Diego Barreto assumiu como CEO do iFood em 2026, sucedendo Fabricio Bloisi, que se tornou CEO global da Prosus/Naspers a partir de 1 de julho",
+      "Entrou no Grupo Movile em 2016 e está no iFood desde 2018, onde foi CFO e VP de Finanças e Estratégia antes de virar CEO",
+      "Prioridades públicas declaradas para 2026: consolidação do iFood Pago, aceleração do uso de IA generativa nas operações, e integração regional com a estratégia global da Prosus",
+      "Sob sua gestão, o iFood opera com 190 modelos proprietários de Machine Learning, com IA presente em mais de 80% dos pedidos (recomendação, roteirização de entrega, análise de imagem, automação de atendimento)",
+      "Projeta crescimento de R$ 40 bilhões em vendas em 2026 atribuído a IA aplicada ao negócio, com receita projetada de R$ 160 bilhões no ano",
+      "Visão pública declarada à CNN Brasil: quer o iFood reconhecido como 'a grande big tech brasileira', não apenas uma empresa de delivery — aposta em ecossistema (Pago, varejo, farmácias, restaurantes)",
+      "Dado esse histórico, tende a avaliar qualquer proposta de IA/automação pela lente de 'isso acelera nossa própria capacidade de IA proprietária ou é redundante com o que já construímos internamente (190 modelos in-house)?'"
+    ]
+  }
+}

@@ -19,7 +19,7 @@ class Settings:
 
     max_tokens_persona_turn: int = 400
     max_tokens_facilitator: int = 300
-    max_tokens_synthesis: int = 2000
+    max_tokens_synthesis: int = 4096
 
     max_rounds: int = int(os.getenv("DT_MAX_ROUNDS", "3"))
 
