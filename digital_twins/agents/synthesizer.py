@@ -20,7 +20,9 @@ Return STRICTLY a JSON object with this shape:
   "consensus_reached": bool,
   "overall_sentiment": "supportive" | "neutral" | "skeptical" | "blocking",
   "top_objections": [string, ...],
-  "blocking_stakeholders": [string, ...]   // role values, e.g. "cfo"
+  "blocking_stakeholders": [string, ...]   // MUST use only these exact role values:
+                                            // "cfo", "cto", "procurement", "end_user",
+                                            // "champion", "legal_compliance", "ceo", "security"
   "recommended_talk_track": [string, ...], // concrete, specific next-call advice
   "risk_summary": string
 }
