@@ -85,12 +85,26 @@ Abre automaticamente em **http://localhost:8501**. Pra parar o servidor,
 `Ctrl+C` no terminal.
 
 UI com tokens de design Avanade Style Guide (paleta, tipografia, componentes
-hero/arc/roadmap) e a transcrição do debate renderizada em estilo pixel-art
-(avatares por papel, balões de fala), inspirada em
-[pixel-agents-hq/pixel-agents](https://github.com/pixel-agents-hq/pixel-agents)
-— reimplementada nativamente em HTML/CSS aqui, já que aquele projeto é um
-visualizador TypeScript de sessões Claude Code (VS Code/terminal), não uma
-biblioteca Python embutível.
+hero/arc/roadmap).
+
+### Sala de reunião (Office canvas)
+
+`digital_twins/office.py` é um port generalizado do **Squad Office** de
+[juliopessan/arch-review-assistant](https://github.com/juliopessan/arch-review-assistant)
+(`web/squad_office.py`): mesmo motor de canvas pixel-art (sprites, mesas,
+balões de fala, máquina de estados `idle → walk → working → done`),
+adaptado para um número arbitrário de personas em vez do squad fixo de 9
+agentes — o Facilitador entra como o personagem que "anda mesa a mesa" (o
+papel do Agent Manager lá), e o Sintetizador ganha sua própria mesa.
+
+Mesma lógica de workflow da aba Squad Office: uma thread em background
+roda o grafo LangGraph via `app.stream(...)` e empurra eventos
+`start`/`done` por nó numa fila; a thread principal do Streamlit consome
+essa fila dentro de um `st.spinner`, e um `st.rerun()` ao final garante
+que o canvas mostre os estados finais corretos por persona. A animação
+ambiente (idle/caminhada) toca client-side via JS enquanto o backend
+processa; os estados precisos (`done`/`error`) só aparecem no rerender
+pós-conclusão.
 
 Na barra lateral dá pra escolher a conta (exemplo Northwind, qualquer
 arquivo em `accounts/`, ou upload de um JSON customizado), alternar entre

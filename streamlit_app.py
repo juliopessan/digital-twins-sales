@@ -4,23 +4,36 @@ Streamlit front-end for the Sales Digital Twins board simulator.
     streamlit run streamlit_app.py
 
 Visual language: Avanade design tokens (palette, typography, components)
-applied to the report layout; the debate transcript itself is rendered as a
-pixel-art "office" of stakeholder characters with speech bubbles, inspired by
-pixel-agents-hq/pixel-agents (a Claude Code session visualizer) — reimplemented
-natively in HTML/CSS here since that project is TypeScript-only and purpose-built
-for VS Code/terminal hook events, not portable as a Python dependency.
+applied to the report layout. The live debate is rendered as a pixel-art
+"office" canvas — same workflow logic as the Squad Office tab in
+juliopessan/arch-review-assistant: a background thread runs the LangGraph
+debate via .stream() and pushes start/done events per node into a queue;
+the main thread polls the queue inside a spinner and reruns once finished
+so the canvas bakes in the accurate final per-persona states. The canvas
+engine itself (sprites, desks, bubbles, state machine) is a generalized
+port of that project's web/squad_office.py — see digital_twins/office.py.
 """
 from __future__ import annotations
 
 import html
 import json
+import threading
 from pathlib import Path
+from queue import Empty, Queue
 
 import streamlit as st
 
 from digital_twins.config import settings
 from digital_twins.llm.client import build_default_client
 from digital_twins.models import AccountContext, StakeholderRole
+from digital_twins.office import (
+    FACILITATOR_KEY,
+    SYNTHESIZER_KEY,
+    build_agent_defs,
+    build_agent_states,
+    build_layout,
+    build_office_html,
+)
 from digital_twins.orchestration.graph import build_board_graph
 from digital_twins.personas.resolver import PersonaFactory
 from digital_twins.reporting import build_html_report, build_markdown_report
@@ -262,6 +275,60 @@ def render_pixel_office(transcript) -> None:
     st.markdown("".join(parts), unsafe_allow_html=True)
 
 
+def _run_debate_with_events(app, initial_state: dict, q: Queue) -> None:
+    """Runs the LangGraph debate via .stream(), pushing start/done events into
+    `q` per node so the office canvas can show accurate per-persona states on
+    the rerun after completion. Same thread+queue pattern as arch-review-assistant's
+    EventSquad — lookahead is used to emit a "start" event for whoever speaks next
+    *before* blocking on the LLM call for their turn."""
+    transcript: list = []
+    verdict = None
+    speaking_order: list[str] = []
+    next_idx = 0
+    try:
+        q.put({"event": "start", "agent": FACILITATOR_KEY})
+        for step in app.stream(initial_state, stream_mode="updates"):
+            for node_name, update in step.items():
+                if node_name == "start_round":
+                    q.put({"event": "done", "agent": FACILITATOR_KEY})
+                    speaking_order = update.get("speaking_order", [])
+                    next_idx = 0
+                    if speaking_order:
+                        q.put({"event": "start", "agent": speaking_order[0]})
+                elif node_name == "persona_turn":
+                    turn = update["transcript"][0]
+                    transcript.append(turn)
+                    q.put({"event": "done", "agent": turn.role.value})
+                    next_idx += 1
+                    if next_idx < len(speaking_order):
+                        q.put({"event": "start", "agent": speaking_order[next_idx]})
+                    else:
+                        q.put({"event": "start", "agent": FACILITATOR_KEY})
+                elif node_name == "evaluate_round":
+                    q.put({"event": "done", "agent": FACILITATOR_KEY})
+                    if update.get("facilitator_decision") == "conclude":
+                        q.put({"event": "start", "agent": SYNTHESIZER_KEY})
+                    else:
+                        q.put({"event": "start", "agent": FACILITATOR_KEY})
+                elif node_name == "synthesize":
+                    verdict = update["verdict"]
+                    q.put({"event": "done", "agent": SYNTHESIZER_KEY})
+        q.put({"event": "result", "transcript": transcript, "verdict": verdict})
+    except Exception as exc:
+        q.put({"event": "error", "agent": "squad", "error": str(exc)})
+    finally:
+        q.put({"event": "finished"})
+
+
+def render_office(personas, log: list[dict]) -> None:
+    agent_defs = build_agent_defs(personas)
+    layout, ncols, nrows = build_layout(len(personas))
+    keys = [d["key"] for d in agent_defs]
+    agent_states = build_agent_states(log, keys)
+    office_html = build_office_html(agent_defs, layout, ncols, nrows, agent_states)
+    st.iframe(office_html, height="content")
+
+
 def render_roadmap(items: list[str]) -> None:
     for i, item in enumerate(items, start=1):
         st.markdown(
@@ -320,27 +387,57 @@ def main() -> None:
         personas = PersonaFactory.build_committee(account)
         llm = build_default_client(mock=mock_mode, api_key=api_key)
         app = build_board_graph(llm)
+        initial_state = {
+            "account": account,
+            "personas": personas,
+            "round_number": 0,
+            "max_rounds": max_rounds,
+            "transcript": [],
+            "current_index": 0,
+            "speaking_order": [],
+            "facilitator_decision": "continue",
+        }
 
+        st.markdown('<div class="ava-section-bar">Sala de reunião</div>', unsafe_allow_html=True)
+        render_office(personas, [])
+
+        q: Queue = Queue()
+        t = threading.Thread(target=_run_debate_with_events, args=(app, initial_state, q), daemon=True)
+        t.start()
+
+        log: list[dict] = []
+        transcript = None
+        verdict = None
+        error_msg = None
         with st.spinner("Rodando o debate do comitê..."):
-            final_state = app.invoke(
-                {
-                    "account": account,
-                    "personas": personas,
-                    "round_number": 0,
-                    "max_rounds": max_rounds,
-                    "transcript": [],
-                    "current_index": 0,
-                    "speaking_order": [],
-                    "facilitator_decision": "continue",
-                }
-            )
+            while True:
+                try:
+                    ev = q.get(timeout=180)
+                except Empty:
+                    st.error("O debate expirou após 3 minutos.")
+                    break
+                if ev["event"] in ("start", "done"):
+                    log.append(ev)
+                elif ev["event"] == "result":
+                    transcript = ev["transcript"]
+                    verdict = ev["verdict"]
+                elif ev["event"] == "error":
+                    error_msg = ev.get("error", "erro desconhecido")
+                elif ev["event"] == "finished":
+                    break
+
+        if error_msg:
+            st.error(f"Falha no debate: {error_msg}")
+            st.stop()
 
         st.session_state["result"] = {
             "account": account,
             "personas": personas,
-            "transcript": final_state["transcript"],
-            "verdict": final_state["verdict"],
+            "transcript": transcript,
+            "verdict": verdict,
+            "office_log": log,
         }
+        st.rerun()
 
     result = st.session_state.get("result")
     if not result:
@@ -351,6 +448,7 @@ def main() -> None:
     personas = result["personas"]
     transcript = result["transcript"]
     verdict = result["verdict"]
+    office_log = result.get("office_log", [])
 
     render_hero(account)
     render_arc(verdict)
@@ -364,7 +462,10 @@ def main() -> None:
                 f"**{ROLE_ICON.get(p.role, '🧑')} {p.name}**  \n{p.role.value} · {source_label}  \nVeto: {p.decision_power:.2f}"
             )
 
-    st.markdown('<div class="ava-section-bar">Debate simulado</div>', unsafe_allow_html=True)
+    st.markdown('<div class="ava-section-bar">Sala de reunião</div>', unsafe_allow_html=True)
+    render_office(personas, office_log)
+
+    st.markdown('<div class="ava-section-bar">Transcrição do debate</div>', unsafe_allow_html=True)
     render_pixel_office(transcript)
 
     st.markdown('<div class="ava-section-bar">Principais objeções</div>', unsafe_allow_html=True)
