@@ -40,21 +40,40 @@ continuar, escalar (reordenar para dar a palavra final ao stakeholder de
 maior poder de veto que levantou um bloqueio) ou concluir. As personas não
 têm lógica de orquestração — só geram conteúdo de personagem.
 
-## Rodando
+## Setup local (terminal)
 
 ```bash
+# 1. Dentro da pasta do projeto, crie e ative um virtualenv
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+
+# 2. Instale as dependências (inclui o Streamlit)
 pip install -r requirements.txt
 
+# 3. (Opcional, só se for rodar com Claude de verdade) configure a chave
+cp .env.example .env
+# edite o .env e preencha ANTHROPIC_API_KEY=sk-ant-...
+```
+
+Sem o passo 3, tudo funciona em **modo mock** (determinístico, sem custo de
+API) — tanto na CLI (`--mock`) quanto no Streamlit (checkbox "Modo mock"
+já vem marcado por padrão).
+
+## CLI
+
+```bash
 # Sem chave de API — usa MockLLMClient, determinístico, valida o grafo:
 python -m digital_twins.main --mock -v
 
-# Com Claude de verdade:
-export ANTHROPIC_API_KEY=sk-ant-...
+# Com Claude de verdade (precisa do .env ou export ANTHROPIC_API_KEY=sk-ant-...):
 python -m digital_twins.main -v
 
-# Com uma conta real (JSON no shape de AccountContext):
-python -m digital_twins.main --account minha_conta.json -v
+# Com uma conta real (JSON no shape de AccountContext, ex: accounts/ifood.json):
+python -m digital_twins.main --account accounts/ifood.json -v
 ```
+
+Cada run grava um relatório em `.md` e um em `.html` (estilizado, ver
+seção abaixo) dentro de `reports/`.
 
 ## Interface Streamlit
 
@@ -62,16 +81,23 @@ python -m digital_twins.main --account minha_conta.json -v
 streamlit run streamlit_app.py
 ```
 
+Abre automaticamente em **http://localhost:8501**. Pra parar o servidor,
+`Ctrl+C` no terminal.
+
 UI com tokens de design Avanade Style Guide (paleta, tipografia, componentes
 hero/arc/roadmap) e a transcrição do debate renderizada em estilo pixel-art
 (avatares por papel, balões de fala), inspirada em
 [pixel-agents-hq/pixel-agents](https://github.com/pixel-agents-hq/pixel-agents)
 — reimplementada nativamente em HTML/CSS aqui, já que aquele projeto é um
 visualizador TypeScript de sessões Claude Code (VS Code/terminal), não uma
-biblioteca Python embutível. Permite escolher conta (exemplo, arquivo em
-`accounts/`, ou upload de JSON customizado), rodar em modo mock ou com chave
-Anthropic real (digitada na sessão, nunca salva em disco), e baixar o
-relatório `.md` ao final.
+biblioteca Python embutível.
+
+Na barra lateral dá pra escolher a conta (exemplo Northwind, qualquer
+arquivo em `accounts/`, ou upload de um JSON customizado), alternar entre
+modo mock e chave Anthropic real (digitada na sessão, nunca salva em
+disco), e ajustar o número máximo de rounds. Ao final, dois botões de
+download: relatório `.md` simples e relatório `.html` estilizado
+(Avanade), prontos pra enviar pro time de vendas.
 
 ## Testes
 
