@@ -696,7 +696,14 @@ def main() -> None:
         }
 
         st.markdown('<div class="ava-section-bar">Sala de reunião</div>', unsafe_allow_html=True)
-        render_office(personas, [])
+        office_container = st.empty()
+        # Initial render com log vazio
+        agent_defs = build_agent_defs(personas)
+        layout, ncols, nrows = build_layout(len(personas))
+        keys = [d["key"] for d in agent_defs]
+        agent_states = build_agent_states([], keys)
+        office_html = build_office_html(agent_defs, layout, ncols, nrows, agent_states)
+        office_container.html(office_html)
 
         q: Queue = Queue()
         t = threading.Thread(target=_run_debate_with_events, args=(app, initial_state, q), daemon=True)
@@ -715,6 +722,13 @@ def main() -> None:
                     break
                 if ev["event"] in ("start", "done"):
                     log.append(ev)
+                    # ✨ Real-time office canvas update
+                    agent_defs = build_agent_defs(personas)
+                    layout, ncols, nrows = build_layout(len(personas))
+                    keys = [d["key"] for d in agent_defs]
+                    agent_states = build_agent_states(log, keys)
+                    office_html = build_office_html(agent_defs, layout, ncols, nrows, agent_states)
+                    office_container.html(office_html)
                 elif ev["event"] == "result":
                     transcript = ev["transcript"]
                     verdict = ev["verdict"]
