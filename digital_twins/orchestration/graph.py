@@ -40,14 +40,14 @@ from digital_twins.llm.client import LLMClient
 from digital_twins.orchestration.state import BoardState
 
 
-def build_board_graph(llm: LLMClient):
+def build_board_graph(llm: LLMClient, feedback_block: str = ""):
     """Assemble and compile the hierarchical debate graph for a given LLMClient."""
     graph = StateGraph(BoardState)
 
     graph.add_node("start_round", start_round)
-    graph.add_node("persona_turn", make_persona_turn_node(llm))
+    graph.add_node("persona_turn", make_persona_turn_node(llm, feedback_block))
     graph.add_node("evaluate_round", make_evaluate_round_node(llm))
-    graph.add_node("synthesize", make_synthesize_node(llm))
+    graph.add_node("synthesize", make_synthesize_node(llm, feedback_block))
 
     graph.add_edge(START, "start_round")
     graph.add_edge("start_round", "persona_turn")

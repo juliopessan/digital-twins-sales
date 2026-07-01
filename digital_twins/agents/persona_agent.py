@@ -57,7 +57,7 @@ def _parse_sentiment(raw_text: str) -> tuple[str, Sentiment]:
     return statement, sentiment
 
 
-def make_persona_turn_node(llm: LLMClient):
+def make_persona_turn_node(llm: LLMClient, feedback_block: str = ""):
     """Factory returning a LangGraph node bound to a given LLMClient."""
 
     def persona_turn(state: BoardState) -> dict:
@@ -82,8 +82,13 @@ def make_persona_turn_node(llm: LLMClient):
             "Agora é a sua vez de falar. Dê sua fala para esta rodada."
         )
 
+        base_system = persona.system_prompt or ""
+        if feedback_block:
+            base_system = feedback_block + "\n\n" + base_system
+        base_system += _SENTIMENT_TAGGING_SUFFIX
+
         raw = llm.complete(
-            system=(persona.system_prompt or "") + _SENTIMENT_TAGGING_SUFFIX,
+            system=base_system,
             user=user_prompt,
             model=settings.persona_model,
             max_tokens=settings.max_tokens_persona_turn,

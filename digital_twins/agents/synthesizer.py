@@ -83,7 +83,7 @@ def _parse_seller_coaching(sc: dict | None) -> SellerCoaching | None:
     )
 
 
-def make_synthesize_node(llm: LLMClient):
+def make_synthesize_node(llm: LLMClient, feedback_block: str = ""):
     def synthesize(state: BoardState) -> dict:
         transcript = state.get("transcript", [])
         full_text = "\n".join(
@@ -92,6 +92,8 @@ def make_synthesize_node(llm: LLMClient):
 
         account = state["account"]
         system_prompt = _SYNTHESIS_SYSTEM_PROMPT
+        if feedback_block:
+            system_prompt = feedback_block + "\n\n" + system_prompt
         user_content = f"Transcrição completa:\n{full_text}"
         if account.seller_opening:
             system_prompt = _SYNTHESIS_SYSTEM_PROMPT + _SELLER_COACHING_ADDENDUM

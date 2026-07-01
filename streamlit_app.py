@@ -24,6 +24,15 @@ from queue import Empty, Queue
 import streamlit as st
 
 from digital_twins.config import settings
+from digital_twins.feedback import (
+    MAX_ENTRIES,
+    add_feedback,
+    all_accounts_with_feedback,
+    build_feedback_prompt_block,
+    clear_feedback,
+    load_feedback,
+    remove_feedback,
+)
 from digital_twins.llm.client import build_default_client
 from digital_twins.models import AccountContext, StakeholderRole
 from digital_twins.office import (
@@ -448,6 +457,133 @@ def render_manual_account_form() -> AccountContext | None:
     )
 
 
+# ── Feedback UI helpers ────────────────────────────────────────────────────────
+
+
+def _render_objections_with_feedback(verdict, account_slug: str) -> None:
+    """Renders top_objections with 👍/👎 feedback buttons (Feedback Loop)."""
+    feedback_entries = load_feedback(account_slug)
+    existing_texts = {e["text"]: e for e in feedback_entries}
+
+    if "feedback_modal" not in st.session_state:
+        st.session_state.feedback_modal = {}
+
+    for i, obj in enumerate(verdict.top_objections):
+        existing = existing_texts.get(obj)
+        col_text, col_approve, col_reject = st.columns([7, 1, 1])
+
+        with col_text:
+            if existing is None:
+                st.markdown(f"- {obj}")
+            elif existing["approved"]:
+                st.markdown(f"✅ {obj}")
+            else:
+                reason_part = f" *(motivo: {existing['reason']})*" if existing.get("reason") else ""
+                st.markdown(f"~~{obj}~~{reason_part} ❌")
+
+        with col_approve:
+            if existing is None:
+                if st.button("👍", key=f"approve_{account_slug}_{i}", help="Aprovar — buscar padrões similares em futuras simulações"):
+                    add_feedback(account_slug, obj, approved=True)
+                    st.rerun()
+            elif existing["approved"] and st.button("↩", key=f"undo_approve_{account_slug}_{i}", help="Desfazer aprovação"):
+                remove_feedback(account_slug, obj)
+                st.rerun()
+
+        with col_reject:
+            if existing is None:
+                if st.button("👎", key=f"reject_{account_slug}_{i}", help="Rejeitar — não levantar novamente em futuras simulações"):
+                    st.session_state.feedback_modal[i] = {"text": obj, "step": "reason"}
+                    st.rerun()
+            elif not existing["approved"] and st.button("↩", key=f"undo_reject_{account_slug}_{i}", help="Desfazer rejeição"):
+                remove_feedback(account_slug, obj)
+                st.rerun()
+
+        # Rejection modal: capture optional reason
+        if st.session_state.feedback_modal.get(i, {}).get("step") == "reason":
+            with st.container(border=True):
+                st.caption(f"Rejeitando: *{obj}*")
+                reason = st.text_input(
+                    "Por que rejeitar? (opcional)",
+                    key=f"reason_{account_slug}_{i}",
+                    placeholder="Ex: Já temos WAF que mitiga isso",
+                )
+                c1, c2 = st.columns(2)
+                with c1:
+                    if st.button("Confirmar rejeição", key=f"confirm_{account_slug}_{i}", type="primary"):
+                        add_feedback(account_slug, obj, approved=False, reason=reason or None)
+                        del st.session_state.feedback_modal[i]
+                        st.rerun()
+                with c2:
+                    if st.button("Cancelar", key=f"cancel_{account_slug}_{i}"):
+                        del st.session_state.feedback_modal[i]
+                        st.rerun()
+
+    if not verdict.top_objections:
+        st.info("Nenhuma objeção registrada nesta simulação.")
+
+    used = len(feedback_entries)
+    if used > 0:
+        st.caption(f"💾 Feedback desta conta: {used}/{MAX_ENTRIES} entradas · veja a aba 🧠 Memory para detalhes")
+
+
+def _render_memory_dashboard(account_slug: str) -> None:
+    """Memory tab: Feedback Loop dashboard."""
+    st.markdown('<div class="ava-section-bar">Feedback Loop — Sistema Imune</div>', unsafe_allow_html=True)
+    st.markdown(
+        "Inspirado no princípio: *\u201cAgents are 30% of the work. The other 70% is the immune system.\u201d*  \n"
+        "Aprovações e rejeições condicionam simulações futuras via injeção direta no prompt de sistema.",
+        unsafe_allow_html=False,
+    )
+
+    all_accounts = all_accounts_with_feedback()
+    if not all_accounts:
+        st.info(
+            "Nenhum feedback registrado ainda.  \n"
+            "Aprove (👍) ou rejeite (👎) objeções na aba **📋 Veredito** para alimentar o sistema."
+        )
+        return
+
+    # ── Current account ───────────────────────────────────────────────────────
+    entries = load_feedback(account_slug)
+    approved_entries = [e for e in entries if e["approved"]]
+    rejected_entries = [e for e in entries if not e["approved"]]
+
+    col1, col2, col3 = st.columns(3)
+    col1.metric("📊 Total de entradas", f"{len(entries)}/{MAX_ENTRIES}")
+    col2.metric("✅ Aprovados", len(approved_entries))
+    col3.metric("❌ Rejeitados", len(rejected_entries))
+
+    if entries:
+        st.markdown("**Histórico (mais recentes primeiro):**")
+        for e in reversed(entries):
+            badge = "✅" if e["approved"] else "❌"
+            reason_part = f" — *{e['reason']}*" if e.get("reason") else ""
+            st.markdown(f"{badge} `{e['date']}` {e['text']}{reason_part}")
+
+        st.markdown("---")
+        if st.button("🗑️ Limpar feedback desta conta", type="secondary", key="clear_feedback_btn"):
+            clear_feedback(account_slug)
+            st.success("Feedback desta conta apagado.")
+            st.rerun()
+    else:
+        st.info(f"Sem feedback registrado para **{account_slug}** ainda.")
+
+    # ── Other accounts summary ────────────────────────────────────────────────
+    other_accounts = [a for a in all_accounts if a != account_slug]
+    if other_accounts:
+        st.markdown("---")
+        st.markdown("**Outras contas com feedback:**")
+        for acct in other_accounts:
+            acct_entries = load_feedback(acct)
+            n_approved = sum(1 for e in acct_entries if e["approved"])
+            n_rejected = sum(1 for e in acct_entries if not e["approved"])
+            st.markdown(
+                f"- `{acct}` — {len(acct_entries)}/{MAX_ENTRIES} entradas "
+                f"(✅ {n_approved} · ❌ {n_rejected})"
+            )
+
+
 def main() -> None:
     st.set_page_config(page_title="Sales Digital Twins — Board Simulator", layout="wide")
     _inject_avanade_theme()
@@ -475,9 +611,8 @@ def main() -> None:
         uploaded = None
         account = None
         account_type, account_path = account_options[choice]
-        
+
         if account_type == "file":
-            # Automatically load file account
             account = AccountContext.model_validate(json.loads(account_path.read_text(encoding="utf-8")))
             with st.expander("📋 Dados carregados", expanded=False):
                 st.markdown(f"**Empresa:** {account.account_name}")
@@ -502,11 +637,10 @@ def main() -> None:
             height=100,
         )
 
-        # Initialize session state for API key persistence
+        # API key
         if "anthropic_api_key" not in st.session_state:
             st.session_state.anthropic_api_key = settings.anthropic_api_key or ""
 
-        # If API key is already loaded from config, show it's loaded; otherwise ask for input
         if settings.anthropic_api_key:
             st.success("✓ API Key carregada de variável de ambiente (.env)")
             api_key = settings.anthropic_api_key
@@ -516,13 +650,22 @@ def main() -> None:
                 type="password",
                 value=st.session_state.anthropic_api_key,
                 key="api_key_input",
-                on_change=lambda: st.session_state.update({"anthropic_api_key": st.session_state.api_key_input})
+                on_change=lambda: st.session_state.update({"anthropic_api_key": st.session_state.api_key_input}),
             )
             st.caption("💡 Dica: Adicione sua chave em um arquivo `.env` para carregar automaticamente")
 
         max_rounds = st.slider("Máximo de rounds", 1, 5, settings.max_rounds)
+
+        # Feedback summary badge
+        if account:
+            _slug_preview = account.account_name.lower().replace(" ", "-")
+            _fb = load_feedback(_slug_preview)
+            if _fb:
+                st.caption(f"🧠 Feedback desta conta: {len(_fb)}/{MAX_ENTRIES} entradas")
+
         run_clicked = st.button("Rodar simulação", type="primary", use_container_width=True)
 
+    # ── Run ───────────────────────────────────────────────────────────────────
     if run_clicked:
         if account is None:
             st.error("Nenhuma conta foi carregada. Selecione uma conta existente ou envie um arquivo customizado.")
@@ -535,9 +678,12 @@ def main() -> None:
         if seller_opening.strip():
             account = account.model_copy(update={"seller_opening": seller_opening.strip()})
 
+        account_slug = account.account_name.lower().replace(" ", "-")
+        feedback_block = build_feedback_prompt_block(account_slug)
+
         personas = PersonaFactory.build_committee(account)
         llm = build_default_client(api_key=api_key)
-        app = build_board_graph(llm)
+        app = build_board_graph(llm, feedback_block)
         initial_state = {
             "account": account,
             "personas": personas,
@@ -590,6 +736,7 @@ def main() -> None:
         }
         st.rerun()
 
+    # ── Results (tabs) ────────────────────────────────────────────────────────
     result = st.session_state.get("result")
     if not result:
         st.info("Configure a conta na barra lateral e clique em **Rodar simulação** para começar.")
@@ -600,80 +747,106 @@ def main() -> None:
     transcript = result["transcript"]
     verdict = result["verdict"]
     office_log = result.get("office_log", [])
+    account_slug = account.account_name.lower().replace(" ", "-")
 
     render_hero(account)
-    render_arc(verdict)
 
-    st.markdown('<div class="ava-section-bar">Comitê simulado</div>', unsafe_allow_html=True)
-    cols = st.columns(len(personas))
-    for col, p in zip(cols, personas):
-        with col:
-            source_label = "Dados reais" if p.source.value == "real" else "Arquétipo"
-            st.markdown(
-                f"**{ROLE_ICON.get(p.role, '🧑')} {p.name}**  \n{p.role.value} · {source_label}  \nVeto: {p.decision_power:.2f}"
+    tab_sim, tab_office, tab_verdict, tab_coach, tab_export, tab_memory = st.tabs(
+        ["🎯 Simulação", "🎨 Office", "📋 Veredito", "👔 Coach", "📤 Export", "🧠 Memory"]
+    )
+
+    # ── Tab 🎯 Simulação ──────────────────────────────────────────────────────
+    with tab_sim:
+        render_arc(verdict)
+
+        st.markdown('<div class="ava-section-bar">Comitê simulado</div>', unsafe_allow_html=True)
+        cols = st.columns(len(personas))
+        for col, p in zip(cols, personas):
+            with col:
+                source_label = "Dados reais" if p.source.value == "real" else "Arquétipo"
+                st.markdown(
+                    f"**{ROLE_ICON.get(p.role, '🧑')} {p.name}**  \n"
+                    f"{p.role.value} · {source_label}  \nVeto: {p.decision_power:.2f}"
+                )
+
+        if account.seller_opening:
+            st.markdown('<div class="ava-section-bar">Sua fala de abertura</div>', unsafe_allow_html=True)
+            st.info(account.seller_opening)
+
+    # ── Tab 🎨 Office ─────────────────────────────────────────────────────────
+    with tab_office:
+        st.markdown('<div class="ava-section-bar">Sala de reunião</div>', unsafe_allow_html=True)
+        render_office(personas, office_log)
+
+        st.markdown('<div class="ava-section-bar">Transcrição do debate</div>', unsafe_allow_html=True)
+        render_pixel_office(transcript)
+
+    # ── Tab 📋 Veredito ───────────────────────────────────────────────────────
+    with tab_verdict:
+        st.markdown('<div class="ava-section-bar">Principais objeções</div>', unsafe_allow_html=True)
+        _render_objections_with_feedback(verdict, account_slug)
+
+        if verdict.meddpicc_scorecard:
+            st.markdown('<div class="ava-section-bar">Scorecard MEDDPICC</div>', unsafe_allow_html=True)
+            for dimension, assessment in verdict.meddpicc_scorecard.items():
+                st.markdown(f"**{dimension}:** {assessment}")
+
+        st.markdown('<div class="ava-section-bar">Plano de ação recomendado</div>', unsafe_allow_html=True)
+        render_roadmap(verdict.recommended_talk_track)
+
+        st.markdown('<div class="ava-section-bar">Avaliação de risco</div>', unsafe_allow_html=True)
+        st.write(verdict.risk_summary)
+
+    # ── Tab 👔 Coach ──────────────────────────────────────────────────────────
+    with tab_coach:
+        if verdict.seller_coaching:
+            sc = verdict.seller_coaching
+            st.markdown('<div class="ava-section-bar">Coach — avaliação do seu pitch</div>', unsafe_allow_html=True)
+            st.markdown(f"**Nota:** {sc.pitch_grade}")
+            if sc.what_landed:
+                st.markdown("**O que funcionou:**")
+                for item in sc.what_landed:
+                    st.markdown(f"- {item}")
+            if sc.what_backfired:
+                st.markdown("**O que saiu pela culatra:**")
+                for item in sc.what_backfired:
+                    st.markdown(f"- {item}")
+            if sc.rewrite_suggestions:
+                st.markdown("**Sugestões de reescrita:**")
+                render_roadmap(sc.rewrite_suggestions)
+        else:
+            st.info(
+                "Preencha **Sua fala de abertura** na barra lateral antes de rodar "
+                "para receber feedback de coach personalizado."
             )
 
-    if account.seller_opening:
-        st.markdown('<div class="ava-section-bar">Sua fala de abertura</div>', unsafe_allow_html=True)
-        st.info(account.seller_opening)
+    # ── Tab 📤 Export ─────────────────────────────────────────────────────────
+    with tab_export:
+        st.markdown('<div class="ava-section-bar">Exportar relatório</div>', unsafe_allow_html=True)
+        report_md = build_markdown_report(account, personas, transcript, verdict)
+        report_html = build_html_report(account, personas, transcript, verdict)
+        slug = account_slug
+        dl_col1, dl_col2 = st.columns(2)
+        with dl_col1:
+            st.download_button(
+                "📄 Baixar relatório (.md)",
+                data=report_md,
+                file_name=f"{slug}-report.md",
+                mime="text/markdown",
+                use_container_width=True,
+            )
+        with dl_col2:
+            st.download_button(
+                "🌐 Baixar relatório estilizado (.html)",
+                data=report_html,
+                file_name=f"{slug}-report.html",
+                mime="text/html",
+                use_container_width=True,
+            )
 
-    st.markdown('<div class="ava-section-bar">Sala de reunião</div>', unsafe_allow_html=True)
-    render_office(personas, office_log)
-
-    st.markdown('<div class="ava-section-bar">Transcrição do debate</div>', unsafe_allow_html=True)
-    render_pixel_office(transcript)
-
-    st.markdown('<div class="ava-section-bar">Principais objeções</div>', unsafe_allow_html=True)
-    for o in verdict.top_objections:
-        st.markdown(f"- {o}")
-
-    st.markdown('<div class="ava-section-bar">Plano de ação recomendado</div>', unsafe_allow_html=True)
-    render_roadmap(verdict.recommended_talk_track)
-
-    st.markdown('<div class="ava-section-bar">Avaliação de risco</div>', unsafe_allow_html=True)
-    st.write(verdict.risk_summary)
-
-    if verdict.meddpicc_scorecard:
-        st.markdown('<div class="ava-section-bar">Scorecard MEDDPICC</div>', unsafe_allow_html=True)
-        for dimension, assessment in verdict.meddpicc_scorecard.items():
-            st.markdown(f"**{dimension}:** {assessment}")
-
-    if verdict.seller_coaching:
-        sc = verdict.seller_coaching
-        st.markdown('<div class="ava-section-bar">Coach — avaliação do seu pitch</div>', unsafe_allow_html=True)
-        st.markdown(f"**Nota:** {sc.pitch_grade}")
-        if sc.what_landed:
-            st.markdown("**O que funcionou:**")
-            for item in sc.what_landed:
-                st.markdown(f"- {item}")
-        if sc.what_backfired:
-            st.markdown("**O que saiu pela culatra:**")
-            for item in sc.what_backfired:
-                st.markdown(f"- {item}")
-        if sc.rewrite_suggestions:
-            st.markdown("**Sugestões de reescrita:**")
-            render_roadmap(sc.rewrite_suggestions)
-
-    report_md = build_markdown_report(account, personas, transcript, verdict)
-    report_html = build_html_report(account, personas, transcript, verdict)
-    slug = account.account_name.lower().replace(" ", "-")
-    dl_col1, dl_col2 = st.columns(2)
-    with dl_col1:
-        st.download_button(
-            "Baixar relatório (.md)",
-            data=report_md,
-            file_name=f"{slug}-report.md",
-            mime="text/markdown",
-            use_container_width=True,
-        )
-    with dl_col2:
-        st.download_button(
-            "Baixar relatório estilizado (.html)",
-            data=report_html,
-            file_name=f"{slug}-report.html",
-            mime="text/html",
-            use_container_width=True,
-        )
+    # ── Tab 🧠 Memory ─────────────────────────────────────────────────────────
+    with tab_memory:
+        _render_memory_dashboard(account_slug)
 
     st.markdown(
         '<div class="ava-footnote">Visual: tokens de design Avanade Style Guide v1.1 · '
