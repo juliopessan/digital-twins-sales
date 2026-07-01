@@ -502,8 +502,23 @@ def main() -> None:
             height=100,
         )
 
-        api_key = st.text_input("Anthropic API Key", type="password", value=settings.anthropic_api_key or "")
-        st.caption("A chave é usada só em memória nesta sessão — não é salva em disco.")
+        # Initialize session state for API key persistence
+        if "anthropic_api_key" not in st.session_state:
+            st.session_state.anthropic_api_key = settings.anthropic_api_key or ""
+
+        # If API key is already loaded from config, show it's loaded; otherwise ask for input
+        if settings.anthropic_api_key:
+            st.success("✓ API Key carregada de variável de ambiente (.env)")
+            api_key = settings.anthropic_api_key
+        else:
+            api_key = st.text_input(
+                "Anthropic API Key",
+                type="password",
+                value=st.session_state.anthropic_api_key,
+                key="api_key_input",
+                on_change=lambda: st.session_state.update({"anthropic_api_key": st.session_state.api_key_input})
+            )
+            st.caption("💡 Dica: Adicione sua chave em um arquivo `.env` para carregar automaticamente")
 
         max_rounds = st.slider("Máximo de rounds", 1, 5, settings.max_rounds)
         run_clicked = st.button("Rodar simulação", type="primary", use_container_width=True)
