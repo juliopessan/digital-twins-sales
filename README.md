@@ -1,10 +1,18 @@
 # Sales Digital Twins — Hierarchical Multi-Agent Stakeholder Debate
 
-MVP de um sistema multiagente em Python, orquestrado hierarquicamente via
-LangGraph, que simula debates entre personas de um comitê de compra
-(CFO, CTO, Procurement, Champion, etc.) para apoiar o time de vendas a
-testar pitch, antecipar objeções e calibrar talk track antes de uma
-reunião real.
+Sistema multiagente em Python, orquestrado hierarquicamente via LangGraph,
+que simula debates entre personas de um comitê de compra (CFO, CTO,
+Procurement, Champion, etc.) para apoiar o time de vendas a testar pitch,
+antecipar objeções e calibrar talk track antes de uma reunião real.
+
+Roda em **dois modos**, com o mesmo pipeline:
+
+- **War-gaming de deal** (autônomo): o comitê debate sozinho a sua proposta
+  e você lê o relatório. "Antes da call, veja como o comitê vai despedaçar
+  seu deal."
+- **Simulador de treino** (com a sua fala): você cola o seu pitch de
+  abertura, as personas reagem às suas **palavras reais**, e um **Coach**
+  avalia como o pitch se sustentou e reescreve as falas fracas.
 
 ## Conceito chave: fallback real → arquétipo
 
@@ -39,6 +47,25 @@ O `Facilitator` é o supervisor: decide ordem de fala e se o debate deve
 continuar, escalar (reordenar para dar a palavra final ao stakeholder de
 maior poder de veto que levantou um bloqueio) ou concluir. As personas não
 têm lógica de orquestração — só geram conteúdo de personagem.
+
+## Pitch de abertura do vendedor + Coach (MEDDPICC)
+
+O campo opcional `AccountContext.seller_opening` guarda a **fala real do
+vendedor** (o pitch como ele vai dizer, com as palavras dele):
+
+- **Em branco** → o comitê debate de forma autônoma (war-gaming), reagindo
+  apenas ao `pitch_summary` abstrato. Comportamento padrão, inalterado.
+- **Preenchido** → cada persona reage às **palavras exatas** do vendedor, e
+  o Synthesizer vira um **Coach**: além do veredito do comitê, avalia o
+  desempenho do vendedor (`DebateVerdict.seller_coaching`) — nota do pitch,
+  o que ressoou, o que saiu pela culatra, e reescritas concretas linha a
+  linha ("em vez de X, diga Y porque Z").
+
+Em ambos os modos, o veredito também traz um **scorecard MEDDPICC**
+(`DebateVerdict.meddpicc_scorecard`) com as dimensões que o debate revelou
+(Metrics, Economic Buyer, Identify Pain, Champion). Tudo isso é aditivo: sem
+`seller_opening`, o prompt do Synthesizer é byte-a-byte o de sempre e o
+`seller_coaching` fica `None`.
 
 ## Setup local (terminal)
 
@@ -102,11 +129,14 @@ pós-conclusão.
 
 Na barra lateral dá pra escolher a conta (exemplo Northwind, qualquer
 arquivo em `accounts/`, **digitar manualmente** empresa + stakeholder real,
-ou upload de um JSON customizado), informar a chave Anthropic (obrigatória,
-digitada na sessão, nunca salva em disco), e ajustar o número máximo de
-rounds. Ao final, dois botões de download: relatório `.md` simples e
-relatório `.html` estilizado (Avanade), prontos pra enviar pro time de
-vendas.
+ou upload de um JSON customizado), colar opcionalmente a **sua fala de
+abertura** (ativa o modo treino + Coach), informar a chave Anthropic
+(obrigatória, digitada na sessão, nunca salva em disco), e ajustar o número
+máximo de rounds. Ao final, o resultado mostra o comitê, a sala de reunião
+animada, objeções, plano de ação, avaliação de risco, o scorecard MEDDPICC
+e — se você colou seu pitch — a avaliação do Coach; mais dois botões de
+download: relatório `.md` simples e relatório `.html` estilizado (Avanade),
+prontos pra enviar pro time de vendas.
 
 ### Pesquisa automática de stakeholder (EXA)
 
@@ -157,15 +187,60 @@ de risco que não esteja em português — aplicado em `persona_agent.py` e
 (sem rede, texto curto demais), o texto original é mantido em vez de
 quebrar o debate.
 
-## Próximos passos (backlog sugerido)
+## Roadmap de evolução (5 agentes)
+
+Mapeado contra a arquitetura conceitual de 5 agentes de um sistema de
+personas sintéticas:
+
+| # | Agente conceitual | Implementação atual | Status |
+|---|---|---|---|
+| 1 | Data Harvester | `research.py` (EXA Answer API) | Parcial (só no form manual) |
+| 2 | Profiler | `PersonaFactory` + fallback real/arquétipo | ✅ |
+| 3 | Digital Twin (Actor) | `persona_agent.py` (reage ao `seller_opening`) | ✅ |
+| 4 | Moderator | `Facilitator` (grafo hierárquico + escalada) | ✅ |
+| 5 | Coach / Avaliador | `synthesizer.py` (MEDDPICC + `seller_coaching`) | ✅ |
+
+- **Fase 1 (feita)** — pitch de abertura do vendedor: personas reagem às
+  palavras reais.
+- **Fase 2 (feita)** — Coach avalia o pitch do vendedor contra as objeções.
+- **Fase 3 (backlog)** — modo interativo turno-a-turno: `interrupt()` +
+  `MemorySaver` do LangGraph para o vendedor responder a cada rodada, com
+  replay e branching. **Muda a topologia do grafo** (de `invoke` único para
+  execução pausável), então é uma decisão à parte.
+
+Outros itens de backlog:
 
 1. **Conector de dados reais**: expandir a pesquisa EXA (hoje só no
-   formulário manual) para enriquecer também contas carregadas via JSON.
-2. **Persistência de sessão**: LangGraph suporta checkpointers nativos —
-   plugar um (SQLite/Postgres) para retomar debates e fazer replay.
-3. **Guardrail de governança**: ao usar `DataSource.REAL` sobre pessoas
+   formulário manual) para enriquecer também contas carregadas via JSON,
+   cruzando o stakeholder com o contexto macro da empresa.
+2. **Guardrail de governança**: ao usar `DataSource.REAL` sobre pessoas
    reais identificáveis, definir política explícita de consentimento e
    retenção de dados antes de produção (ver `legal:compliance-check`).
-4. **Avaliação**: dataset de debates anotados para medir se as objeções
+3. **Avaliação**: dataset de debates anotados para medir se as objeções
    geradas batem com objeções reais coletadas pós-call (precision/recall
    de objeção).
+
+## Vídeo de apresentação — script (storytelling)
+
+Roteiro cinematográfico de ~1:15 para um vídeo de pitch do projeto (tom:
+thriller corporativo → esperançoso). Narração em PT-BR (~185 palavras),
+com espaço para música e cortes.
+
+> **🎬 "A Sala" · Digital Twins Sales · 1:15**
+
+| Tempo | Cena / visual | Narração (VO) |
+|---|---|---|
+| **0:00–0:10** — O medo | Corredor escuro, câmera lenta rumo à porta de uma sala de reunião; luz fria vazando por baixo. Piano tenso. | "Do outro lado dessa porta está o comitê que decide o seu maior negócio. O CFO. O CTO. Compras. E você só tem uma chance." |
+| **0:10–0:22** — O vilão | Flashes rápidos: rostos céticos, braços cruzados, caneta batendo na mesa, o carimbo "REJEITADO". | "Eles vão despedaçar cada número. Cada promessa. E você vai descobrir os furos… tarde demais." |
+| **0:22–0:32** — A virada | A tela vira: o escritório pixel-art ganha vida, avatares dos stakeholders sentam às mesas, cor quente Avanade invade a cena. A batida fica confiante. | "E se você pudesse entrar nessa sala… antes da sala?" |
+| **0:32–0:52** — O poder (montagem) | Cortes sincronizados: você digita seu pitch → personas reagem ("Payback em 3 meses? Mostre os FTEs.") → o Facilitador orquestra o debate, balões de fala surgindo → EXA puxa fatos reais na tela. | "Gêmeos digitais do seu comitê, movidos por dados reais de mercado. Eles debatem entre si. Reagem às suas palavras. E não pegam leve." |
+| **0:52–1:05** — O Coach | Surge um scorecard com selo "MEDDPICC": notas, o que funcionou, o que saiu pela culatra, reescritas linha a linha. | "No fim, um coach avalia o SEU pitch. O que ressoou. O que quebrou. E exatamente o que dizer da próxima vez." |
+| **1:05–1:15** — Close | Corta para o vendedor abrindo a porta — agora com postura confiante. Blackout. Logo. Último acorde. | "Ensaie o pior comitê da sua vida. Antes que ele seja real." |
+
+**Tagline final (on-screen):** **Digital Twins Sales** — *Do what matters.*
+
+**Notas de produção:** voz grave e íntima no cold open, ganhando energia na
+virada (0:22); paleta fria/cinza no ato 1 → gradiente laranja→aurora Avanade
+a partir da virada (reforça a identidade visual do produto); a montagem
+(0:32) é o coração — sincronize cada corte com uma batida da narração;
+deixe ~1s de silêncio antes da palavra final.
