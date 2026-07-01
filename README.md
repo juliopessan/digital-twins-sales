@@ -220,45 +220,39 @@ Outros itens de backlog:
    geradas batem com objeções reais coletadas pós-call (precision/recall
    de objeção).
 
-## Vídeo de apresentação — storytelling
+## A história por trás do produto
 
-O vídeo de pitch do projeto (~1:15, tom de thriller corporativo que resolve
-em esperança) começa no medo. Um corredor escuro, a câmera avançando devagar
-em direção à porta fechada de uma sala de reunião, um único acorde de piano
-segurando a tensão. É a sala onde o maior negócio do vendedor vai ser
-decidido — o CFO, o CTO, Compras, todos do outro lado — e ele só tem uma
-chance. Em flashes rápidos vemos o que o espera: rostos céticos, braços
-cruzados, uma caneta batendo na mesa, o carimbo "REJEITADO". A ideia que
-fica é a mais dolorosa de vendas B2B: eles vão despedaçar cada número e cada
-promessa, e o vendedor só vai descobrir os furos tarde demais.
+Todo vendedor B2B conhece aquela sala. É onde o maior negócio do trimestre
+vai ser decidido, com o CFO, o CTO e Compras do outro lado da mesa — e uma
+única chance de convencê-los. O problema é que esse comitê existe para
+despedaçar propostas: cada número é questionado, cada promessa é testada, e
+o vendedor quase sempre descobre onde seu pitch tinha furos tarde demais,
+quando o "não" já foi dado. O ensaio real acontece na hora errada, na frente
+das pessoas erradas.
 
-Então vem a virada. A cena se inverte e o escritório pixel-art do produto
-ganha vida — os avatares dos stakeholders sentam às suas mesas, a paleta
-fria dá lugar ao gradiente quente laranja→aurora da identidade Avanade, e a
-trilha troca de tom para algo confiante. A pergunta que ancora o produto
-aparece: e se você pudesse entrar nessa sala… antes da sala?
+O Digital Twins Sales nasce de uma pergunta simples: e se você pudesse
+entrar nessa sala antes da sala? Em vez de descobrir as objeções na reunião,
+o vendedor as enfrenta antes — contra um comitê de compra sintético que se
+comporta como o real. Cada stakeholder é um gêmeo digital: quando há dados
+reais da conta (de LinkedIn, CRM ou de uma pesquisa automática via EXA), a
+persona é embasada nesses fatos; quando não há, ela cai para um arquétipo
+curado do papel. Não são estereótipos genéricos, e sim personas ancoradas no
+contexto real de mercado.
 
-O coração do vídeo é a montagem que responde a essa pergunta. Em cortes
-sincronizados com a narração, o vendedor digita o próprio pitch; as personas
-reagem às palavras exatas dele ("Payback em 3 meses? Mostre os FTEs."); o
-Facilitador orquestra o debate com os balões de fala surgindo mesa a mesa; e
-a busca EXA puxa fatos reais do stakeholder para a tela. A mensagem é que
-não são estereótipos genéricos, e sim gêmeos digitais do comitê movidos por
-dados reais de mercado — que debatem entre si, reagem ao que o vendedor diz
-e não pegam leve.
+E elas não pegam leve. O vendedor cola o próprio pitch de abertura e o
+comitê reage às palavras exatas dele — o CFO cobra os números por trás de um
+"payback em 3 meses", o CTO ataca a integração, Compras exige benchmark.
+Tudo orquestrado por um Facilitador que decide quem fala, quando escalar uma
+objeção bloqueadora e quando o debate chegou ao fim — uma dinâmica de sala de
+reunião de verdade, não respostas isoladas. E o vendedor acompanha isso numa
+sala de reunião animada, vendo o debate ganhar forma em tempo real.
 
-O desfecho entrega o valor tático. Um scorecard com o selo MEDDPICC surge
-com as notas, o que funcionou, o que saiu pela culatra e as reescritas linha
-a linha: no fim, um coach avalia o pitch do próprio vendedor — o que
-ressoou, o que quebrou e exatamente o que dizer da próxima vez. O último
-plano corta para o vendedor abrindo aquela mesma porta, agora com postura
-confiante, antes de um blackout e do logo. A frase que fecha é o gancho do
-produto: "Ensaie o pior comitê da sua vida. Antes que ele seja real." —
-assinando com **Digital Twins Sales · Do what matters.**
+No fim, o produto entrega o que importa: um veredito acionável. Um scorecard
+MEDDPICC mostra onde o deal está de pé e onde está em risco; e, quando o
+vendedor testou o próprio pitch, um coach avalia o desempenho dele — o que
+ressoou, o que saiu pela culatra e exatamente o que dizer da próxima vez,
+com reescritas linha a linha. O vendedor volta para a sala real com a
+postura de quem já esteve lá.
 
-Em produção, a voz é grave e íntima na abertura e ganha energia na virada; a
-paleta acompanha o arco emocional (cinza/frio no ato do medo, gradiente
-Avanade a partir da virada, reforçando a identidade visual que já vive no
-produto); a montagem central é onde o ritmo importa mais, com cada corte
-caindo numa batida da narração; e vale deixar cerca de um segundo de
-silêncio antes da frase final para ela respirar.
+É essa a promessa que o produto entrega: **ensaie o pior comitê da sua vida,
+antes que ele seja real.** Digital Twins Sales — *Do what matters.*
