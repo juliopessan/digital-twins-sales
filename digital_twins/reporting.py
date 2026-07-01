@@ -90,6 +90,31 @@ def build_markdown_report(
             lines.append(f"- **{dimension}:** {assessment}")
         lines.append("")
 
+    if verdict.seller_coaching:
+        sc = verdict.seller_coaching
+        lines.append("## Coach — avaliação do seu pitch")
+        lines.append("")
+        lines.append(f"**Nota:** {sc.pitch_grade}")
+        lines.append("")
+        if sc.what_landed:
+            lines.append("**O que funcionou:**")
+            lines.append("")
+            for item in sc.what_landed:
+                lines.append(f"- {item}")
+            lines.append("")
+        if sc.what_backfired:
+            lines.append("**O que saiu pela culatra:**")
+            lines.append("")
+            for item in sc.what_backfired:
+                lines.append(f"- {item}")
+            lines.append("")
+        if sc.rewrite_suggestions:
+            lines.append("**Sugestões de reescrita:**")
+            lines.append("")
+            for i, item in enumerate(sc.rewrite_suggestions, start=1):
+                lines.append(f"{i}. {item}")
+            lines.append("")
+
     lines.append("## Transcrição completa do debate simulado")
     lines.append("")
     last_round = 0
@@ -159,6 +184,25 @@ def build_html_report(
     <tr><th>Dimensão</th><th>Avaliação</th></tr>
     {rows}
   </table>
+"""
+
+    coaching_html = ""
+    if verdict.seller_coaching:
+        sc = verdict.seller_coaching
+
+        def _list_block(title: str, items: list[str], ordered: bool = False) -> str:
+            if not items:
+                return ""
+            tag = "ol" if ordered else "ul"
+            lis = "\n".join(f"<li>{e(i)}</li>" for i in items)
+            return f"<p><strong>{title}</strong></p><{tag}>{lis}</{tag}>"
+
+        coaching_html = f"""
+  <div class="ava-section-bar">Coach — avaliação do seu pitch</div>
+  <div class="ava-pullquote">{e(sc.pitch_grade)}</div>
+  {_list_block("O que funcionou", sc.what_landed)}
+  {_list_block("O que saiu pela culatra", sc.what_backfired)}
+  {_list_block("Sugestões de reescrita", sc.rewrite_suggestions, ordered=True)}
 """
 
     transcript_html_parts: list[str] = []
@@ -307,6 +351,7 @@ th {{ color: var(--ava-grey-60); font-weight: 600; font-size: 12px; text-transfo
   <div class="ava-section-bar">Avaliação de risco</div>
   <p>{e(verdict.risk_summary)}</p>
   {meddpicc_html}
+  {coaching_html}
   <div class="ava-section-bar">Transcrição completa do debate simulado</div>
   {transcript_html}
 </div>

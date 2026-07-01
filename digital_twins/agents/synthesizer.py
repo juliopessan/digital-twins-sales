@@ -7,7 +7,7 @@ import logging
 from digital_twins.config import settings
 from digital_twins.i18n import to_pt_br, to_pt_br_list
 from digital_twins.llm.client import LLMClient
-from digital_twins.models import DebateVerdict, Sentiment, StakeholderRole
+from digital_twins.models import DebateVerdict, SellerCoaching, Sentiment, StakeholderRole
 from digital_twins.orchestration.state import BoardState
 
 logger = logging.getLogger(__name__)
@@ -53,6 +53,35 @@ porque a objeção do CFO foi especificamente sobre custo de integração
 oculto" é útil.
 """
 
+_SELLER_COACHING_ADDENDUM = """\
+
+IMPORTANTE: houve uma fala de abertura REAL do vendedor (fornecida no início
+do input). Além do veredito acima, atue como um coach de vendas e avalie o
+DESEMPENHO DO VENDEDOR — como as PALAVRAS dele se sustentaram (ou não)
+diante das objeções que o comitê levantou no debate. Não avalie o comitê
+aqui; avalie a pessoa que fez o pitch.
+
+Adicione ao mesmo JSON o campo "seller_coaching" com este formato (tudo em
+português):
+"seller_coaching": {
+  "pitch_grade": string,            // nota curta e honesta, ex: "C+ — forte em ROI, fraco em governança"
+  "what_landed": [string, ...],     // afirmações da fala dele que ressoaram ou não foram contestadas
+  "what_backfired": [string, ...],  // afirmações que foram atacadas e que ele não sustentaria
+  "rewrite_suggestions": [string, ...] // reescritas concretas: "em vez de X, diga Y porque Z"
+}
+"""
+
+
+def _parse_seller_coaching(sc: dict | None) -> SellerCoaching | None:
+    if not sc:
+        return None
+    return SellerCoaching(
+        pitch_grade=to_pt_br(sc.get("pitch_grade", "")),
+        what_landed=to_pt_br_list(sc.get("what_landed", [])),
+        what_backfired=to_pt_br_list(sc.get("what_backfired", [])),
+        rewrite_suggestions=to_pt_br_list(sc.get("rewrite_suggestions", [])),
+    )
+
 
 def make_synthesize_node(llm: LLMClient):
     def synthesize(state: BoardState) -> dict:
@@ -61,9 +90,18 @@ def make_synthesize_node(llm: LLMClient):
             f"[Rodada {t.round_number}] {t.name} ({t.sentiment.value}): {t.statement}" for t in transcript
         )
 
+        account = state["account"]
+        system_prompt = _SYNTHESIS_SYSTEM_PROMPT
+        user_content = f"Transcrição completa:\n{full_text}"
+        if account.seller_opening:
+            system_prompt = _SYNTHESIS_SYSTEM_PROMPT + _SELLER_COACHING_ADDENDUM
+            user_content = (
+                f'Fala de abertura do vendedor:\n"{account.seller_opening}"\n\n' + user_content
+            )
+
         raw = llm.complete(
-            system=_SYNTHESIS_SYSTEM_PROMPT,
-            user=f"Transcrição completa:\n{full_text}",
+            system=system_prompt,
+            user=user_content,
             model=settings.synthesizer_model,
             max_tokens=settings.max_tokens_synthesis,
             json_mode=True,
@@ -82,6 +120,7 @@ def make_synthesize_node(llm: LLMClient):
                     dim: to_pt_br(assessment)
                     for dim, assessment in parsed.get("meddpicc_scorecard", {}).items()
                 },
+                seller_coaching=_parse_seller_coaching(parsed.get("seller_coaching")),
             )
         except (json.JSONDecodeError, KeyError, ValueError) as exc:
             logger.error("Synthesizer output failed validation (%s); raw=%r", exc, raw)

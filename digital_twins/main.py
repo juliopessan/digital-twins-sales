@@ -127,6 +127,23 @@ def main() -> int:
         for dimension, assessment in verdict.meddpicc_scorecard.items():
             print(f"  - {dimension}: {assessment}")
 
+    if verdict.seller_coaching:
+        sc = verdict.seller_coaching
+        print("\n=== COACH — AVALIAÇÃO DO SEU PITCH ===")
+        print(f"Nota: {sc.pitch_grade}")
+        if sc.what_landed:
+            print("O que funcionou:")
+            for item in sc.what_landed:
+                print(f"  - {item}")
+        if sc.what_backfired:
+            print("O que saiu pela culatra:")
+            for item in sc.what_backfired:
+                print(f"  - {item}")
+        if sc.rewrite_suggestions:
+            print("Sugestões de reescrita:")
+            for item in sc.rewrite_suggestions:
+                print(f"  - {item}")
+
     if not args.no_report:
         transcript = final_state["transcript"]
         report_dir = Path(args.report_dir)

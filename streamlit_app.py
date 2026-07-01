@@ -607,6 +607,22 @@ def main() -> None:
         for dimension, assessment in verdict.meddpicc_scorecard.items():
             st.markdown(f"**{dimension}:** {assessment}")
 
+    if verdict.seller_coaching:
+        sc = verdict.seller_coaching
+        st.markdown('<div class="ava-section-bar">Coach — avaliação do seu pitch</div>', unsafe_allow_html=True)
+        st.markdown(f"**Nota:** {sc.pitch_grade}")
+        if sc.what_landed:
+            st.markdown("**O que funcionou:**")
+            for item in sc.what_landed:
+                st.markdown(f"- {item}")
+        if sc.what_backfired:
+            st.markdown("**O que saiu pela culatra:**")
+            for item in sc.what_backfired:
+                st.markdown(f"- {item}")
+        if sc.rewrite_suggestions:
+            st.markdown("**Sugestões de reescrita:**")
+            render_roadmap(sc.rewrite_suggestions)
+
     report_md = build_markdown_report(account, personas, transcript, verdict)
     report_html = build_html_report(account, personas, transcript, verdict)
     slug = account.account_name.lower().replace(" ", "-")

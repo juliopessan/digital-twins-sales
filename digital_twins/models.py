@@ -125,6 +125,19 @@ class DebateTurn(BaseModel):
     sentiment: Sentiment
 
 
+class SellerCoaching(BaseModel):
+    """Feedback do Coach sobre a fala de abertura do vendedor.
+
+    Só é preenchido quando AccountContext.seller_opening existe — o Coach
+    avalia como o pitch real do vendedor se sustentou diante das objeções
+    levantadas no debate (não avalia o comitê, avalia a PESSOA)."""
+
+    pitch_grade: str  # nota curta e honesta, ex: "C+ — forte em ROI, fraco em governança"
+    what_landed: list[str] = Field(default_factory=list)
+    what_backfired: list[str] = Field(default_factory=list)
+    rewrite_suggestions: list[str] = Field(default_factory=list)
+
+
 class DebateVerdict(BaseModel):
     consensus_reached: bool
     overall_sentiment: Sentiment
@@ -138,5 +151,13 @@ class DebateVerdict(BaseModel):
             "Avaliação tática das dimensões MEDDPICC observáveis no debate "
             "(ex: Metrics, Economic Buyer, Identify Pain, Champion) -> texto "
             "de avaliação. Dimensões que o debate não revelou ficam de fora."
+        ),
+    )
+    seller_coaching: Optional[SellerCoaching] = Field(
+        default=None,
+        description=(
+            "Feedback do Coach sobre a fala de abertura do vendedor. Só "
+            "preenchido quando o vendedor forneceu uma fala de abertura "
+            "(AccountContext.seller_opening); caso contrário fica None."
         ),
     )
