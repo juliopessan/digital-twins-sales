@@ -98,7 +98,7 @@ except Exception:
 st.set_page_config(
     page_title="Sales Digital Twins — Board Simulator",
     layout="wide",
-    initial_sidebar_state="auto",
+    initial_sidebar_state="expanded",
     page_icon=_favicon_bytes if _favicon_bytes else "🎯",
 )
 
@@ -130,6 +130,32 @@ def _inject_avanade_theme() -> None:
             --ava-grey-10: #e5e5e5; --ava-solar: #FFD700; --ava-aurora: #890078;
         }
         html, body, [class*="css"] { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: var(--ava-grey-80); }
+        /* Remove Streamlit default header bar and all extra top gaps */
+        [data-testid="stHeader"] { display: none !important; }
+        [data-testid="stDecoration"] { display: none !important; }
+        /* Pull main content flush against the navbar (remove 96px header-reserved padding) */
+        [data-testid="stMainBlockContainer"],
+        .block-container { padding-top: 2.875rem !important; }
+        /* Correct st_navbar margin-top: library assumes header=6rem, but header is hidden (0) */
+        /* in-flow y of navbar = block-container padding (2.875rem) + element-container gap (1rem) = 3.875rem */
+        iframe[title="streamlit_navigation_bar.st_navbar"] {
+            margin-top: calc(-3.875rem) !important;
+        }
+        /* Overlay the sidebar toggle over the navbar — no vertical space taken */
+        [data-testid="stSidebarCollapsedControl"] {
+            position: fixed !important;
+            top: 4px !important;
+            left: 4px !important;
+            z-index: 9999 !important;
+            height: 44px !important;
+            width: 44px !important;
+            background: transparent !important;
+            border: none !important;
+        }
+        [data-testid="stSidebarCollapsedControl"] button {
+            color: #FFFFFF !important;
+            background: transparent !important;
+        }
         .ava-hero {
             background: linear-gradient(135deg, #FF5800 0%, #890078 100%);
             color: #fff; padding: 40px 36px; border-radius: 8px;
