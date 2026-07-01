@@ -469,6 +469,12 @@ def main() -> None:
         elif account_options[choice] == "manual":
             manual_account = render_manual_account_form()
 
+        seller_opening = st.text_area(
+            "Sua fala de abertura (opcional)",
+            placeholder="Cole o pitch como você vai dizer. Se preenchido, as personas reagem às suas palavras reais. Em branco, o comitê debate sozinho (war-gaming).",
+            height=100,
+        )
+
         api_key = st.text_input("Anthropic API Key", type="password", value=settings.anthropic_api_key or "")
         st.caption("A chave é usada só em memória nesta sessão — não é salva em disco.")
 
@@ -494,6 +500,9 @@ def main() -> None:
         if not api_key:
             st.error("Informe a Anthropic API Key na barra lateral antes de rodar.")
             st.stop()
+
+        if seller_opening.strip():
+            account = account.model_copy(update={"seller_opening": seller_opening.strip()})
 
         personas = PersonaFactory.build_committee(account)
         llm = build_default_client(api_key=api_key)
@@ -572,6 +581,10 @@ def main() -> None:
             st.markdown(
                 f"**{ROLE_ICON.get(p.role, '🧑')} {p.name}**  \n{p.role.value} · {source_label}  \nVeto: {p.decision_power:.2f}"
             )
+
+    if account.seller_opening:
+        st.markdown('<div class="ava-section-bar">Sua fala de abertura</div>', unsafe_allow_html=True)
+        st.info(account.seller_opening)
 
     st.markdown('<div class="ava-section-bar">Sala de reunião</div>', unsafe_allow_html=True)
     render_office(personas, office_log)

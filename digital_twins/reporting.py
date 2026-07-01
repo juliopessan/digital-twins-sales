@@ -41,6 +41,12 @@ def build_markdown_report(
     lines.append(f"- **Solução proposta:** {account.proposed_solution}")
     lines.append("")
 
+    if account.seller_opening:
+        lines.append("### Fala de abertura do vendedor")
+        lines.append("")
+        lines.append(f"> {account.seller_opening}")
+        lines.append("")
+
     lines.append("## Comitê simulado")
     lines.append("")
     lines.append("| Stakeholder | Papel | Base de dados | Peso de veto |")
@@ -170,6 +176,13 @@ def build_html_report(
         )
     transcript_html = "\n".join(transcript_html_parts)
 
+    seller_opening_html = ""
+    if account.seller_opening:
+        seller_opening_html = (
+            '<div class="ava-section-bar">Fala de abertura do vendedor</div>'
+            f'<div class="ava-pullquote">{e(account.seller_opening)}</div>'
+        )
+
     return f"""<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -275,7 +288,7 @@ th {{ color: var(--ava-grey-60); font-weight: 600; font-size: 12px; text-transfo
 <div class="ava-container">
   <div class="ava-section-bar">Proposta avaliada</div>
   <p><strong>Solução proposta:</strong> {e(account.proposed_solution)}</p>
-
+  {seller_opening_html}
   <div class="ava-section-bar">Comitê simulado</div>
   <table>
     <tr><th>Stakeholder</th><th>Papel</th><th>Base de dados</th><th>Peso de veto</th></tr>

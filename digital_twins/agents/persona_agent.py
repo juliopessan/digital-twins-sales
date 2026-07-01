@@ -66,7 +66,17 @@ def make_persona_turn_node(llm: LLMClient):
         role_value = speaking_order[idx]
         persona = _find_persona(state["personas"], role_value)
 
+        seller_block = ""
+        seller_opening = state["account"].seller_opening
+        if seller_opening:
+            seller_block = (
+                "Fala de abertura do vendedor (reaja diretamente a ESTAS palavras "
+                "reais, não a um resumo abstrato — o que ele disse de fato é o que "
+                f"você está avaliando):\n\"{seller_opening}\"\n\n"
+            )
+
         user_prompt = (
+            f"{seller_block}"
             "Transcrição do debate até agora:\n"
             f"{_format_transcript_so_far(state.get('transcript', []))}\n\n"
             "Agora é a sua vez de falar. Dê sua fala para esta rodada."

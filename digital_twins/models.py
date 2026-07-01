@@ -80,6 +80,15 @@ class AccountContext(BaseModel):
     pitch_summary: str
     proposed_solution: str
     deal_value_usd: Optional[float] = None
+    seller_opening: Optional[str] = Field(
+        default=None,
+        description=(
+            "Fala de abertura real do vendedor (o pitch como ele vai/foi dito, "
+            "com as palavras dele). Se presente, as personas reagem diretamente "
+            "a estas palavras em vez de apenas ao pitch_summary abstrato. Em "
+            "branco, o comitê roda de forma autônoma (war-gaming)."
+        ),
+    )
     real_data: dict[StakeholderRole, list[str]] = Field(
         default_factory=dict,
         description=(
