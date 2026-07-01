@@ -17,10 +17,19 @@ Você está sintetizando a transcrição de um debate simulado de comitê de
 compra em um veredito acionável para o vendedor que vai enfrentar esse
 comitê de verdade.
 
+Além do veredito geral, avalie o debate sob a ótica do framework de vendas
+enterprise MEDDPICC — mas SÓ para as dimensões que o debate realmente
+revelou evidência (não invente avaliação para o que não apareceu):
+- "Metrics": foi possível provar ROI/métricas concretas para quem decide o orçamento?
+- "Economic Buyer": o stakeholder de maior poder de veto tendeu a bloquear ou apoiar, e por quê?
+- "Identify Pain": a dor técnica/operacional levantada foi endereçada por algum outro stakeholder (ex: o Champion) durante o debate?
+- "Champion": o Champion interno (se houver) trouxe munição real ou só ficou na defensiva?
+Inclua apenas as dimensões acima que tiverem evidência clara na transcrição.
+
 Retorne ESTRITAMENTE um objeto JSON com este formato. As CHAVES e os
 VALORES de "overall_sentiment" e "blocking_stakeholders" devem ficar
 exatamente em inglês, como mostrado abaixo — apenas o CONTEÚDO textual
-(objeções, talk track, resumo de risco) deve estar em português:
+(objeções, talk track, resumo de risco, scorecard) deve estar em português:
 {
   "consensus_reached": bool,
   "overall_sentiment": "supportive" | "neutral" | "skeptical" | "blocking",
@@ -29,7 +38,13 @@ exatamente em inglês, como mostrado abaixo — apenas o CONTEÚDO textual
                                              // "cfo", "cto", "procurement", "end_user",
                                              // "champion", "legal_compliance", "ceo", "security"
   "recommended_talk_track": [string, ...],  // conselho concreto e específico para a próxima call, em português
-  "risk_summary": string                    // em português
+  "risk_summary": string,                   // em português
+  "meddpicc_scorecard": {                   // em português, só dimensões com evidência (pode ser {})
+    "Metrics": string,
+    "Economic Buyer": string,
+    "Identify Pain": string,
+    "Champion": string
+  }
 }
 
 Seja específico e tático. "Endereçar melhor as preocupações" é inútil;
@@ -63,6 +78,10 @@ def make_synthesize_node(llm: LLMClient):
                 blocking_stakeholders=[StakeholderRole(r) for r in parsed["blocking_stakeholders"]],
                 recommended_talk_track=to_pt_br_list(parsed["recommended_talk_track"]),
                 risk_summary=to_pt_br(parsed["risk_summary"]),
+                meddpicc_scorecard={
+                    dim: to_pt_br(assessment)
+                    for dim, assessment in parsed.get("meddpicc_scorecard", {}).items()
+                },
             )
         except (json.JSONDecodeError, KeyError, ValueError) as exc:
             logger.error("Synthesizer output failed validation (%s); raw=%r", exc, raw)

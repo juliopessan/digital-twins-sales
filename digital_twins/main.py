@@ -122,6 +122,11 @@ def main() -> int:
         print(f"  - {t}")
     print(f"\nAvaliação de risco: {verdict.risk_summary}")
 
+    if verdict.meddpicc_scorecard:
+        print("\nScorecard MEDDPICC:")
+        for dimension, assessment in verdict.meddpicc_scorecard.items():
+            print(f"  - {dimension}: {assessment}")
+
     if not args.no_report:
         transcript = final_state["transcript"]
         report_dir = Path(args.report_dir)

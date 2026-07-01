@@ -77,6 +77,13 @@ def build_markdown_report(
     lines.append(verdict.risk_summary)
     lines.append("")
 
+    if verdict.meddpicc_scorecard:
+        lines.append("### Scorecard MEDDPICC")
+        lines.append("")
+        for dimension, assessment in verdict.meddpicc_scorecard.items():
+            lines.append(f"- **{dimension}:** {assessment}")
+        lines.append("")
+
     lines.append("## Transcrição completa do debate simulado")
     lines.append("")
     last_round = 0
@@ -133,6 +140,20 @@ def build_html_report(
         </div>"""
         for i, t in enumerate(verdict.recommended_talk_track, start=1)
     )
+
+    meddpicc_html = ""
+    if verdict.meddpicc_scorecard:
+        rows = "\n".join(
+            f"<tr><td><strong>{e(dim)}</strong></td><td>{e(assessment)}</td></tr>"
+            for dim, assessment in verdict.meddpicc_scorecard.items()
+        )
+        meddpicc_html = f"""
+  <div class="ava-section-bar">Scorecard MEDDPICC</div>
+  <table>
+    <tr><th>Dimensão</th><th>Avaliação</th></tr>
+    {rows}
+  </table>
+"""
 
     transcript_html_parts: list[str] = []
     last_round = 0
@@ -272,7 +293,7 @@ th {{ color: var(--ava-grey-60); font-weight: 600; font-size: 12px; text-transfo
 
   <div class="ava-section-bar">Avaliação de risco</div>
   <p>{e(verdict.risk_summary)}</p>
-
+  {meddpicc_html}
   <div class="ava-section-bar">Transcrição completa do debate simulado</div>
   {transcript_html}
 </div>

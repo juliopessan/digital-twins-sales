@@ -589,6 +589,11 @@ def main() -> None:
     st.markdown('<div class="ava-section-bar">Avaliação de risco</div>', unsafe_allow_html=True)
     st.write(verdict.risk_summary)
 
+    if verdict.meddpicc_scorecard:
+        st.markdown('<div class="ava-section-bar">Scorecard MEDDPICC</div>', unsafe_allow_html=True)
+        for dimension, assessment in verdict.meddpicc_scorecard.items():
+            st.markdown(f"**{dimension}:** {assessment}")
+
     report_md = build_markdown_report(account, personas, transcript, verdict)
     report_html = build_html_report(account, personas, transcript, verdict)
     slug = account.account_name.lower().replace(" ", "-")

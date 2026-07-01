@@ -123,3 +123,11 @@ class DebateVerdict(BaseModel):
     blocking_stakeholders: list[StakeholderRole]
     recommended_talk_track: list[str]
     risk_summary: str
+    meddpicc_scorecard: dict[str, str] = Field(
+        default_factory=dict,
+        description=(
+            "Avaliação tática das dimensões MEDDPICC observáveis no debate "
+            "(ex: Metrics, Economic Buyer, Identify Pain, Champion) -> texto "
+            "de avaliação. Dimensões que o debate não revelou ficam de fora."
+        ),
+    )
