@@ -220,7 +220,7 @@ Outros itens de backlog:
    geradas batem com objeções reais coletadas pós-call (precision/recall
    de objeção).
 
-## A história por trás do produto
+## A🎬 "A Sala" · Digital Twins Sales
 
 Todo vendedor B2B conhece aquela sala. É onde o maior negócio do trimestre
 vai ser decidido, com o CFO, o CTO e Compras do outro lado da mesa — e uma
