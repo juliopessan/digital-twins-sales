@@ -220,27 +220,45 @@ Outros itens de backlog:
    geradas batem com objeções reais coletadas pós-call (precision/recall
    de objeção).
 
-## Vídeo de apresentação — script (storytelling)
+## Vídeo de apresentação — storytelling
 
-Roteiro cinematográfico de ~1:15 para um vídeo de pitch do projeto (tom:
-thriller corporativo → esperançoso). Narração em PT-BR (~185 palavras),
-com espaço para música e cortes.
+O vídeo de pitch do projeto (~1:15, tom de thriller corporativo que resolve
+em esperança) começa no medo. Um corredor escuro, a câmera avançando devagar
+em direção à porta fechada de uma sala de reunião, um único acorde de piano
+segurando a tensão. É a sala onde o maior negócio do vendedor vai ser
+decidido — o CFO, o CTO, Compras, todos do outro lado — e ele só tem uma
+chance. Em flashes rápidos vemos o que o espera: rostos céticos, braços
+cruzados, uma caneta batendo na mesa, o carimbo "REJEITADO". A ideia que
+fica é a mais dolorosa de vendas B2B: eles vão despedaçar cada número e cada
+promessa, e o vendedor só vai descobrir os furos tarde demais.
 
-> **🎬 "A Sala" · Digital Twins Sales · 1:15**
+Então vem a virada. A cena se inverte e o escritório pixel-art do produto
+ganha vida — os avatares dos stakeholders sentam às suas mesas, a paleta
+fria dá lugar ao gradiente quente laranja→aurora da identidade Avanade, e a
+trilha troca de tom para algo confiante. A pergunta que ancora o produto
+aparece: e se você pudesse entrar nessa sala… antes da sala?
 
-| Tempo | Cena / visual | Narração (VO) |
-|---|---|---|
-| **0:00–0:10** — O medo | Corredor escuro, câmera lenta rumo à porta de uma sala de reunião; luz fria vazando por baixo. Piano tenso. | "Do outro lado dessa porta está o comitê que decide o seu maior negócio. O CFO. O CTO. Compras. E você só tem uma chance." |
-| **0:10–0:22** — O vilão | Flashes rápidos: rostos céticos, braços cruzados, caneta batendo na mesa, o carimbo "REJEITADO". | "Eles vão despedaçar cada número. Cada promessa. E você vai descobrir os furos… tarde demais." |
-| **0:22–0:32** — A virada | A tela vira: o escritório pixel-art ganha vida, avatares dos stakeholders sentam às mesas, cor quente Avanade invade a cena. A batida fica confiante. | "E se você pudesse entrar nessa sala… antes da sala?" |
-| **0:32–0:52** — O poder (montagem) | Cortes sincronizados: você digita seu pitch → personas reagem ("Payback em 3 meses? Mostre os FTEs.") → o Facilitador orquestra o debate, balões de fala surgindo → EXA puxa fatos reais na tela. | "Gêmeos digitais do seu comitê, movidos por dados reais de mercado. Eles debatem entre si. Reagem às suas palavras. E não pegam leve." |
-| **0:52–1:05** — O Coach | Surge um scorecard com selo "MEDDPICC": notas, o que funcionou, o que saiu pela culatra, reescritas linha a linha. | "No fim, um coach avalia o SEU pitch. O que ressoou. O que quebrou. E exatamente o que dizer da próxima vez." |
-| **1:05–1:15** — Close | Corta para o vendedor abrindo a porta — agora com postura confiante. Blackout. Logo. Último acorde. | "Ensaie o pior comitê da sua vida. Antes que ele seja real." |
+O coração do vídeo é a montagem que responde a essa pergunta. Em cortes
+sincronizados com a narração, o vendedor digita o próprio pitch; as personas
+reagem às palavras exatas dele ("Payback em 3 meses? Mostre os FTEs."); o
+Facilitador orquestra o debate com os balões de fala surgindo mesa a mesa; e
+a busca EXA puxa fatos reais do stakeholder para a tela. A mensagem é que
+não são estereótipos genéricos, e sim gêmeos digitais do comitê movidos por
+dados reais de mercado — que debatem entre si, reagem ao que o vendedor diz
+e não pegam leve.
 
-**Tagline final (on-screen):** **Digital Twins Sales** — *Do what matters.*
+O desfecho entrega o valor tático. Um scorecard com o selo MEDDPICC surge
+com as notas, o que funcionou, o que saiu pela culatra e as reescritas linha
+a linha: no fim, um coach avalia o pitch do próprio vendedor — o que
+ressoou, o que quebrou e exatamente o que dizer da próxima vez. O último
+plano corta para o vendedor abrindo aquela mesma porta, agora com postura
+confiante, antes de um blackout e do logo. A frase que fecha é o gancho do
+produto: "Ensaie o pior comitê da sua vida. Antes que ele seja real." —
+assinando com **Digital Twins Sales · Do what matters.**
 
-**Notas de produção:** voz grave e íntima no cold open, ganhando energia na
-virada (0:22); paleta fria/cinza no ato 1 → gradiente laranja→aurora Avanade
-a partir da virada (reforça a identidade visual do produto); a montagem
-(0:32) é o coração — sincronize cada corte com uma batida da narração;
-deixe ~1s de silêncio antes da palavra final.
+Em produção, a voz é grave e íntima na abertura e ganha energia na virada; a
+paleta acompanha o arco emocional (cinza/frio no ato do medo, gradiente
+Avanade a partir da virada, reforçando a identidade visual que já vive no
+produto); a montagem central é onde o ritmo importa mais, com cada corte
+caindo numa batida da narração; e vale deixar cerca de um segundo de
+silêncio antes da frase final para ela respirar.
