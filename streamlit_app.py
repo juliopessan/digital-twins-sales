@@ -112,6 +112,39 @@ def _sample_account() -> AccountContext:
     )
 
 
+def _inject_light_theme() -> None:
+    """Light theme override with light background and dark text."""
+    st.markdown(
+        """
+        <style>
+        [data-testid="stAppViewContainer"] {
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+        }
+        [data-testid="stSidebar"] {
+            background-color: #f5f5f5 !important;
+        }
+        .ava-hero {
+            background: linear-gradient(135deg, #FF5800 0%, #890078 100%) !important;
+        }
+        .ava-arc {
+            background: #ffffff !important;
+            border-top: 4px solid #FF5800;
+        }
+        [data-testid="stMarkdownContainer"], [data-testid="stText"] {
+            color: #1a1a1a !important;
+        }
+        input, select, textarea {
+            background-color: #ffffff !important;
+            color: #1a1a1a !important;
+            border: 1px solid #cccccc !important;
+        }
+        </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
 def _inject_avanade_theme() -> None:
     st.markdown(
         """
@@ -598,7 +631,21 @@ def main() -> None:
     _inject_avanade_theme()
 
     with st.sidebar:
-        st.header("Configuração da rodada")
+        # Theme toggle
+        col_theme_label, col_theme_toggle = st.columns([3, 1])
+        with col_theme_label:
+            st.header("Configuração da rodada")
+        with col_theme_toggle:
+            if "theme_mode" not in st.session_state:
+                st.session_state.theme_mode = "dark"
+            
+            theme_icon = "🌙" if st.session_state.theme_mode == "dark" else "☀️"
+            if st.button(theme_icon, help="Alternar tema (light/dark)", key="theme_toggle"):
+                st.session_state.theme_mode = "light" if st.session_state.theme_mode == "dark" else "dark"
+                st.rerun()
+        
+        if st.session_state.theme_mode == "light":
+            _inject_light_theme()
 
         # Build account options: all JSON files from accounts/ + upload option
         account_options = {}
@@ -809,10 +856,58 @@ def main() -> None:
         st.markdown('<div class="ava-section-bar">Principais objeções</div>', unsafe_allow_html=True)
         _render_objections_with_feedback(verdict, account_slug)
 
+        # Blockers & Breakthrough Strategies
+        if verdict.blocking_stakeholders:
+            st.markdown('<div class="ava-section-bar">Bloqueadores & Contorno</div>', unsafe_allow_html=True)
+            st.warning(
+                f"**{len(verdict.blocking_stakeholders)} bloqueador(es) identificado(s):**  "
+                f"{', '.join(ROLE_ICON.get(s, '🧑') for s in verdict.blocking_stakeholders)}"
+            )
+            st.markdown("""
+            **Como contornar:**
+            - Mude de "por que comprar?" para "qual é seu custo de oportunidade do delay?"
+            - Traga TCO de 3 anos comparado com alternativa de make (custo incremental interno)
+            - Quantifique risco: fallback manual, bug fixing, tempo de mercado perdido
+            - Reposicione diferencial: não é "expertise" genérica, é conhecimento proprietário em edge cases específicos
+            """)
+
+        # Consensus Likelihood
+        consensus_pct = 100 if verdict.consensus_reached else 0
+        if not verdict.consensus_reached:
+            st.markdown('<div class="ava-section-bar">Busca de consenso</div>', unsafe_allow_html=True)
+            st.metric("Consenso", f"{consensus_pct}%")
+            st.markdown(f"""
+            **Diagnóstico:** Sem consensus total.  
+            **Próximos passos:**
+            1. Identifique qual bloqueador (CEO/CFO/CTO/Procurement) é o mais flexível
+            2. Foque em remover 1 objeção crítica antes de avançar
+            3. Use a talk track recomendada abaixo, testada contra cada bloqueador
+            4. Considere uma conversa 1-to-1 com o Economic Buyer (CFO) antes da próxima reunião de comitê
+            """)
+
         if verdict.meddpicc_scorecard:
-            st.markdown('<div class="ava-section-bar">Scorecard MEDDPICC</div>', unsafe_allow_html=True)
+            st.markdown('<div class="ava-section-bar">Scorecard MEDDPICC <span style="font-size:11px; opacity:0.7;">*</span></div>', unsafe_allow_html=True)
+            st.markdown("""
+            <details>
+            <summary style="cursor:pointer; font-weight:600; color:#FF5800;">O que é MEDDPICC?</summary>
+            <p style="margin-top:8px; font-size:13px; line-height:1.6;">
+            <b>MEDDPICC</b> é o framework de qualificação de oportunidade mais rigoroso do mercado Enterprise:
+            <ul style="margin:8px 0;">
+            <li><b>Metrics:</b> A empresa tem KPIs claros? Vendedor pode defender números de ROI?</li>
+            <li><b>Economic Buyer:</b> Quem assina o cheque? Consenso com budget owner?</li>
+            <li><b>Decision Criteria:</b> Qual é a prioridade deles (preço, velocidade, suporte)?</li>
+            <li><b>Decision Process:</b> Comitê? RFP? Benchmark? Quanto tempo leva?</li>
+            <li><b>Pain:</b> Dor está real ou foi neutralizada por alternativa interna (make vs. buy)?</li>
+            <li><b>Identified Champion:</b> Quem dentro deles defende sua solução?</li>
+            <li><b>Compelling Reason to Act:</b> Por que NOW? Qual é a urgência vs. fazer internamente?</li>
+            </ul>
+            Score ruim em qualquer dimensão = bloqueador crítico.
+            </p>
+            </details>
+            """, unsafe_allow_html=True)
+            
             for dimension, assessment in verdict.meddpicc_scorecard.items():
-                st.markdown(f"**{dimension}:** {assessment}")
+                st.markdown(f"**{dimension}:**  \n{assessment}\n")
 
         st.markdown('<div class="ava-section-bar">Plano de ação recomendado</div>', unsafe_allow_html=True)
         render_roadmap(verdict.recommended_talk_track)
