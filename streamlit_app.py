@@ -585,7 +585,16 @@ def _render_memory_dashboard(account_slug: str) -> None:
 
 
 def main() -> None:
-    st.set_page_config(page_title="Sales Digital Twins — Board Simulator", layout="wide")
+    # Load favicon
+    favicon_path = Path(__file__).parent / "favicon.ico"
+    with open(favicon_path, "rb") as f:
+        favicon = f.read()
+    
+    st.set_page_config(
+        page_title="Sales Digital Twins — Board Simulator",
+        layout="wide",
+        page_icon=favicon_path
+    )
     _inject_avanade_theme()
 
     with st.sidebar:
