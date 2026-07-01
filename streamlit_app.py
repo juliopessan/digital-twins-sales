@@ -626,7 +626,7 @@ def main() -> None:
     st.set_page_config(
         page_title="Sales Digital Twins — Board Simulator",
         layout="wide",
-        page_icon=favicon_path
+        page_icon=favicon
     )
     _inject_avanade_theme()
 
