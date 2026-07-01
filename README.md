@@ -263,3 +263,177 @@ postura de quem já esteve lá.
 
 É essa a promessa que o produto entrega: **ensaie o pior comitê da sua vida,
 antes que ele seja real.** Digital Twins Sales — *Do what matters.*
+
+---
+
+## 🎨 Web UI — Tabs & Office Canvas
+
+```bash
+streamlit run streamlit_app.py
+# Opens at http://localhost:8501
+```
+
+### Abas (Tabs)
+
+| Aba | O que você vê | Ação |
+|-----|---|---|
+| ⚙️ **Configuração** | Selector de conta, pitch de abertura (opcional), número de rounds, API Key auto-load | Clique "Rodar simulação" para iniciar |
+| 🎭 **Office Canvas** | Sala de reunião animada pixel-art — cada persona em uma mesa, Facilitador caminhando entre mesas | Veja em tempo real o estado de cada stakeholder (idle, working, done) |
+| 📊 **Veredito** | Scorecard MEDDPICC, resumo de convergência/divergência, lista de objeções por persona | Entenda onde o deal está de pé e onde falha |
+| 🏆 **Coach** *(se pitch inserido)* | Avaliação de desempenho do seu pitch, reescritas linha a linha, áreas para melhoria | Calibre talk track antes da call real |
+| 📥 **Exportar** | Download `.md` (relatório simples) ou `.html` (estilizado Avanade, pronto pra e-mail) | Compartilhe resultados com o time de vendas |
+
+### 🎮 Office Canvas — Sala de Reunião em Tempo Real
+
+`digital_twins/office.py` renderiza um **canvas pixel-art animado** onde cada persona é um personagem em uma mesa:
+
+#### Máquina de Estados por Persona
+
+```
+idle (sentado, sem fazer nada)
+  ↓ (evento "start" do LangGraph)
+walk (sai da mesa, Facilitador caminha para chegar)
+  ↓ (Facilitador chega)
+working (persona pensa/fala — prompt do LLM rodando)
+  ↓ (resposta LLM pronta)
+done (persona sentada, com balão verde "concluído")
+  ↓ (próxima rodada ou fim)
+idle
+```
+
+#### Animação & Rendering
+
+- **60fps game loop** via `requestAnimationFrame` (JavaScript lado cliente)
+- **2-pass rendering**: pass 1 desenha todas as mesas de fundo (backgrounds), pass 2 desenha todos os personagens em cima (evita Facilitador ficar escondido quando cruza células)
+- **Facilitador caminha "mesa a mesa"** sincronizado com eventos de `start` do LangGraph — velocidade real-time, não pré-gravada (17px/frame ≈ 0.38s por mesa, ~2.7s total para todo o grupo)
+- **Balões de fala** com mensagens temáticas por persona (25 variações humorísticas cada; ex: CFO → `"Payback em 3 meses? De qual planeta?"`, CTO → `"Integração com nossa stack legada? Boa sorte 😅"`)
+- **Sparkle particles** ao persona terminar (status `done`)
+- **Auto-height**: `ResizeObserver` no canvas reporta altura real ao iframe do Streamlit
+
+#### Layout de Mesas
+
+- **Linha 1**: Facilitador (supervisor, caminha entre os outros)
+- **Linha 2**: Stakeholders primários (CFO, CTO, Procurement)
+- **Linha 3**: Stakeholders secundários (Champion, Compliance, etc.)
+- **Linha 4**: Synthesizer (gerador de consenso final)
+
+#### Integração com LangGraph
+
+Enquanto o grafo (`orchestration/graph.py`) executa:
+1. Cada nó dispara eventos via `node.stream(...)` de entrada/saída
+2. Uma thread background consome esses eventos (fila thread-safe)
+3. Streamlit rerun → canvas renderiza estados atualizados
+4. Quando todos os nós terminam, canvas mostra `done` em verde para todos
+
+Resultado: **você acompanha o debate em tempo real** sem polling, e o estado final é determinístico (não há race conditions).
+
+### ⚙️ Sidebar — Configuração da Rodada
+
+- **Conta** — Seletor dropdown: contas pré-carregadas em `accounts/`, ou upload JSON customizado
+- **Dados da Conta** — Expander com metadados: Empresa, Pitch, Solução, Valor, Comitê (stakeholders)
+- **Sua Fala de Abertura** — Campo texto (opcional): cole o pitch como você vai dizer. Se preenchido, personas reagem às suas palavras reais + Coach avalia performance
+- **Anthropic API Key** — **Auto-carregada do `.env`** se presente (badge verde: ✓ "API Key carregada de variável de ambiente"). Se ausente, campo de entrada com dica de usar `.env`
+- **Máximo de Rounds** — Slider 1–5 (controla quantas rodadas o debate pode ter)
+- **Botão "Rodar simulação"** — Inicia o grafo LangGraph
+
+### 📊 Aba Veredito
+
+Após a simulação terminar:
+
+```
+┌─────────────────────────────────────┐
+│ SCORECARD MEDDPICC                  │
+├─────────────────────────────────────┤
+│ 🎯 Metrics          ✅ Forte        │
+│ 💰 Economic Buyer   ⚠️  Risco       │
+│ 💔 Identify Pain    ✅ Forte        │
+│ 🏆 Champion         ⚠️  Risco       │
+└─────────────────────────────────────┘
+
+📍 Convergência: 71% (maioria quer avanço)
+🚨 Objeções Bloqueadoras (2):
+   - CFO: "Payback não bate com caso de uso interno"
+   - CTO: "Integração com sistema legado, demora 6 meses"
+```
+
+### 🏆 Aba Coach *(condicional — só aparece se você inseriu pitch)*
+
+Se `AccountContext.seller_opening` foi preenchido, o Synthesizer gera coaching:
+
+```
+📋 Desempenho do Pitch: 7.2/10
+
+✨ O que funcionou:
+  - "Problema: integração manual" ressoou com CTO
+  - "3 clientes da área de saúde" deu credibilidade
+
+❌ O que não funcionou:
+  - "Payback em 3 meses" foi contestado 3 vezes
+  - "Sem custo hidden" foi recebido com ceticismo
+
+📝 Reescritas (linha a linha):
+
+Sua fala:        "Payback em 3 meses, totalmente sem custo hidden"
+Sugestão Coach:  "Payback em 12 meses, incluindo integração. 
+                  Custo total visível no quote, aprovado por Procurement."
+Motivo:          CFO esperava realismo; "sem custo" é red flag.
+
+---
+
+Sua fala:        "Integração rápida com sua infraestrutura"
+Sugestão Coach:  "Integração com seu stack via API-first. 
+                  O CTO vai determinar timeline baseado na complexidade."
+Motivo:          CTO precisa de controle técnico, não promessas vagas.
+```
+
+---
+
+## 🔄 Feedback Loop — Sistema Imunológico
+
+Inspirado em "Agents são 30% do trabalho. Os outros 70% é o sistema imunológico."
+
+Cada finding/objeção pode ser **aprovado** (`👍`) ou **rejeitado** (`👎`):
+
+### Fluxo de Feedback
+
+1. **Salvo** em `~/.digital-twins/feedback/<account>.json` (FIFO, max 100 entradas)
+2. **Injetado** no prompt da próxima simulação da mesma conta:
+   ```
+   ## Feedback de Simulações Anteriores (consulte ANTES de sugerir objeções)
+   
+   ### ❌ REJEITADAS — NÃO sugira novamente:
+     - [2026-07-01 14:30] "Integração leva 6 meses" 
+       → Motivo: Já integramos com esse stack em 2 meses (cliente Y)
+   
+   ### ✅ APROVADAS — procure por padrões similares:
+     - [2026-07-01 14:00] "Não temos budget este ano" 
+       → CFO legítimo mencionou isso; dê peso
+   ```
+
+3. **Roteado** por contexto (rejeição de CFO volta para prompt do CFO na próxima rodada, etc.)
+
+### Dashboard de Memory *(Futuro)*
+
+Aba "🧠 Memory" (a implementar) mostrará:
+
+- Feedback loop stats por account
+- Capacidade por account (n/100)
+- Botão "Limpar feedback" para reset
+- Histórico de approved/rejected ao longo do tempo
+
+---
+
+## 📦 Integração com Avanade Design Tokens
+
+Todos os reports (`.md` e `.html`) e o canvas usam a paleta Avanade:
+
+| Elemento | Token | Cor |
+|----------|-------|-----|
+| Primário | `--ava-orange` | `#FF5800` |
+| Secundário | `--ava-aurora` | `#890078` |
+| Success | `--ava-success` | `#107C10` |
+| Warning | `--ava-warning` | `#FFB900` |
+| Error | `--ava-error` | `#E81123` |
+| Dark mode | `@media (prefers-color-scheme: dark)` | Gold + escala cinza |
+
+Relatórios adaptam-se automaticamente ao tema do navegador (light/dark).
