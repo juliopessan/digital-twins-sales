@@ -310,6 +310,66 @@ th {{ color: var(--ava-grey-60); font-weight: 600; font-size: 12px; text-transfo
   padding: 28px 40px; margin-top: 48px; font-size: 12px; line-height: 1.7;
 }}
 .ava-footer b {{ color: #fff; }}
+
+@media (prefers-color-scheme: dark) {{
+  :root {{
+    --ava-grey-80: #e5e5e5;
+    --ava-grey-60: #b0b0b0;
+    --ava-grey-40: #808080;
+    --ava-grey-20: #4a4a4a;
+    --ava-grey-10: #2a2a2a;
+  }}
+  body {{
+    color: #e5e5e5;
+    background: #1a1a1a;
+  }}
+  .ava-arc {{
+    background: #2a2a2a;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.40);
+  }}
+  .ava-arc-big {{
+    color: #FFD700;
+  }}
+  .ava-roadmap-step {{
+    background: #2a2a2a;
+    border-color: #4a4a4a;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.40);
+  }}
+  table {{
+    color: #e5e5e5;
+  }}
+  th {{
+    color: #b0b0b0;
+  }}
+  .ava-turn {{
+    border-left-color: #4a4a4a;
+  }}
+  .ava-turn-name {{
+    color: #FFD700;
+  }}
+  .ava-turn p {{
+    color: #d0d0d0;
+  }}
+  .ava-footer {{
+    background: #0f0f0f;
+    color: #808080;
+  }}
+  .ava-footer b {{
+    color: #e5e5e5;
+  }}
+  ul, ol {{
+    color: #e5e5e5;
+  }}
+  ul li, ol li {{
+    color: #d0d0d0;
+  }}
+  p {{
+    color: #d0d0d0;
+  }}
+  .ava-section-bar {{
+    color: #e5e5e5;
+  }}
+}}
 </style>
 </head>
 <body>
