@@ -1,0 +1,94 @@
+[
+  {
+    "account_name": "Nubank",
+    "deal_stage": "Descoberta técnica concluída, proposta em elaboração",
+    "pitch_summary": "Plataforma multiagente de Gen AI para triagem e resolução de disputas de transação e chargebacks, absorvendo o volume crescente de reclamações trazido pela expansão internacional (EUA, Oriente Médio) sem multiplicar o headcount de operações de risco.",
+    "proposed_solution": "Pipeline agêntico hospedado na Azure com agentes de classificação de disputa, cruzamento de evidências (extrato, geolocalização, padrão comportamental) e resolução automática de casos de baixa complexidade, com humano no loop para casos de alto valor. Implementação de 16 semanas, US$ 850 mil no Ano 1 (licença + serviços).",
+    "deal_value_usd": 850000,
+    "roles_in_committee": ["ceo", "cto", "cfo", "procurement"],
+    "real_data": {
+      "ceo": [
+        "David Vélez é fundador e CEO do Nu Holdings/Nubank, mantendo cerca de 75% do poder de voto via ações super-votantes",
+        "Em fevereiro de 2026, a Bloomberg reportou Vélez trabalhando para expandir a base global do Nubank para mais de 127 milhões de clientes, incluindo quase 60% da população adulta brasileira",
+        "O retorno sobre patrimônio (ROE) do Nubank no trimestre mais recente citado pela Bloomberg foi de 31%, ante 23,3% do Itaú Unibanco",
+        "Vélez confirmou que a aprovação condicional para uma licença bancária nacional nos EUA (obtida em janeiro de 2026) — chamada internamente de 'Act Three' — é um objetivo de longo prazo, mantendo o foco declarado em Brasil, México e Colômbia",
+        "Em abril de 2026, o Nubank formalizou entrada no Oriente Médio, com sede em Abu Dhabi em parceria com o Wio Bank, mirando expansão para Ásia e MENA",
+        "A companhia opera com 131 milhões de clientes, US$ 78 bilhões em ativos e US$ 2,82 bilhões de lucro líquido em 2025, além de estar entre os quatro finalistas para adquirir o Banco Caixa Geral Brasil e obter licença bancária doméstica completa",
+        "Dado esse histórico de expansão agressiva multi-geografia sob controle acionário concentrado, Vélez tende a avaliar qualquer proposta de automação pela lente de 'isso libera capacidade operacional para sustentar o ritmo de expansão internacional sem comprometer a eficiência de capital que hoje supera a de bancos tradicionais?'"
+      ]
+    }
+  },
+  {
+    "account_name": "Magazine Luiza (Magalu)",
+    "deal_stage": "Diagnóstico técnico em andamento, apresentação ao comitê prevista para o próximo trimestre",
+    "pitch_summary": "Plataforma multiagente de Gen AI para automatizar a conciliação fiscal e logística entre o Magalog e mais de 90 clientes externos de transportadora, eliminando o gargalo manual de conferência de NF-e/CT-e que hoje limita a escalada da operação de logística como serviço.",
+    "proposed_solution": "Pipeline agêntico na Azure com agentes de leitura de documento fiscal, reconciliação de frete e tratamento de exceções com supervisão humana, integrado aos 175 hubs de cross-docking e 21 centros de distribuição. Implementação de 20 semanas, US$ 580 mil no Ano 1 (licença + serviços).",
+    "deal_value_usd": 580000,
+    "roles_in_committee": ["ceo", "cto", "cfo", "procurement"],
+    "real_data": {
+      "ceo": [
+        "Frederico Trajano é CEO do Magalu desde 2016, tendo iniciado sua trajetória na empresa no começo dos anos 2000, ajudando a estruturar o e-commerce",
+        "Criou o Luizalabs, laboratório de tecnologia da companhia, hoje referência em digitalização no varejo brasileiro",
+        "Em comunicações públicas recentes, posiciona a companhia como líder da 'revolução do ia-commerce', sucessora natural do e-commerce e do mobile-commerce",
+        "Sob sua gestão, o Magalu registrou R$ 65 bilhões em vendas totais em 2024 (72% via e-commerce), com 1.245 lojas físicas, 21 centros de distribuição e 175 hubs de cross-docking, atendendo 37 milhões de clientes em 917 cidades",
+        "A unidade de logística como serviço, Magalog, cresceu 47% em receita em 2025 e hoje atende mais de 90 clientes de mercado sem relação com o ecossistema Magalu, além de operar as marcas do próprio grupo",
+        "Trajano transformou um caixa líquido negativo de R$ 0,5 bilhão em um saldo positivo de R$ 3,1 bilhões, associando crescimento a disciplina financeira, e completou uma década à frente da companhia em 2025",
+        "Dado esse histórico de expansão via ecossistema tecnológico próprio (Luizalabs, Magalog, Magalu Cloud, Magalu Ads), tende a avaliar propostas de automação pela lente de 'isso acelera a escala do Magalog como plataforma de logística para terceiros ou é apenas eficiência interna incremental?'"
+      ]
+    }
+  },
+  {
+    "account_name": "Rede D'Or São Luiz",
+    "deal_stage": "Proposta técnica em revisão pelo comitê de compras",
+    "pitch_summary": "Plataforma multiagente de Gen AI para automatizar a análise de glosas e o ciclo de faturamento entre hospitais da rede e operadoras de saúde — incluindo a integração pós-fusão com a SulAmérica — substituindo grande parte da triagem manual de auditoria de contas médicas por supervisão humana em exceções.",
+    "proposed_solution": "Pipeline agêntico na Azure com agentes de leitura de prontuário/conta médica, cruzamento com regras contratuais por operadora e priorização de glosas recorrentes. Implementação de 22 semanas, US$ 720 mil no Ano 1 (licença + serviços).",
+    "deal_value_usd": 720000,
+    "roles_in_committee": ["ceo", "cto", "cfo", "procurement"],
+    "real_data": {
+      "ceo": [
+        "Paulo Moll é CEO da Rede D'Or São Luiz e recentemente recebeu o Prêmio Executivo de Valor 2026 na categoria Saúde",
+        "Em seu discurso de premiação, referiu-se à liderança de cerca de 80 mil colaboradores da companhia",
+        "Sob a liderança do grupo controlador (família Moll), a rede segue investindo em expansão de ensino superior, com autorização em 2026 para implementar a Faculdade de Medicina IDOR",
+        "A companhia concluiu a fusão com a SulAmérica, aprovada por Cade e ANS, com governança em que os CEOs das novas unidades de seguros/vida respondem diretamente à Rede D'Or — cujo presidente executivo é Paulo Moll e presidente do conselho é Jorge Moll Filho",
+        "A rede figura com 30 hospitais no ranking dos melhores do mundo em 2026 (Newsweek/World's Best Hospitals), com padrão tecnológico elevado mesmo em unidades fora das capitais (cirurgia robótica Da Vinci X, centros de hemodinâmica avançados)",
+        "Dado esse histórico de expansão via fusões complexas (SulAmérica) e padronização tecnológica ampla, Moll tende a avaliar propostas de automação pela lente de 'isso resolve o atrito operacional da integração pós-fusão com a SulAmérica e escala de forma uniforme entre hospitais e operadoras, sem criar mais um sistema isolado?'"
+      ]
+    }
+  },
+  {
+    "account_name": "Localiza",
+    "deal_stage": "Kick-off técnico realizado, aguardando validação orçamentária do CFO",
+    "pitch_summary": "Plataforma multiagente de Gen AI para automatizar a vistoria de devolução de veículos (avaliação de danos, leitura de checklist e cálculo de cobrança) nas mais de 700 agências físicas, reduzindo o tempo de vistoria manual e a variabilidade entre avaliadores.",
+    "proposed_solution": "Pipeline agêntico na Azure combinando agentes de visão computacional (análise de imagem de dano) e agentes de texto (checklist, política de cobrança, exceção). Implementação de 18 semanas, US$ 510 mil no Ano 1 (licença + serviços).",
+    "deal_value_usd": 510000,
+    "roles_in_committee": ["ceo", "cto", "cfo", "procurement"],
+    "real_data": {
+      "ceo": [
+        "Bruno Lasansky é CEO da Localiza, engenheiro industrial argentino formado pelo Instituto Tecnológico de Buenos Aires, com MBA pela Wharton School",
+        "Antes de assumir o cargo, foi sócio da Bain & Company; ingressou na Localiza há sete anos, passou por Diretoria Executiva de Locação e depois COO antes de virar CEO — o primeiro executivo não-fundador a liderar a empresa em seus mais de 48 anos de história",
+        "Sob sua liderança, a Localiza opera uma frota de mais de 630 mil veículos e 700 agências físicas em sete países (Brasil, Argentina, Uruguai, Paraguai, Equador, Colômbia e México)",
+        "Concluiu a fusão com a Unidas (Locamerica) em 2022 — uma das operações concorrenciais mais complexas do país — e dobrou o investimento em tecnologia desde o início da pandemia",
+        "Em entrevista pública, declarou que a prioridade da companhia para o próximo ciclo é o retorno sobre capital investido (ROIC) somado ao avanço na adoção de inteligência artificial generativa",
+        "Dado esse histórico de padronização operacional pós-fusão e prioridade explícita em IA generativa, Lasansky tende a avaliar propostas de automação pela lente de 'isso melhora o ROIC da frota e é replicável de forma consistente nas 700 agências, nos sete países onde operamos?'"
+      ]
+    }
+  },
+  {
+    "account_name": "Vale",
+    "deal_stage": "Apresentação executiva concluída, proposta formal em elaboração",
+    "pitch_summary": "Plataforma multiagente de Gen AI para automatizar a triagem e o enriquecimento de relatórios de segurança operacional e conformidade ambiental (barragens, minas, ESG), substituindo parte da revisão manual de compliance por supervisão humana em exceções críticas.",
+    "proposed_solution": "Pipeline agêntico na Azure com agentes de leitura de relatório de campo, cruzamento com normas regulatórias (ANM, ESG) e priorização de risco. Implementação de 20 semanas, US$ 690 mil no Ano 1 (licença + serviços).",
+    "deal_value_usd": 690000,
+    "roles_in_committee": ["ceo", "cto", "cfo", "procurement"],
+    "real_data": {
+      "ceo": [
+        "Gustavo Pimenta é CEO da Vale desde 1º de outubro de 2024, eleito por unanimidade pelo Conselho de Administração após um processo de sucessão marcado por tentativas de interferência do governo federal",
+        "Economista formado pela UFMG com mestrado em finanças pela FGV, atuou 12 anos na AES (CFO global) e como VP de Estratégia e M&A do Citigroup em Nova York, antes de ser Vice-Presidente Executivo de Finanças e Relações com Investidores da Vale — período em que também respondeu por suprimentos, energia e descarbonização",
+        "No Fórum Econômico Mundial de Davos em 2026, destacou minerais críticos, transição energética e avanço da inteligência artificial como os três grandes temas globais, afirmando que a Vale já tem atuação consolidada em minerais críticos",
+        "Reforça publicamente o investimento em tecnologia e a menor dependência de barragens como forma de redução de custo sustentável, afirmando que 'a falha custa dez vezes mais que o movimento de prevenção'",
+        "Sob sua gestão, a Vale registrou no primeiro trimestre de 2026 receita líquida de US$ 9,258 bilhões (+14% ano a ano) e EBITDA ajustado de US$ 3,83 bilhões, e Pimenta foi eleito Executivo de Valor 2026 na categoria Mineração e Metalurgia",
+        "Dado esse histórico de reconstrução de credenciais ESG pós-Brumadinho/Mariana e ênfase declarada em prevenção de falha operacional, Pimenta tende a avaliar propostas de automação pela lente de 'isso reduz o risco de falha de conformidade e barragem antes que ela aconteça, ou é apenas eficiência de back-office?'"
+      ]
+    }
+  }
+]

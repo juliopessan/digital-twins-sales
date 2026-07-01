@@ -1,0 +1,19 @@
+{
+  "account_name": "Magazine Luiza (Magalu)",
+  "deal_stage": "Diagnóstico técnico em andamento, apresentação ao comitê prevista para o próximo trimestre",
+  "pitch_summary": "Plataforma multiagente de Gen AI para automatizar a conciliação fiscal e logística entre o Magalog e mais de 90 clientes externos de transportadora, eliminando o gargalo manual de conferência de NF-e/CT-e que hoje limita a escalada da operação de logística como serviço.",
+  "proposed_solution": "Pipeline agêntico na Azure com agentes de leitura de documento fiscal, reconciliação de frete e tratamento de exceções com supervisão humana, integrado aos 175 hubs de cross-docking e 21 centros de distribuição. Implementação de 20 semanas, US$ 580 mil no Ano 1 (licença + serviços).",
+  "deal_value_usd": 580000,
+  "roles_in_committee": ["ceo", "cto", "cfo", "procurement"],
+  "real_data": {
+    "ceo": [
+      "Frederico Trajano é CEO do Magalu desde 2016, tendo iniciado sua trajetória na empresa no começo dos anos 2000, ajudando a estruturar o e-commerce",
+      "Criou o Luizalabs, laboratório de tecnologia da companhia, hoje referência em digitalização no varejo brasileiro",
+      "Em comunicações públicas recentes, posiciona a companhia como líder da 'revolução do ia-commerce', sucessora natural do e-commerce e do mobile-commerce",
+      "Sob sua gestão, o Magalu registrou R$ 65 bilhões em vendas totais em 2024 (72% via e-commerce), com 1.245 lojas físicas, 21 centros de distribuição e 175 hubs de cross-docking, atendendo 37 milhões de clientes em 917 cidades",
+      "A unidade de logística como serviço, Magalog, cresceu 47% em receita em 2025 e hoje atende mais de 90 clientes de mercado sem relação com o ecossistema Magalu, além de operar as marcas do próprio grupo",
+      "Trajano transformou um caixa líquido negativo de R$ 0,5 bilhão em um saldo positivo de R$ 3,1 bilhões, associando crescimento a disciplina financeira, e completou uma década à frente da companhia em 2025",
+      "Dado esse histórico de expansão via ecossistema tecnológico próprio (Luizalabs, Magalog, Magalu Cloud, Magalu Ads), tende a avaliar propostas de automação pela lente de 'isso acelera a escala do Magalog como plataforma de logística para terceiros ou é apenas eficiência interna incremental?'"
+    ]
+  }
+}

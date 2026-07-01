@@ -1,0 +1,18 @@
+{
+  "account_name": "Vale",
+  "deal_stage": "Apresentação executiva concluída, proposta formal em elaboração",
+  "pitch_summary": "Plataforma multiagente de Gen AI para automatizar a triagem e o enriquecimento de relatórios de segurança operacional e conformidade ambiental (barragens, minas, ESG), substituindo parte da revisão manual de compliance por supervisão humana em exceções críticas.",
+  "proposed_solution": "Pipeline agêntico na Azure com agentes de leitura de relatório de campo, cruzamento com normas regulatórias (ANM, ESG) e priorização de risco. Implementação de 20 semanas, US$ 690 mil no Ano 1 (licença + serviços).",
+  "deal_value_usd": 690000,
+  "roles_in_committee": ["ceo", "cto", "cfo", "procurement"],
+  "real_data": {
+    "ceo": [
+      "Gustavo Pimenta é CEO da Vale desde 1º de outubro de 2024, eleito por unanimidade pelo Conselho de Administração após um processo de sucessão marcado por tentativas de interferência do governo federal",
+      "Economista formado pela UFMG com mestrado em finanças pela FGV, atuou 12 anos na AES (CFO global) e como VP de Estratégia e M&A do Citigroup em Nova York, antes de ser Vice-Presidente Executivo de Finanças e Relações com Investidores da Vale — período em que também respondeu por suprimentos, energia e descarbonização",
+      "No Fórum Econômico Mundial de Davos em 2026, destacou minerais críticos, transição energética e avanço da inteligência artificial como os três grandes temas globais, afirmando que a Vale já tem atuação consolidada em minerais críticos",
+      "Reforça publicamente o investimento em tecnologia e a menor dependência de barragens como forma de redução de custo sustentável, afirmando que 'a falha custa dez vezes mais que o movimento de prevenção'",
+      "Sob sua gestão, a Vale registrou no primeiro trimestre de 2026 receita líquida de US$ 9,258 bilhões (+14% ano a ano) e EBITDA ajustado de US$ 3,83 bilhões, e Pimenta foi eleito Executivo de Valor 2026 na categoria Mineração e Metalurgia",
+      "Dado esse histórico de reconstrução de credenciais ESG pós-Brumadinho/Mariana e ênfase declarada em prevenção de falha operacional, Pimenta tende a avaliar propostas de automação pela lente de 'isso reduz o risco de falha de conformidade e barragem antes que ela aconteça, ou é apenas eficiência de back-office?'"
+    ]
+  }
+}

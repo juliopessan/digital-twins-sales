@@ -253,7 +253,7 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system,
 
 
 def render_pixel_office(transcript) -> None:
-    """Renders the transcript as a standalone HTML document via st.iframe
+    """Renders the transcript as a standalone HTML document via st.html
     instead of st.markdown(unsafe_allow_html=True). A single large block of
     concatenated <div>s passed through Streamlit's CommonMark markdown parser
     can lose track mid-document (a blank line between divs ends the "raw
@@ -281,7 +281,7 @@ def render_pixel_office(transcript) -> None:
     parts.append("</div>")
     inner_html = "".join(parts)
     full_html = f'<!DOCTYPE html><html><head><meta charset="utf-8"><style>{_PIXEL_TRANSCRIPT_CSS}</style></head><body>{inner_html}</body></html>'
-    st.iframe(full_html, height="content")
+    st.html(full_html)
 
 
 def _run_debate_with_events(app, initial_state: dict, q: Queue) -> None:
@@ -335,7 +335,7 @@ def render_office(personas, log: list[dict]) -> None:
     keys = [d["key"] for d in agent_defs]
     agent_states = build_agent_states(log, keys)
     office_html = build_office_html(agent_defs, layout, ncols, nrows, agent_states)
-    st.iframe(office_html, height="content")
+    st.html(office_html)
 
 
 def render_roadmap(items: list[str]) -> None:

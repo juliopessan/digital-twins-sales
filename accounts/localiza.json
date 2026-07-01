@@ -1,0 +1,18 @@
+{
+  "account_name": "Localiza",
+  "deal_stage": "Kick-off técnico realizado, aguardando validação orçamentária do CFO",
+  "pitch_summary": "Plataforma multiagente de Gen AI para automatizar a vistoria de devolução de veículos (avaliação de danos, leitura de checklist e cálculo de cobrança) nas mais de 700 agências físicas, reduzindo o tempo de vistoria manual e a variabilidade entre avaliadores.",
+  "proposed_solution": "Pipeline agêntico na Azure combinando agentes de visão computacional (análise de imagem de dano) e agentes de texto (checklist, política de cobrança, exceção). Implementação de 18 semanas, US$ 510 mil no Ano 1 (licença + serviços).",
+  "deal_value_usd": 510000,
+  "roles_in_committee": ["ceo", "cto", "cfo", "procurement"],
+  "real_data": {
+    "ceo": [
+      "Bruno Lasansky é CEO da Localiza, engenheiro industrial argentino formado pelo Instituto Tecnológico de Buenos Aires, com MBA pela Wharton School",
+      "Antes de assumir o cargo, foi sócio da Bain & Company; ingressou na Localiza há sete anos, passou por Diretoria Executiva de Locação e depois COO antes de virar CEO — o primeiro executivo não-fundador a liderar a empresa em seus mais de 48 anos de história",
+      "Sob sua liderança, a Localiza opera uma frota de mais de 630 mil veículos e 700 agências físicas em sete países (Brasil, Argentina, Uruguai, Paraguai, Equador, Colômbia e México)",
+      "Concluiu a fusão com a Unidas (Locamerica) em 2022 — uma das operações concorrenciais mais complexas do país — e dobrou o investimento em tecnologia desde o início da pandemia",
+      "Em entrevista pública, declarou que a prioridade da companhia para o próximo ciclo é o retorno sobre capital investido (ROIC) somado ao avanço na adoção de inteligência artificial generativa",
+      "Dado esse histórico de padronização operacional pós-fusão e prioridade explícita em IA generativa, Lasansky tende a avaliar propostas de automação pela lente de 'isso melhora o ROIC da frota e é replicável de forma consistente nas 700 agências, nos sete países onde operamos?'"
+    ]
+  }
+}

@@ -67,6 +67,13 @@ Em ambos os modos, o veredito também traz um **scorecard MEDDPICC**
 `seller_opening`, o prompt do Synthesizer é byte-a-byte o de sempre e o
 `seller_coaching` fica `None`.
 
+## Status
+
+✅ **Streamlit app running** — Interface fully functional at http://localhost:8501.  
+- Fixed Streamlit 1.40.0 compatibility: `st.iframe()` → `st.html()` (committee view + debate transcript).
+- All personas render correctly with veto scores and stakeholder information.
+- Ready for testing: select account, configure committee, run simulation.
+
 ## Setup local (terminal)
 
 ```bash
