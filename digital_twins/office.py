@@ -1,19 +1,22 @@
-"""
-Sales Board Office — pixel-art canvas renderer.
+﻿"""
+Sales Board Office — squad-pod Canvas 2D engine adapted for Streamlit.
 
-Port of the Squad Office engine from juliopessan/arch-review-assistant
-(web/squad_office.py): same sprite system, desk rendering, speech bubbles,
-floor tiling, and idle/walk/working/done state machine — generalized here
-to render an arbitrary number of stakeholder personas instead of a fixed
-9-agent squad, with the Facilitator playing the "manager" role (walks
-desk-to-desk in speaking order) and a Synthesizer desk for the final verdict.
+Adapts swigerb/squad-pod's architecture:
+  • Tile-based floor + wall grid  (TILE=16px, ZOOM=3 → 48px on screen)
+  • Per-agent seat assignment on the tile grid
+  • BFS pathfinding — characters walk to their seats on spawn and on activation
+  • Z-sorted scene rendering: desks and characters depth-sorted by bottom Y
+  • 16×24 character sprites with 4-frame walk + 2-frame typing animation
+    (ported from squad-pod defaultCharacters.ts createCharacter* functions)
+  • Pixel-art speech bubbles (waiting / working) rendered at zoom scale
+  • Direction-aware walk animation (LEFT / RIGHT / DOWN)
+  • Character state machine: spawn-walk → idle → walk-to-seat → type → done
 
-Same workflow logic as arch-review-assistant's Squad Office tab: a
-background thread runs the LangGraph debate and pushes start/done events
-into a queue; the canvas renders the resulting `agent_states` snapshot.
-The JS state machine provides ambient idle/walk motion while Streamlit's
-script blocks on the run; the accurate final per-persona states are baked
-in on the rerun after the debate completes.
+Python API is identical to the previous implementation:
+  build_agent_defs(personas)                        → list[dict]
+  build_layout(n_personas)                          → (layout, ncols, nrows)
+  build_agent_states(log, keys)                     → dict
+  build_office_html(agent_defs, layout, ncols, nrows, agent_states) → str
 """
 from __future__ import annotations
 
@@ -77,14 +80,9 @@ def build_agent_states(log: list[dict], keys: list[str]) -> dict:
     return states
 
 
-_GENERIC_BUBBLES = {
-    "idle": ["Aguardando...", "Hmm...", "Café ☕", "Lendo o pitch..."],
-    "delegating": ["Quem fala agora?", "Sua vez!", "Próximo!", "Vai fundo 👉"],
-    "working": ["Pensando...", "Avaliando...", "Hmm, interessante", "Deixa eu ver..."],
-    "done": ["Falei o que tinha 🎯", "Pronto", "Dito isso...", "Próximo round"],
-    "error": ["Algo travou...", "Erro 😕"],
-}
-
+# ---------------------------------------------------------------------------
+# HTML / Canvas builder
+# ---------------------------------------------------------------------------
 
 def build_office_html(
     agent_defs: list[dict],
@@ -97,390 +95,661 @@ def build_office_html(
     agents_json = json.dumps(agent_defs)
     layout_json = json.dumps(layout)
     states_json = json.dumps(agent_states)
-    bubbles_json = json.dumps(_GENERIC_BUBBLES)
 
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{background:#1a1628;font-family:-apple-system,'Segoe UI',sans-serif;overflow:hidden}}
-#wrap{{width:100%;display:flex;flex-direction:column}}
-#mgr{{background:#14102a;border:1px solid #3d3560;border-radius:8px;
-  padding:10px 14px;display:flex;align-items:flex-start;gap:10px;font-size:12px;
-  margin:8px 8px 0;transition:all .3s}}
-#mgr.done{{border-color:#22c55e;background:#0d2218}}
-#mgr.running{{border-color:#818cf8;background:#1a1838;
-  box-shadow:0 0 14px rgba(129,140,248,.3);animation:glow 2s ease-in-out infinite}}
-.mic{{font-size:1.1rem;flex-shrink:0}}
-.minfo{{flex:1;min-width:0}}
-.mttl{{font-weight:700;color:#e2e8f0;font-size:12px}}
-.msub{{font-size:10px;color:#64748b;margin-top:1px}}
-.mst{{font-size:10px;font-weight:700;color:#475569;flex-shrink:0}}
-#mgr.done .mst{{color:#22c55e}} #mgr.running .mst{{color:#818cf8}}
+body{{background:#1a1628;overflow:hidden;font-family:-apple-system,'Segoe UI',sans-serif}}
+#wrap{{width:100%;position:relative}}
 canvas{{display:block;width:100%;image-rendering:pixelated;image-rendering:crisp-edges}}
-@keyframes glow{{0%,100%{{box-shadow:0 0 8px rgba(129,140,248,.2)}}50%{{box-shadow:0 0 22px rgba(129,140,248,.45)}}}}
-</style></head><body>
-<div id="wrap">
-  <div id="mgr">
-    <div class="mic">🎯</div>
-    <div class="minfo">
-      <div class="mttl">{facilitator_label} <span style="font-size:9px;font-weight:400;color:#475569">— Supervisor</span></div>
-      <div class="msub">Define ordem de fala · Avalia convergência · Escala bloqueios</div>
-    </div>
-    <div class="mst" id="mst">aguardando</div>
-  </div>
-  <canvas id="cv"></canvas>
-</div>
+</style></head>
+<body>
+<div id="wrap"><canvas id="cv"></canvas></div>
 <script>
-const STATES={states_json};
-const AGENTS={agents_json};
-const LAYOUT={layout_json};
-const NCOLS={ncols};
-const NROWS={nrows};
-const BUBBLES={bubbles_json};
-const FAC_KEY="{FACILITATOR_KEY}";
+// ── Data from Python ─────────────────────────────────────────────────────────
+const STATES  = {states_json};
+const AGENTS  = {agents_json};
+const LAYOUT  = {layout_json};
+const NCOLS_L = {ncols};
+const NROWS_L = {nrows};
+const FAC_KEY = "{FACILITATOR_KEY}";
+const SYN_KEY = "{SYNTHESIZER_KEY}";
 
-const P={{
-  flA:0x1e1a2e, flB:0x241f38, flLine:0x14102a,
-  wall:0x100d20, wallT:0x1a1628,
-  desk:0x3d3560, deskT:0x4a4070, deskE:0x2a2438,
-  dW:0x5a4a30, dWL:0x6a5a3a, dWD:0x4a3a22,
-  mF:0x1a1628, mS:0x08080f, mOn:0x00d4ff, mSt:0x2a2438,
-  chB:0x1a1628, chS:0x201d3a, chA:0x242038,
-  sL:0xffcba4, sLS:0xe8a882, sM:0xc68642, sMS:0xa86a2a, sD:0x8d5524, sDS:0x6b3a14,
-  hBk:0x1a1008, hBr:0x4a2a0a, hBl:0xc89010, hRd:0x902010,
-  tBlu:0x3b82f6, tGrn:0x22c55e, tRed:0xef4444, tPrp:0xa855f7, tAmb:0xf59e0b, tTel:0x14b8a6,
-  pt:0x1e293b, sh:0x0f172a, shL:0x1e293b,
-  card:0x0f0a1e,
-  dI:0x475569, dR:0x60a5fa, dD:0x4ade80, dE:0xf87171, dW2:0xfbbf24,
-  spark:0xffd700,
-}};
-const VAR=[
-  [P.sM,P.sMS,P.hBk,P.tBlu], [P.sL,P.sLS,P.hBk,P.tRed],
-  [P.sM,P.sMS,P.hBr,P.tGrn], [P.sL,P.sLS,P.hBl,P.tAmb],
-  [P.sD,P.sDS,P.hRd,P.tPrp], [P.sL,P.sLS,P.hBr,P.tTel],
+// ── Engine constants (squad-pod style) ───────────────────────────────────────
+const TILE = 16;        // logical px per tile
+const ZOOM = 3;         // display scale factor
+const TS   = TILE * ZOOM; // screen px per tile (48)
+
+// Tile types
+const T_VOID  = 0;
+const T_FLOOR = 1;
+const T_WALL  = 2;
+const T_DESK  = 3;   // blocked by desk furniture
+const T_CHAIR = 4;   // seat tile (walkable, character stands here)
+
+// Layout geometry in tiles
+const BORDER  = 2;   // wall-border width
+const CELL_W  = 3;   // cols per layout column  (2 desk + 1 gap)
+const CELL_H  = 4;   // rows per layout row     (1 desk + 1 seat + 1 char + 1 gap)
+const DESK_W  = 2;   // desk width in tiles
+const SEAT_DY = 1;   // seat row below desk top
+
+// Grid total dimensions
+const G_COLS = BORDER * 2 + NCOLS_L * CELL_W;
+const G_ROWS = BORDER * 2 + NROWS_L * CELL_H;
+
+// ── Colour palettes (squad-pod palettes) ─────────────────────────────────────
+const PALETTES = [
+  ['#4169E1','#FDBCB4','#2C3E50'],
+  ['#DC143C','#FDBCB4','#2C3E50'],
+  ['#32CD32','#C68642','#2C3E50'],
+  ['#9370DB','#8D5524','#2C3E50'],
+  ['#FF8C00','#FDBCB4','#2C3E50'],
+  ['#20B2AA','#C68642','#2C3E50'],
 ];
-function hx(n){{return '#'+n.toString(16).padStart(6,'0')}}
-function px(c,x,y,n){{c.fillStyle=hx(n);c.fillRect(x,y,1,1)}}
-function hs(c,x1,x2,y,n){{c.fillStyle=hx(n);c.fillRect(x1,y,x2-x1+1,1)}}
-function bx(c,x,y,w,h,n){{c.fillStyle=hx(n);c.fillRect(x,y,w,h)}}
-function rr(c,x,y,w,h,r,n,a){{
-  c.save();if(a!==undefined)c.globalAlpha=a;
-  c.fillStyle=hx(n);c.beginPath();c.roundRect(x,y,w,h,r);c.fill();c.restore();
+
+// ── Sprite generation (ported from squad-pod defaultCharacters.ts) ────────────
+// 16×24 pixel colour arrays (SpriteData equivalent)
+
+function empty16x24() {{
+  return Array.from({{length:24}}, () => Array(16).fill(''));
 }}
-function mkSprite(vi,pose,frame){{
-  const [skin,skinS,hair,shirt]=VAR[vi%VAR.length];
-  const cv=document.createElement('canvas');cv.width=16;cv.height=24;
-  const c=cv.getContext('2d');c.imageSmoothingEnabled=false;
-  hs(c,5,10,0,hair);hs(c,4,11,1,hair);hs(c,4,11,2,hair);
-  [6,7,8,9].forEach(y=>hs(c,4,11,y,skin));
-  [10,11].forEach(y=>hs(c,5,10,y,skin));
-  hs(c,6,9,12,skin);
-  px(c,4,5,skinS);px(c,11,5,skinS);
-  hs(c,5,6,2,hair);hs(c,9,10,2,hair);
-  const ey=pose==='working'?4:3;
-  px(c,5,ey,0xf0ede8);px(c,6,ey,0x1a1008);px(c,9,ey,0xf0ede8);px(c,10,ey,0x1a1008);
-  px(c,7,5,skinS);
-  if(pose==='done'){{px(c,5,6,0x1a1008);px(c,9,6,0x1a1008);hs(c,6,8,7,0x1a1008)}}
-  else hs(c,6,9,6,0x1a1008);
-  px(c,4,8,skin);px(c,11,8,skin);
-  hs(c,6,9,8,0xf0f0f0);
-  for(let y=9;y<=15;y++)for(let i=3;i<=12;i++)
-    px(c,i,y,i<=4||i>=11?0x1e293b:(i===7||i===8)?shirt+0x101010:shirt);
-  hs(c,3,12,16,0x1e293b);px(c,7,16,0x8a8a5a);px(c,8,16,0x8a8a5a);
-  for(let y=17;y<=20;y++){{hs(c,4,6,y,P.pt);hs(c,9,11,y,P.pt);}}
-  if(pose==='done'){{
-    px(c,3,9,shirt);px(c,12,9,shirt);
-    px(c,2,8,skin);px(c,1,7,skin);px(c,13,8,skin);px(c,14,7,skin);
-  }}else if(pose==='working'){{
-    px(c,3,10,shirt);px(c,12,10,shirt);
-    const off=frame%2===0?0:1;
-    px(c,2,11+off,skin);px(c,13,11-off,skin);
-  }}else if(pose==='walking'){{
-    const sw=Math.round(Math.sin(frame/3*Math.PI));
-    px(c,3,10+sw,shirt);px(c,12,10-sw,shirt);
-    px(c,2,12+sw,skin);px(c,13,12-sw,skin);
-  }}else{{
-    px(c,3,10,shirt);px(c,12,10,shirt);
-    px(c,3,11,skin);px(c,12,11,skin);
+function _px(g, x, y, c) {{
+  if (y>=0 && y<g.length && x>=0 && x<g[0].length) g[y][x] = c;
+}}
+function _row(g, x1, x2, y, c) {{
+  for (let x=x1; x<=x2; x++) _px(g,x,y,c);
+}}
+
+function makeWalkDown(shirt, skin, pants) {{
+  const g = empty16x24();
+  // Hair
+  _row(g,5,10,0,'#1a1008'); _row(g,4,11,1,'#1a1008'); _row(g,4,11,2,'#1a1008');
+  // Head/face
+  for (let y=2; y<8; y++) _row(g,5,10,y,skin);
+  _px(g,4,5,skin); _px(g,11,5,skin);
+  // Eyes + mouth
+  _px(g,6,4,'#000000'); _px(g,9,4,'#000000');
+  _row(g,6,9,6,'#000000');
+  // Body
+  for (let y=8; y<16; y++) _row(g,4,11,y,shirt);
+  // Side arms
+  _px(g,3,9,shirt); _px(g,12,9,shirt);
+  _px(g,3,10,skin);  _px(g,12,10,skin);
+  // Legs
+  for (let y=16; y<24; y++) {{
+    _row(g,5,6,y,pants);
+    _row(g,9,10,y,pants);
   }}
-  bx(c,3,21,4,2,P.sh);bx(c,9,21,4,2,P.sh);
-  hs(c,3,6,22,P.shL);hs(c,9,12,22,P.shL);
-  return cv;
+  return g;
 }}
-const DW=96, DH=64;
-function drawDesk(ctx,x,y,active,agIdx){{
-  bx(ctx,x,y,DW,DH*0.5,P.dW);
-  for(let r=0;r<6;r++)bx(ctx,x,y+r*5,DW,4,r%3===0?P.dWL:r%3===1?P.dW:P.dWD);
-  bx(ctx,x,y,2,DH*0.5,P.dWD);bx(ctx,x+DW-2,y,2,DH*0.5,P.dWD);
-  ctx.fillStyle=hx(0x141020);ctx.beginPath();ctx.roundRect(x+DW*0.2,y-20,DW*0.6,18,2);ctx.fill();
-  ctx.fillStyle=hx(P.mF);ctx.beginPath();ctx.roundRect(x+DW*0.21,y-19,DW*0.58,16,1);ctx.fill();
-  const sc=active?P.mOn:P.mS;
-  ctx.fillStyle=hx(sc);ctx.beginPath();ctx.roundRect(x+DW*0.23,y-18,DW*0.54,13,1);ctx.fill();
-  if(active){{
-    ctx.globalAlpha=0.28;ctx.fillStyle='#fff';
-    for(let i=0;i<4;i++)ctx.fillRect(x+DW*0.25,y-16+i*3,8+((i*9)%20),1);
-    ctx.globalAlpha=0.07;ctx.fillStyle=hx(P.mOn);
-    ctx.beginPath();ctx.roundRect(x+DW*0.12,y-26,DW*0.76,32,4);ctx.fill();
-    ctx.globalAlpha=1;
+
+// Walk frame 2 — left stride
+function makeWalkFrame2(shirt, skin, pants) {{
+  const g = makeWalkDown(shirt, skin, pants);
+  for (let y=16; y<24; y++) {{
+    _row(g,5,6,y,''); _row(g,9,10,y,'');
+    _row(g,3,4,y,pants);   // left leg forward
+    _row(g,9,10,y,pants);  // right leg back (same cols OK for 16px)
   }}
-  ctx.globalAlpha=0.08;ctx.fillStyle='#fff';ctx.fillRect(x+DW*0.23,y-18,DW*0.54,2);ctx.globalAlpha=1;
-  bx(ctx,x+DW*0.45,y-2,DW*0.1,4,P.mSt);
-  ctx.fillStyle=hx(P.mSt);ctx.beginPath();ctx.roundRect(x+DW*0.32,y+2,DW*0.36,3,1);ctx.fill();
-  bx(ctx,x,y+DH*0.5,DW,5,P.dWD);
-  ctx.fillStyle=hx(0x2a2438);ctx.beginPath();ctx.roundRect(x+DW*0.22,y+DH*0.5+1,DW*0.4,6,1);ctx.fill();
-  ctx.globalAlpha=0.5;ctx.fillStyle='#555';
-  for(let r=0;r<2;r++)for(let k=0;k<7;k++)ctx.fillRect(x+DW*0.23+k*5,y+DH*0.5+2+r*2,4,1);
-  ctx.globalAlpha=1;
-  ctx.fillStyle=hx(0x2a2438);ctx.beginPath();ctx.roundRect(x+DW*0.7,y+DH*0.5,8,11,3);ctx.fill();
-  bx(ctx,x+DW*0.7,y+DH*0.5,8,3,0x3a3448);
-  bx(ctx,x+DW*0.2,y+DH*0.6,DW*0.6,5,P.chB);
-  bx(ctx,x+DW*0.15,y+DH*0.72,DW*0.7,3,P.chB);
-  bx(ctx,x+DW*0.15,y+DH*0.6,6,14,P.chA);
-  bx(ctx,x+DW*0.85-6,y+DH*0.6,6,14,P.chA);
-  const s=(agIdx*7+3)%5;
-  if(s===0){{bx(ctx,x+6,y+DH*0.45-8,7,8,0xd0d0d0);bx(ctx,x+13,y+DH*0.45-5,2,4,0xaaa);ctx.globalAlpha=.3;bx(ctx,x+8,y+DH*0.45-10,1,2,0xffffff);ctx.globalAlpha=1;}}
-  else if(s===1){{bx(ctx,x+6,y+DH*0.45-5,8,5,0x8b4513);ctx.fillStyle='#228b22';ctx.beginPath();ctx.arc(x+10,y+DH*0.45-8,4,0,Math.PI*2);ctx.fill();}}
-  else if(s===2){{bx(ctx,x+6,y+DH*0.45-8,8,8,0xffee55);bx(ctx,x+4,y+DH*0.45-6,6,6,0xff8866);}}
-  else if(s===3){{[0x4466aa,0xcc4444,0x44aa44].forEach((col,i)=>{{ctx.fillStyle=hx(col);ctx.fillRect(x+5+i*4,y+DH*0.45-9,3,9);}});}}
-  else{{bx(ctx,x+6,y+DH*0.45-11,2,2,0x4488aa);ctx.fillStyle='#88bbdd';ctx.beginPath();ctx.roundRect(x+5,y+DH*0.45-9,4,9,1);ctx.fill();}}
+  _px(g,2,11,skin); _px(g,13,9,skin);
+  _px(g,3,10,'');   _px(g,12,10,'');
+  return g;
 }}
-function drawBubble(ctx,x,y,text,color){{
-  const w=Math.max(32,text.length*5+14),h=16;
-  const bx2=x-w/2,by2=y-h-6;
-  rr(ctx,bx2+1,by2+1,w,h,5,0x000000,0.3);
-  rr(ctx,bx2,by2,w,h,5,color,0.95);
-  ctx.fillStyle=hx(color);ctx.globalAlpha=0.95;
-  ctx.beginPath();ctx.moveTo(x-3,by2+h);ctx.lineTo(x,by2+h+4);ctx.lineTo(x+3,by2+h);ctx.closePath();ctx.fill();
-  ctx.globalAlpha=1;
-  ctx.font='bold 8px monospace';ctx.fillStyle='#fff';ctx.textAlign='center';ctx.fillText(text,x,by2+11);ctx.textAlign='left';
-}}
-function drawCard(ctx,cx,cy,cw,agent,status,count){{
-  const nm=agent.nm;
-  const cW=Math.max(70,nm.length*6+42),cH=20;
-  const cX=cx+(cw-cW)/2,cY=cy-cH-5;
-  rr(ctx,cX+1,cY+2,cW,cH,6,0,0.2);
-  rr(ctx,cX,cY,cW,cH,6,P.card,0.93);
-  ctx.save();ctx.globalAlpha=0.93;ctx.fillStyle=hx(P.card);
-  const tx=cx+cw/2;
-  ctx.beginPath();ctx.moveTo(tx-3,cY+cH);ctx.lineTo(tx,cY+cH+4);ctx.lineTo(tx+3,cY+cH);ctx.closePath();ctx.fill();ctx.restore();
-  const dc=status==='running'?P.dR:status==='done'?P.dD:status==='error'?P.dE:P.dI;
-  const dx=cX+cW-11,dy=cY+cH/2;
-  if(status==='running'||status==='done'){{ctx.save();ctx.globalAlpha=.18;ctx.fillStyle=hx(dc);ctx.beginPath();ctx.arc(dx,dy,7,0,Math.PI*2);ctx.fill();ctx.restore();}}
-  ctx.fillStyle=hx(dc);ctx.beginPath();ctx.arc(dx,dy,3,0,Math.PI*2);ctx.fill();
-  if(count>0){{rr(ctx,cX+cW-26,cY+2,16,12,4,0x4f46e5,1);ctx.font='bold 8px sans-serif';ctx.fillStyle='#fff';ctx.textAlign='center';ctx.fillText(count,cX+cW-18,cY+11);ctx.textAlign='left';}}
-  ctx.font='10px serif';ctx.fillText(agent.ic,cX+4,cY+13);
-  ctx.font='600 9px -apple-system,sans-serif';ctx.fillStyle='#e2e8f0';ctx.fillText(nm,cX+18,cY+13);
-}}
-function drawSparkles(ctx,cx,cy,t){{
-  for(let i=0;i<6;i++){{
-    const a=i/6*Math.PI*2+t*0.04,r=16+Math.sin(t*0.08+i)*5;
-    const alpha=0.5+Math.sin(t*0.1+i)*0.4;
-    ctx.save();ctx.globalAlpha=alpha;ctx.fillStyle=hx(i%2?P.spark:P.dD);
-    ctx.fillRect(Math.round(cx+Math.cos(a)*r)-1,Math.round(cy+Math.sin(a)*r)-1,2,2);ctx.restore();
+
+// Walk frame 4 — right stride
+function makeWalkFrame4(shirt, skin, pants) {{
+  const g = makeWalkDown(shirt, skin, pants);
+  for (let y=16; y<24; y++) {{
+    _row(g,5,6,y,''); _row(g,9,10,y,'');
+    _row(g,5,6,y,pants);   // left leg back
+    _row(g,10,11,y,pants); // right leg forward
   }}
+  _px(g,2,9,skin); _px(g,13,11,skin);
+  return g;
 }}
-const TILE=32;
-function drawFloor(ctx,W,H){{
-  for(let ty=0;ty<Math.ceil(H/TILE)+1;ty++)for(let tx=0;tx<Math.ceil(W/TILE)+1;tx++){{
-    ctx.fillStyle=hx((tx+ty)%2===0?P.flA:P.flB);ctx.fillRect(tx*TILE,ty*TILE,TILE,TILE);
-    ctx.strokeStyle=hx(P.flLine);ctx.lineWidth=0.4;ctx.strokeRect(tx*TILE+.5,ty*TILE+.5,TILE-1,TILE-1);
+
+// Typing frame 1
+function makeTypingFrame1(shirt, skin, pants) {{
+  const g = empty16x24();
+  _row(g,5,10,0,'#1a1008'); _row(g,4,11,1,'#1a1008'); _row(g,4,11,2,'#1a1008');
+  for (let y=2; y<8; y++) _row(g,5,10,y,skin);
+  _px(g,4,5,skin); _px(g,11,5,skin);
+  _px(g,6,4,'#000000'); _px(g,9,4,'#000000');
+  _row(g,6,9,6,'#000000');
+  for (let y=8; y<16; y++) _row(g,4,11,y,shirt);
+  // Arms reaching forward to keyboard
+  _px(g,2,10,skin); _px(g,1,10,skin);
+  _px(g,13,10,skin); _px(g,14,10,skin);
+  // Shortened legs (sitting)
+  for (let y=16; y<20; y++) {{
+    _row(g,5,6,y,pants); _row(g,9,10,y,pants);
   }}
+  return g;
 }}
-const PAD=8, VPAD=28, CTOP=24;
-function getBubble(state){{
-  const msgs=BUBBLES[state]||BUBBLES['working'];
-  return msgs[Math.floor(Math.random()*msgs.length)];
+
+// Typing frame 2 — hands slightly lower
+function makeTypingFrame2(shirt, skin, pants) {{
+  const g = empty16x24();
+  _row(g,5,10,0,'#1a1008'); _row(g,4,11,1,'#1a1008'); _row(g,4,11,2,'#1a1008');
+  for (let y=2; y<8; y++) _row(g,5,10,y,skin);
+  _px(g,4,5,skin); _px(g,11,5,skin);
+  _px(g,6,4,'#000000'); _px(g,9,4,'#000000');
+  _row(g,6,9,6,'#000000');
+  for (let y=8; y<16; y++) _row(g,4,11,y,shirt);
+  _px(g,2,12,skin); _px(g,1,11,skin);
+  _px(g,13,12,skin); _px(g,14,11,skin);
+  for (let y=16; y<20; y++) {{
+    _row(g,5,6,y,pants); _row(g,9,10,y,pants);
+  }}
+  return g;
 }}
-class Agent{{
-  constructor(def,seatX,seatY,variant){{
-    this.def=def; this.variant=variant;
-    this.seatX=seatX; this.seatY=seatY;
-    this.x=seatX; this.y=seatY+40;
-    this.targetX=seatX; this.targetY=seatY;
-    this.state='walking';
-    this.frame=0; this.tick=0; this.speed=2.2;
-    this.bubble=null; this.status='idle'; this.count=0;
-    this.visitQueue=[]; this.visitPause=0;
-    this.idleMsgInterval = 80 + Math.floor(Math.random()*80);
-  }}
-  _bubble(state,color,ttl){{
-    const txt=getBubble(state);
-    if(txt)this.bubble={{text:txt,color:color,ttl:ttl}};
-  }}
-  update(externalStatus,count,isFacilitator){{
-    this.tick++; this.count=count;
-    this.status=externalStatus;
-    if(isFacilitator){{
-      const MGR_SPEED=17;
-      if(this.state!=='walking'&&this.visitQueue.length>0&&this.visitPause<=0){{
-        const next=this.visitQueue.shift();
-        this.targetX=next.x; this.targetY=next.y; this.state='walking';
-        this._bubble('delegating',P.dR,70);
+
+// Build 4-frame walk + 2-frame type sprites for a palette variant index
+const _spriteCache = new Map();
+function buildSprites(variantIdx) {{
+  if (_spriteCache.has(variantIdx)) return _spriteCache.get(variantIdx);
+  const [shirt, skin, pants] = PALETTES[variantIdx % PALETTES.length];
+  const s = {{
+    walk:   [makeWalkDown(shirt,skin,pants), makeWalkFrame2(shirt,skin,pants),
+             makeWalkDown(shirt,skin,pants), makeWalkFrame4(shirt,skin,pants)],
+    typing: [makeTypingFrame1(shirt,skin,pants), makeTypingFrame2(shirt,skin,pants)],
+  }};
+  _spriteCache.set(variantIdx, s);
+  return s;
+}}
+
+// ── Pixel-art speech bubbles (ported from squad-pod) ─────────────────────────
+// 12 wide × 10 tall arrays of CSS colour strings
+
+// Waiting / attention bubble ("?")
+const BUBBLE_QUESTION = [
+  ['','','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','',''],
+  ['','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff',''],
+  ['#fff','#fff','','','','','','','','','#fff','#fff'],
+  ['#fff','#fff','','','#000','#000','#000','','','','#fff','#fff'],
+  ['#fff','#fff','','','#000','','','#000','','','#fff','#fff'],
+  ['#fff','#fff','','','','','','#000','','','#fff','#fff'],
+  ['#fff','#fff','','','','','#000','','','','#fff','#fff'],
+  ['#fff','#fff','','','','','#000','','','','#fff','#fff'],
+  ['','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff',''],
+  ['','','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','',''],
+];
+
+// Working / typing bubble ("...")
+const BUBBLE_DOTS = [
+  ['','','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','',''],
+  ['','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff',''],
+  ['#fff','#fff','','','','','','','','','#fff','#fff'],
+  ['#fff','#fff','','#000','','#000','','#000','','','#fff','#fff'],
+  ['#fff','#fff','','#000','','#000','','#000','','','#fff','#fff'],
+  ['#fff','#fff','','','','','','','','','#fff','#fff'],
+  ['#fff','#fff','','','','','','','','','#fff','#fff'],
+  ['#fff','#fff','','','','','','','','','#fff','#fff'],
+  ['','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff',''],
+  ['','','#fff','#fff','#fff','#fff','#fff','#fff','#fff','#fff','',''],
+];
+
+// ── Pixel-art sprite renderer ─────────────────────────────────────────────────
+// (squad-pod drawSpriteDirect)
+function drawPixelSprite(ctx, sprite, x, y, zoom) {{
+  const h = sprite.length, w = sprite[0] ? sprite[0].length : 0;
+  for (let sy=0; sy<h; sy++) {{
+    for (let sx=0; sx<w; sx++) {{
+      const c = sprite[sy][sx];
+      if (c && c !== '') {{
+        ctx.fillStyle = c;
+        ctx.fillRect(x + sx*zoom, y + sy*zoom, zoom, zoom);
       }}
-      if(this.visitPause>0)this.visitPause--;
-      if(this.state==='walking'){{
-        const dx=this.targetX-this.x, dy=this.targetY-this.y;
-        const dist=Math.sqrt(dx*dx+dy*dy);
-        if(dist<MGR_SPEED){{
-          this.x=this.targetX; this.y=this.targetY;
-          this.visitPause=this.visitQueue.length>0?8:0;
-          this.state='sitting';
-        }}else{{
-          this.x+=dx/dist*MGR_SPEED; this.y+=dy/dist*MGR_SPEED;
-          if(this.tick%4===0)this.frame=(this.frame+1)%4;
+    }}
+  }}
+}}
+
+// ── BFS pathfinding (squad-pod findPath equivalent) ──────────────────────────
+let tileMap = [];
+
+function bfsPath(fromC, fromR, toC, toR) {{
+  if (fromC===toC && fromR===toR) return [];
+  const rows=tileMap.length, cols=tileMap[0].length;
+  const key = (c,r) => c+','+r;
+  const walkable = (c,r) => {{
+    if (c<0||r<0||c>=cols||r>=rows) return false;
+    const t = tileMap[r][c];
+    if (c===toC && r===toR) return t!==T_WALL && t!==T_DESK && t!==T_VOID;
+    return t===T_FLOOR || t===T_CHAIR;
+  }};
+  const queue = [{{c:fromC, r:fromR, path:[]}}];
+  const visited = new Set([key(fromC,fromR)]);
+  while (queue.length) {{
+    const {{c,r,path}} = queue.shift();
+    for (const [dc,dr] of [[0,1],[1,0],[0,-1],[-1,0]]) {{
+      const nc=c+dc, nr=r+dr, nk=key(nc,nr);
+      if (!visited.has(nk) && walkable(nc,nr)) {{
+        visited.add(nk);
+        const np = [...path, {{c:nc, r:nr}}];
+        if (nc===toC && nr===toR) return np;
+        queue.push({{c:nc, r:nr, path:np}});
+      }}
+    }}
+  }}
+  return null;
+}}
+
+// ── Character class (squad-pod Character equivalent) ─────────────────────────
+class Character {{
+  constructor(def, seatCol, seatRow, spawnCol, spawnRow) {{
+    this.key      = def.key;
+    this.icon     = def.ic;
+    this.name     = def.nm;
+    this.seatCol  = seatCol;
+    this.seatRow  = seatRow;
+    this.col      = spawnCol;
+    this.row      = spawnRow;
+    this.path     = [];
+    this.moveProgress = 0;
+    this.WALK_SPEED   = 0.07;
+    this.state    = 'walk';   // walk | idle | type | done | error
+    this.direction = 'down';  // down | left | right
+    this.frameIdx  = Math.floor(Math.random()*4);
+    this.frameTick = 0;
+    this.status   = 'idle';
+    this.bubbleType  = 'none'; // none | question | dots
+    this.bubbleAlpha = 0;
+    this.sprites  = buildSprites(def.variant);
+    this.sparkAngle = 0;
+    this._walkTo(seatCol, seatRow);
+  }}
+
+  _walkTo(tc, tr) {{
+    const path = bfsPath(this.col, this.row, tc, tr);
+    if (path && path.length > 0) {{
+      this.path = path;
+      this.state = 'walk';
+      this.moveProgress = 0;
+    }} else {{
+      this.col = tc; this.row = tr;
+      this.state = 'idle';
+    }}
+  }}
+
+  update(externalStatus) {{
+    this.status = externalStatus;
+    this.frameTick++;
+
+    // Walk tick (squad-pod moveProgress interpolation)
+    if (this.state === 'walk' && this.path.length > 0) {{
+      this.moveProgress += this.WALK_SPEED;
+      if (this.moveProgress >= 1) {{
+        const next = this.path.shift();
+        if      (next.c > this.col) this.direction = 'right';
+        else if (next.c < this.col) this.direction = 'left';
+        else                         this.direction = 'down';
+        this.col = next.c; this.row = next.r;
+        this.moveProgress = 0;
+        if (this.path.length === 0) {{
+          this.direction = 'down';
+          this.state = externalStatus === 'running' ? 'type'
+                     : externalStatus === 'done'    ? 'done'
+                     : 'idle';
+          if (this.state === 'type') this._showBubble('dots');
         }}
       }}
-      if(this.state==='sitting'&&externalStatus==='running'){{this.state='working'; this._bubble('working',P.dR,110);}}
-      if(this.state==='working'){{
-        if(this.tick%8===0)this.frame=(this.frame+1)%4;
-        if(externalStatus==='done'){{this.state='done';this._bubble('done',P.dD,220);}}
-        if(externalStatus==='error'){{this.state='error';this._bubble('error',P.dE,220);}}
-      }}
-      if(this.state==='done'&&this.tick%6===0)this.frame=(this.frame+1)%4;
-      if(this.state==='sitting'&&this.tick%this.idleMsgInterval===0)this._bubble('idle',P.dI,45);
-      if(this.bubble){{this.bubble.ttl--;if(this.bubble.ttl<=0)this.bubble=null;}}
-      return;
+      if (this.frameTick % 6 === 0) this.frameIdx = (this.frameIdx+1) % 4;
     }}
-    if(this.state==='walking'){{
-      const dx=this.targetX-this.x, dy=this.targetY-this.y;
-      const dist=Math.sqrt(dx*dx+dy*dy);
-      if(dist<this.speed){{
-        this.x=this.targetX; this.y=this.targetY;
-        this.state=externalStatus==='running'?'working':'sitting';
-      }}else{{
-        this.x+=dx/dist*this.speed; this.y+=dy/dist*this.speed;
+
+    // Idle → type (activated while already seated)
+    if (this.state === 'idle' && externalStatus === 'running') {{
+      if (this.col===this.seatCol && this.row===this.seatRow) {{
+        this.state = 'type';
+        this._showBubble('dots');
+      }} else {{
+        this._walkTo(this.seatCol, this.seatRow);
       }}
     }}
-    if(this.state==='sitting'&&externalStatus==='running'){{this.state='working'; this._bubble('working',P.dR,110);}}
-    if(this.state==='working'){{
-      if(this.tick%8===0)this.frame=(this.frame+1)%4;
-      if(this.tick%160===0)this._bubble('working',P.dR,65);
-      if(externalStatus==='done'){{this.state='done';this._bubble('done',P.dD,220);}}
-      if(externalStatus==='error'){{this.state='error';this._bubble('error',P.dE,220);}}
+
+    // Typing tick
+    if (this.state === 'type') {{
+      if (externalStatus !== 'running') {{
+        this.state = externalStatus === 'done' ? 'done' : 'idle';
+      }}
+      if (this.frameTick % 10 === 0) this.frameIdx = (this.frameIdx+1) % 2;
+      if (this.frameTick % 160 === 0) this._showBubble('dots');
     }}
-    if(this.state==='done'&&this.tick%6===0)this.frame=(this.frame+1)%4;
-    if(this.state==='sitting'&&this.tick%this.idleMsgInterval===0)this._bubble('idle',P.dI,45);
-    if(this.bubble){{this.bubble.ttl--;if(this.bubble.ttl<=0)this.bubble=null;}}
+
+    // Terminal states
+    if (externalStatus === 'done'  && this.state !== 'walk') this.state = 'done';
+    if (externalStatus === 'error' && this.state !== 'walk') this.state = 'error';
+    if (this.state === 'done' || this.state === 'error') {{
+      if (this.frameTick % 8 === 0) this.frameIdx = (this.frameIdx+1) % 4;
+    }}
+    if (this.state === 'done') this.sparkAngle += 0.04;
+
+    // Ambient idle bubble
+    if (this.state === 'idle' && this.frameTick % 120 === 0) {{
+      this._showBubble('question');
+    }}
+
+    // Bubble fade
+    if (this.bubbleAlpha > 0) {{
+      this.bubbleAlpha = Math.max(0, this.bubbleAlpha - 0.013);
+      if (this.bubbleAlpha <= 0) this.bubbleType = 'none';
+    }}
   }}
-  draw(ctx,t){{
-    const sx=Math.round(this.x), sy=Math.round(this.y);
-    const SPW=32, SPH=48;
-    let pose='idle';
-    if(this.state==='walking')pose='walking';
-    else if(this.state==='working')pose='working';
-    else if(this.state==='done')pose='done';
-    const sprite=mkSprite(this.variant,pose,this.frame);
-    ctx.imageSmoothingEnabled=false;
-    ctx.drawImage(sprite,sx-SPW/2,sy-SPH,SPW,SPH);
-    ctx.fillStyle='rgba(0,0,0,0.3)';
-    ctx.beginPath();ctx.ellipse(sx,sy,SPW*0.35,4,0,0,Math.PI*2);ctx.fill();
-    if(this.state==='done')drawSparkles(ctx,sx,sy-SPH*0.5,t);
-    if(this.bubble){{
-      const alpha=Math.min(1,this.bubble.ttl/15);
-      ctx.save();ctx.globalAlpha=alpha;
-      drawBubble(ctx,sx,sy-SPH,this.bubble.text,this.bubble.color);
+
+  _showBubble(type) {{
+    this.bubbleType  = type;
+    this.bubbleAlpha = 1.0;
+  }}
+
+  // Interpolated pixel position in tile-space (squad-pod moveProgress lerp)
+  get pxX() {{
+    if (this.state === 'walk' && this.path.length > 0) {{
+      const next = this.path[0];
+      return this.col * TILE + (next.c - this.col) * TILE * this.moveProgress;
+    }}
+    return this.col * TILE;
+  }}
+  get pxY() {{
+    if (this.state === 'walk' && this.path.length > 0) {{
+      const next = this.path[0];
+      return this.row * TILE + (next.r - this.row) * TILE * this.moveProgress;
+    }}
+    return this.row * TILE;
+  }}
+  // Z-sort key (squad-pod: bottomY + CHARACTER_Z_SORT_OFFSET)
+  get bottomY() {{ return this.pxY + TILE; }}
+
+  draw(ctx, offX, offY) {{
+    const sprW = 16, sprH = 24;
+    // Center sprite horizontally in the tile, bottom-align vertically
+    const sx = offX + this.pxX * ZOOM + Math.round((TILE*ZOOM - sprW*ZOOM) / 2);
+    const sy = offY + this.pxY * ZOOM + (TILE*ZOOM - sprH*ZOOM);
+
+    // Select sprite frame
+    const sprite = this.state === 'type'
+      ? this.sprites.typing[this.frameIdx % 2]
+      : this.sprites.walk[this.frameIdx % 4];
+
+    // Shadow
+    ctx.save();
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = '#000';
+    ctx.beginPath();
+    ctx.ellipse(sx + sprW*ZOOM/2, sy + sprH*ZOOM + 1,
+                sprW*ZOOM*0.38, 3, 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+
+    // Pixel sprite (squad-pod drawSpriteDirect)
+    drawPixelSprite(ctx, sprite, sx, sy, ZOOM);
+
+    // Done sparkles (squad-pod style Z-sorted above character)
+    if (this.state === 'done') {{
+      for (let i=0; i<5; i++) {{
+        const a = this.sparkAngle + i/5 * Math.PI * 2;
+        const r = 13 * ZOOM;
+        const spx = sx + sprW*ZOOM/2 + Math.cos(a)*r;
+        const spy = sy + sprH*ZOOM/2 + Math.sin(a)*r;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, 0.5 + Math.sin(this.sparkAngle*2+i)*0.4);
+        ctx.fillStyle = i%2 ? '#ffd700' : '#4ade80';
+        ctx.fillRect(Math.round(spx), Math.round(spy), ZOOM, ZOOM);
+        ctx.restore();
+      }}
+    }}
+
+    // Error overlay
+    if (this.state === 'error') {{
+      ctx.save();
+      ctx.globalAlpha = 0.28 + Math.sin(this.frameTick*0.15)*0.22;
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(sx, sy, sprW*ZOOM, sprH*ZOOM);
       ctx.restore();
     }}
+
+    // Speech bubble (squad-pod renderBubbles)
+    if (this.bubbleType !== 'none' && this.bubbleAlpha > 0.05) {{
+      ctx.save();
+      ctx.globalAlpha = this.bubbleAlpha;
+      const bSprite = this.bubbleType === 'dots' ? BUBBLE_DOTS : BUBBLE_QUESTION;
+      const bw = bSprite[0].length * ZOOM;
+      const bx = sx + sprW*ZOOM/2 - bw/2;
+      const by = sy - bSprite.length * ZOOM - 4;
+      drawPixelSprite(ctx, bSprite, bx, by, ZOOM);
+      ctx.restore();
+    }}
+
+    // Name label
+    ctx.font = `bold ${{Math.round(7*ZOOM/3)}}px -apple-system,sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.fillStyle = this.state==='type'  ? '#818cf8'
+                  : this.state==='done'  ? '#4ade80'
+                  : this.state==='error' ? '#f87171'
+                  :                        '#94a3b8';
+    ctx.fillText(this.icon+' '+this.name, sx + sprW*ZOOM/2,
+                 sy + sprH*ZOOM + 9);
+    ctx.textAlign = 'left';
   }}
 }}
-let agents=[], sceneW=0, sceneH=0, rafId=null, cellLayout=[];
-function initScene(){{
-  const cv=document.getElementById('cv'); if(!cv)return;
-  const avail=cv.parentElement.clientWidth||780;
-  const cellW=Math.floor((avail-PAD*2-3)/NCOLS);
-  const cellH=Math.round(cellW*0.92);
-  sceneW=avail;
-  sceneH=NROWS*(cellH+VPAD)+PAD*2+CTOP+20;
-  cv.width=sceneW; cv.height=sceneH;
-  cv.style.width=sceneW+'px'; cv.style.height=sceneH+'px';
-  cellLayout=LAYOUT.map(([sc,ec,row,ai])=>{{
-    const span=ec-sc+1;
-    const cx=PAD+sc*cellW;
-    const cy=PAD+CTOP+row*(cellH+VPAD);
-    const cw=span*cellW+(span-1)*3;
-    const seatX=cx+cw/2;
-    const seatY=cy+cellH*0.62;
-    return {{sc,ec,row,ai,cx,cy,cw,ch:cellH,seatX,seatY}};
-  }});
-  agents=cellLayout.map(cl=>{{
-    const def=AGENTS[cl.ai];
-    return {{agent: new Agent(def,cl.seatX,cl.seatY,def.variant), ...cl}};
-  }});
-}}
-function triggerFacilitatorWalk(){{
-  const facEntry=agents.find(a=>a.ai===0);
-  if(!facEntry)return;
-  const fac=facEntry.agent;
-  const visits=agents.filter(a=>a.ai!==0&&a.agent.def.key!==FAC_KEY&&a.agent.def.key!=="{SYNTHESIZER_KEY}")
-    .map(a=>{{return{{x:a.seatX,y:a.seatY}}}});
-  visits.push({{x:facEntry.seatX,y:facEntry.seatY}});
-  fac.visitQueue.push(...visits);
-}}
-let facWalkTriggered=false;
-function loop(t){{
-  const cv=document.getElementById('cv');if(!cv)return;
-  const ctx=cv.getContext('2d');ctx.imageSmoothingEnabled=false;
-  ctx.clearRect(0,0,sceneW,sceneH);
-  drawFloor(ctx,sceneW,sceneH);
-  bx(ctx,0,0,sceneW,CTOP*0.8,P.wall);
-  bx(ctx,0,0,sceneW,3,P.wallT);
-  const facRunning=(STATES[FAC_KEY]||{{}}).status==='running';
-  if(facRunning&&!facWalkTriggered){{facWalkTriggered=true;setTimeout(triggerFacilitatorWalk,800);}}
-  if(!facRunning&&(STATES[FAC_KEY]||{{}}).status==='idle')facWalkTriggered=false;
-  agents.forEach(({{agent,ai,cx,cy,cw,ch}})=>{{
-    const sd=STATES[agent.def.key]||{{status:'idle',count:0}};
-    const status=sd.status||'idle';
-    const count=sd.count||0;
-    const isRun=status==='running',isDone=status==='done',isErr=status==='error';
-    const isFacilitator=ai===0;
-    agent.update(status,count,isFacilitator);
-    const bg=isRun?0x1a1838:isDone?0x0a2010:isErr?0x200808:0x16122a;
-    const bc=isRun?0x818cf8:isDone?0x22c55e:isErr?0xf87171:0x3d3560;
-    rr(ctx,cx,cy,cw,ch,6,bg,0.88);
-    ctx.strokeStyle=hx(bc);ctx.lineWidth=isRun||isDone||isErr?1.5:0.7;
-    ctx.beginPath();ctx.roundRect(cx,cy,cw,ch,6);ctx.stroke();
-    if(isRun){{
-      ctx.save();ctx.globalAlpha=0.07+Math.sin(t*0.003)*0.04;
-      ctx.fillStyle=hx(0x818cf8);ctx.beginPath();ctx.roundRect(cx,cy,cw,ch,6);ctx.fill();ctx.restore();
+
+// ── Desk furniture drawing ────────────────────────────────────────────────────
+function drawDesk(ctx, col, row, offX, offY, active, deskTiles) {{
+  const x  = offX + col * TS;
+  const y  = offY + row * TS;
+  const dw = deskTiles * TS;
+  const dh = TS;
+
+  // Wood desktop surface
+  const planks = ['#5a4020','#4a3010','#5a4020','#3d2808','#4a3010'];
+  for (let i=0; i<5; i++) {{
+    ctx.fillStyle = planks[i % planks.length];
+    const py = y + Math.round(i * dh/5);
+    ctx.fillRect(x, py, dw, Math.round(dh/5)+1);
+  }}
+  // Edge shadows
+  ctx.fillStyle = '#3d2808';
+  ctx.fillRect(x, y, 3, dh);
+  ctx.fillRect(x+dw-3, y, 3, dh);
+  // Top highlight
+  ctx.fillStyle = '#7a5828';
+  ctx.fillRect(x, y, dw, 2);
+
+  // Monitor bezel
+  const mw = Math.round(dw * 0.6);
+  const mh = Math.round(TS * 0.85);
+  const mx = x + Math.round((dw-mw)/2);
+  const my = y - mh + 2;
+  ctx.fillStyle = '#141020';
+  ctx.beginPath(); ctx.roundRect(mx, my, mw, mh, 3); ctx.fill();
+
+  // Screen
+  ctx.fillStyle = active ? '#001a2e' : '#08081a';
+  ctx.beginPath(); ctx.roundRect(mx+3, my+3, mw-6, mh-6, 2); ctx.fill();
+
+  if (active) {{
+    // Cyan screen glow
+    ctx.fillStyle = '#00d4ff';
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath(); ctx.roundRect(mx+3, my+3, mw-6, mh-6, 2); ctx.fill();
+    ctx.globalAlpha = 0.22;
+    ctx.fillStyle = '#fff';
+    const lh = Math.max(2, Math.round((mh-8)/4));
+    for (let i=0; i<4; i++) {{
+      const lw = (mw-8) * (0.4 + (i*11%5)*0.1);
+      ctx.fillRect(mx+5, my+5+i*lh, lw, Math.max(1,lh-2));
     }}
-    const deskDrawX=cx+cw/2-DW/2;
-    const deskDrawY=cy+ch*0.08;
-    drawDesk(ctx,deskDrawX,deskDrawY,isRun||isDone,ai);
-    drawCard(ctx,cx,cy,cw,agent.def,status,count);
-    const lbl=isRun?'🔄 falando':isDone?'✅ concluído':isErr?'❌ erro':'⏸ aguardando';
-    ctx.font='7px sans-serif';
-    ctx.fillStyle=hx(isRun?0x818cf8:isDone?0x22c55e:isErr?0xf87171:0x3d3560);
-    ctx.textAlign='center';ctx.fillText(lbl,cx+cw/2,cy+ch-4);ctx.textAlign='left';
+    ctx.globalAlpha = 0.07;
+    ctx.fillStyle = '#00d4ff';
+    ctx.beginPath(); ctx.roundRect(mx-4, my-4, mw+8, mh+8, 6); ctx.fill();
+    ctx.globalAlpha = 1;
+  }}
+
+  // Monitor stand
+  ctx.fillStyle = '#2a2040';
+  ctx.fillRect(x+Math.round(dw/2)-3, y-3, 6, 5);
+
+  // Keyboard
+  ctx.fillStyle = '#1e293b';
+  ctx.beginPath();
+  ctx.roundRect(x+Math.round(dw*0.15), y+Math.round(dh*0.3),
+                Math.round(dw*0.7),    Math.round(dh*0.35), 2);
+  ctx.fill();
+  ctx.fillStyle = '#334155';
+  const kh = Math.round(dh*0.35);
+  for (let r=0; r<2; r++) {{
+    for (let k=0; k<6; k++) {{
+      ctx.fillRect(x + Math.round(dw*0.17) + k*Math.round(dw*0.1),
+                   y + Math.round(dh*0.33) + r*Math.round(kh/2),
+                   Math.round(dw*0.08), Math.round(kh/2)-1);
+    }}
+  }}
+}}
+
+// ── Tile grid rendering (squad-pod renderTileGrid) ───────────────────────────
+function renderFloor(ctx, offX, offY) {{
+  for (let r=0; r<G_ROWS; r++) {{
+    for (let c=0; c<G_COLS; c++) {{
+      const tile = tileMap[r][c];
+      if (tile === T_VOID) continue;
+      const x = offX + c * TS, y = offY + r * TS;
+      if (tile === T_WALL) {{
+        ctx.fillStyle = '#100d20';
+        ctx.fillRect(x, y, TS, TS);
+        ctx.fillStyle = '#1a1628';
+        ctx.fillRect(x, y, TS, 4);
+        ctx.fillStyle = '#0a0818';
+        ctx.fillRect(x, y+4, 3, TS-4);
+      }} else {{
+        // Alternating floor tiles (squad-pod FLOOR_A / FLOOR_B)
+        ctx.fillStyle = (c+r)%2===0 ? '#1e1a2e' : '#241f38';
+        ctx.fillRect(x, y, TS, TS);
+        ctx.strokeStyle = '#14102a';
+        ctx.lineWidth = 0.5;
+        ctx.strokeRect(x+0.5, y+0.5, TS-1, TS-1);
+      }}
+    }}
+  }}
+}}
+
+// ── Office state ──────────────────────────────────────────────────────────────
+let characters = [];
+let desks      = [];
+let canvasW, canvasH;
+
+function layoutToTile(sc, rowL) {{
+  return {{
+    tileCol: BORDER + sc * CELL_W,
+    tileRow: BORDER + rowL * CELL_H,
+  }};
+}}
+
+function initOffice() {{
+  // Build tile map (walls on border, floor inside)
+  tileMap = Array.from({{length: G_ROWS}}, (_, r) =>
+    Array.from({{length: G_COLS}}, (__, c) => {{
+      if (r < BORDER || r >= G_ROWS-BORDER ||
+          c < BORDER || c >= G_COLS-BORDER) return T_WALL;
+      return T_FLOOR;
+    }})
+  );
+
+  characters = [];
+  desks      = [];
+
+  const spawnRow = G_ROWS - BORDER - 1;  // bottom walkable row
+
+  LAYOUT.forEach((entry, idx) => {{
+    const [sc, ec, rowL, ai] = entry;
+    const def = AGENTS[ai];
+    const {{ tileCol, tileRow }} = layoutToTile(sc, rowL);
+    const span    = ec - sc + 1;
+    const deskTiles = span * DESK_W;  // e.g. span=2 → 4 tiles wide
+
+    // Mark desk tiles as blocked
+    for (let dc=0; dc<deskTiles && tileCol+dc<G_COLS; dc++) {{
+      if (tileRow < G_ROWS) tileMap[tileRow][tileCol+dc] = T_DESK;
+    }}
+
+    // Seat tile (centred, one row below desk)
+    const seatCol = tileCol + Math.floor(deskTiles/2);
+    const seatRow = tileRow + SEAT_DY;
+    if (seatRow < G_ROWS && seatCol < G_COLS)
+      tileMap[seatRow][seatCol] = T_CHAIR;
+
+    desks.push({{ col:tileCol, row:tileRow, deskTiles, agentKey:def.key }});
+
+    // Spawn each character at a distinct bottom column
+    const spawnCol = Math.max(BORDER, Math.min(G_COLS-BORDER-1, BORDER+idx));
+    characters.push(new Character(def, seatCol, seatRow, spawnCol, spawnRow));
   }});
-  const nonFac = agents.filter(a=>a.ai!==0);
-  const facEntry = agents.find(a=>a.ai===0);
-  nonFac.forEach(({{agent}})=>agent.draw(ctx,t));
-  if(facEntry) facEntry.agent.draw(ctx,t);
-  rafId=requestAnimationFrame(loop);
+
+  canvasW = G_COLS * TS;
+  canvasH = G_ROWS * TS + 28;  // extra room for name labels
+  const cv = document.getElementById('cv');
+  cv.width  = canvasW; cv.height = canvasH;
+  cv.style.width = canvasW+'px'; cv.style.height = canvasH+'px';
 }}
-function updateMgr(){{
-  const card=document.getElementById('mgr'),stEl=document.getElementById('mst');
-  const ms=(STATES[FAC_KEY]||{{}}).status||'idle';
-  card.className='';
-  if(ms==='running'){{card.classList.add('running');stEl.textContent='⏳ rodando…';}}
-  else if(ms==='done'){{card.classList.add('done');stEl.textContent='✅ concluído';}}
-  else stEl.textContent='aguardando';
+
+// ── Main render frame (squad-pod renderFrame) ─────────────────────────────────
+let rafId = null;
+
+function renderFrame() {{
+  const cv = document.getElementById('cv');
+  if (!cv) return;
+  const ctx = cv.getContext('2d');
+  ctx.imageSmoothingEnabled = false;
+  ctx.clearRect(0, 0, canvasW, canvasH);
+
+  // 1. Floor + wall tiles
+  renderFloor(ctx, 0, 0);
+
+  // 2. Collect Z-sortable drawables: desks (furniture) + characters
+  //    Squad-pod: Drawable[] sorted by z (bottomY)
+  const drawables = [];
+
+  desks.forEach(d => {{
+    const status = (STATES[d.agentKey]||{{}}).status||'idle';
+    const active = status==='running' || status==='done';
+    drawables.push({{
+      z:    (d.row + 1) * TILE,   // desk bottom in tile-space
+      draw: () => drawDesk(ctx, d.col, d.row, 0, 0, active, d.deskTiles),
+    }});
+  }});
+
+  characters.forEach(ch => {{
+    const status = (STATES[ch.key]||{{}}).status||'idle';
+    ch.update(status);
+    drawables.push({{
+      z:    ch.bottomY,
+      draw: () => ch.draw(ctx, 0, 0),
+    }});
+  }});
+
+  // Z-sort (squad-pod: drawables.sort((a,b) => a.z - b.z))
+  drawables.sort((a,b) => a.z - b.z);
+  drawables.forEach(d => d.draw());
+
+  rafId = requestAnimationFrame(renderFrame);
 }}
-window.addEventListener('load',()=>{{
-  updateMgr();
-  initScene();
-  rafId=requestAnimationFrame(loop);
-  function reportHeight(){{
-    const h = document.getElementById('wrap').scrollHeight + 4;
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+window.addEventListener('load', () => {{
+  initOffice();
+  rafId = requestAnimationFrame(renderFrame);
+
+  function reportHeight() {{
+    const h = document.getElementById('wrap').scrollHeight + 8;
     window.parent.postMessage({{type:'streamlit:setFrameHeight', height:h}}, '*');
   }}
-  setTimeout(reportHeight, 200);
-  window.addEventListener('resize',()=>{{
-    if(rafId)cancelAnimationFrame(rafId);
-    initScene();
-    rafId=requestAnimationFrame(loop);
+  setTimeout(reportHeight, 250);
+
+  window.addEventListener('resize', () => {{
+    if (rafId) cancelAnimationFrame(rafId);
+    initOffice();
+    rafId = requestAnimationFrame(renderFrame);
     setTimeout(reportHeight, 100);
   }});
 }});
-</script></body></html>"""
+</script>
+</body></html>"""

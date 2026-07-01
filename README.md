@@ -72,6 +72,7 @@ Em ambos os modos, o veredito também traz um **scorecard MEDDPICC**
 ✅ **Streamlit app running** — Interface fully functional at http://localhost:8501.  
 - Fixed Streamlit 1.40.0 compatibility: `st.iframe()` → `st.html()` (committee view + debate transcript).
 - All personas render correctly with veto scores and stakeholder information.
+- **Office canvas upgraded** to squad-pod Canvas 2D engine: pixel-art sprites (16×24), BFS pathfinding, Z-sorted render loop, speech bubbles with alpha fade.
 - Ready for testing: select account, configure committee, run simulation.
 
 ## Setup local (terminal)
@@ -115,24 +116,30 @@ Abre automaticamente em **http://localhost:8501**. Pra parar o servidor,
 UI com tokens de design Avanade Style Guide (paleta, tipografia, componentes
 hero/arc/roadmap).
 
-### Sala de reunião (Office canvas)
+### Sala de reunião (Office canvas — squad-pod Canvas 2D engine)
 
-`digital_twins/office.py` é um port generalizado do **Squad Office** de
-[juliopessan/arch-review-assistant](https://github.com/juliopessan/arch-review-assistant)
-(`web/squad_office.py`): mesmo motor de canvas pixel-art (sprites, mesas,
-balões de fala, máquina de estados `idle → walk → working → done`),
-adaptado para um número arbitrário de personas em vez do squad fixo de 9
-agentes — o Facilitador entra como o personagem que "anda mesa a mesa" (o
-papel do Agent Manager lá), e o Sintetizador ganha sua própria mesa.
+`digital_twins/office.py` é uma adaptação do motor Canvas 2D do
+[swigerb/squad-pod](https://github.com/swigerb/squad-pod) (VS Code extension)
+para Streamlit via `st.html()`. O motor é completamente auto-contido em HTML/JS
+embutido no Python — sem dependências de imagens externas.
 
-Mesma lógica de workflow da aba Squad Office: uma thread em background
-roda o grafo LangGraph via `app.stream(...)` e empurra eventos
-`start`/`done` por nó numa fila; a thread principal do Streamlit consome
-essa fila dentro de um `st.spinner`, e um `st.rerun()` ao final garante
-que o canvas mostre os estados finais corretos por persona. A animação
-ambiente (idle/caminhada) toca client-side via JS enquanto o backend
-processa; os estados precisos (`done`/`error`) só aparecem no rerender
-pós-conclusão.
+**Arquitetura do motor (squad-pod style):**
+
+| Componente | Detalhe |
+|---|---|
+| **Grid** | `TILE=16px`, `ZOOM=3×` → `TS=48px` por tile em tela |
+| **Sprites** | 16×24 px, gerados pixel-a-pixel em JS: 4 frames de caminhada + 2 frames de digitação, 6 paletas de cor (camisa/pele/calça) |
+| **Bolhas de fala** | Arrays pixel-art 12×10 (`?` = aguardando · `...` = digitando), com fade alpha |
+| **Pathfinding** | BFS no `tileMap` — cada personagem caminha até sua mesa ao iniciar, evitando `WALL`/`DESK`/`VOID` |
+| **Z-sort** | Mesas + personagens compartilham `Drawable[]`, ordenados por `bottomY` a cada frame (squad-pod pattern) |
+| **Máquina de estados** | `walk → idle → type → done/error`; `done` adiciona partículas de faísca; `error` overlay vermelho pulsante |
+| **Mesas** | Tampo de madeira com textura, monitor com tela ciano ativa/inativa, teclado pixel-art |
+| **Loop** | `requestAnimationFrame` contínuo; resize reinicializa o canvas |
+
+A thread Python injeta `STATES`, `AGENTS` e `LAYOUT` como JSON; o JS
+lê o status de cada agente a cada frame e transiciona os personagens
+automaticamente. A animação ambiente toca client-side enquanto o backend
+processa; os estados finais (`done`/`error`) aparecem no rerender pós-LangGraph.
 
 Na barra lateral dá pra escolher a conta (exemplo Northwind, qualquer
 arquivo em `accounts/`, **digitar manualmente** empresa + stakeholder real,
