@@ -455,19 +455,46 @@ def main() -> None:
     with st.sidebar:
         st.header("Configuração da rodada")
 
-        account_options = {"Digitar manualmente": "manual", "Northwind Logistics (exemplo)": None}
+        # Build account options: all JSON files from accounts/ + upload option
+        account_options = {}
+        account_files = []
         if ACCOUNTS_DIR.exists():
-            for f in sorted(ACCOUNTS_DIR.glob("*.json")):
-                account_options[f.stem] = f
-        account_options["Carregar JSON customizado"] = "upload"
+            account_files = sorted(ACCOUNTS_DIR.glob("*.json"))
+            for f in account_files:
+                account_options[f.stem] = ("file", f)
+        account_options["📤 Carregar JSON customizado"] = ("upload", None)
 
-        choice = st.selectbox("Conta", list(account_options.keys()))
+        # Default to first account file if available, else show upload option
+        default_index = 0
+        if not account_files:
+            default_index = len(account_options) - 1  # Point to upload option
+
+        choice = st.selectbox("Conta", list(account_options.keys()), index=default_index)
+        
+        # Load account based on selection
         uploaded = None
-        manual_account = None
-        if account_options[choice] == "upload":
+        account = None
+        account_type, account_path = account_options[choice]
+        
+        if account_type == "file":
+            # Automatically load file account
+            account = AccountContext.model_validate(json.loads(account_path.read_text(encoding="utf-8")))
+            with st.expander("📋 Dados carregados", expanded=False):
+                st.markdown(f"**Empresa:** {account.account_name}")
+                st.markdown(f"**Pitch:** {account.pitch_summary}")
+                st.markdown(f"**Solução:** {account.proposed_solution}")
+                st.markdown(f"**Valor:** ${account.deal_value_usd:,}")
+                st.markdown(f"**Comitê:** {', '.join(r.value for r in account.roles_in_committee)}")
+        elif account_type == "upload":
             uploaded = st.file_uploader("AccountContext (.json)", type="json")
-        elif account_options[choice] == "manual":
-            manual_account = render_manual_account_form()
+            if uploaded is not None:
+                account = AccountContext.model_validate(json.load(uploaded))
+                with st.expander("📋 Dados carregados", expanded=True):
+                    st.markdown(f"**Empresa:** {account.account_name}")
+                    st.markdown(f"**Pitch:** {account.pitch_summary}")
+                    st.markdown(f"**Solução:** {account.proposed_solution}")
+                    st.markdown(f"**Valor:** ${account.deal_value_usd:,}")
+                    st.markdown(f"**Comitê:** {', '.join(r.value for r in account.roles_in_committee)}")
 
         seller_opening = st.text_area(
             "Sua fala de abertura (opcional)",
@@ -482,20 +509,9 @@ def main() -> None:
         run_clicked = st.button("Rodar simulação", type="primary", use_container_width=True)
 
     if run_clicked:
-        if account_options[choice] == "manual":
-            if manual_account is None:
-                st.error("Preencha empresa, pitch, solução proposta e ao menos um papel no comitê.")
-                st.stop()
-            account = manual_account
-        elif account_options[choice] == "upload":
-            if uploaded is None:
-                st.error("Envie um arquivo JSON de conta antes de rodar.")
-                st.stop()
-            account = AccountContext.model_validate(json.load(uploaded))
-        elif account_options[choice] is None:
-            account = _sample_account()
-        else:
-            account = AccountContext.model_validate(json.loads(account_options[choice].read_text(encoding="utf-8")))
+        if account is None:
+            st.error("Nenhuma conta foi carregada. Selecione uma conta existente ou envie um arquivo customizado.")
+            st.stop()
 
         if not api_key:
             st.error("Informe a Anthropic API Key na barra lateral antes de rodar.")
