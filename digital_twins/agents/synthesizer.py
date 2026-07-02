@@ -36,7 +36,7 @@ exatamente em inglês, como mostrado abaixo — apenas o CONTEÚDO textual
   "top_objections": [string, ...],          // em português
   "blocking_stakeholders": [string, ...]    // DEVE usar apenas estes valores exatos de papel:
                                              // "cfo", "cto", "procurement", "end_user",
-                                             // "champion", "legal_compliance", "ceo", "security"
+                                             // "champion", "legal_compliance", "ceo", "security", "salesman"
   "recommended_talk_track": [string, ...],  // conselho concreto e específico para a próxima call, em português
   "risk_summary": string,                   // em português
   "meddpicc_scorecard": {                   // em português, só dimensões com evidência (pode ser {})

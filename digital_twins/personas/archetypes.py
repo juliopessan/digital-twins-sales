@@ -12,6 +12,20 @@ from __future__ import annotations
 from digital_twins.models import StakeholderProfile, StakeholderRole, DataSource
 
 ARCHETYPES: dict[StakeholderRole, StakeholderProfile] = {
+    StakeholderRole.SALESMAN: StakeholderProfile(
+        role=StakeholderRole.SALESMAN,
+        name="Vendedor Responsável",
+        company="",  # Set by Factory/Context
+        source=DataSource.ARCHETYPE,
+        priorities=[
+            "Resolver as objeções do comitê com transparência técnica e comercial",
+            "Demonstrar o valor agregado e o ROI da solução proposta",
+            "Garantir que os próximos passos da venda sejam definidos e acordados",
+        ],
+        known_objections=[],  # Salesman responds to objections, doesn't raise them
+        decision_power=0.0,   # Doesn't vote in the internal committee
+        tone="consultivo, seguro, empático e focado na resolução de problemas do cliente",
+    ),
     StakeholderRole.CFO: StakeholderProfile(
         role=StakeholderRole.CFO,
         name="CFO Genérico",
@@ -148,24 +162,6 @@ ARCHETYPES: dict[StakeholderRole, StakeholderProfile] = {
         ],
         decision_power=1.0,
         tone="visão de conjunto, impaciente com detalhe, decisivo assim que convencido da narrativa",
-    ),
-    StakeholderRole.SALESMAN: StakeholderProfile(
-        role=StakeholderRole.SALESMAN,
-        name="Vendedor",
-        company="",
-        source=DataSource.ARCHETYPE,
-        priorities=[
-            "Vencer objeções apresentando casos de uso e ROI concreto",
-            "Conectar a solução às prioridades específicas de cada stakeholder",
-            "Construir credibilidade através de referências e benchmarks do mercado",
-        ],
-        known_objections=[
-            "Esperamos questões de integração, custo e risco de entrega",
-            "Stakeholders tentarão sabotar com FUD (fear, uncertainty, doubt)",
-            "Precisaremos ser diretos, concretos e ágeis nas respostas",
-        ],
-        decision_power=0.0,  # Salesman é um participante, não tem poder de veto
-        tone="profissional, empático com objeções, propositivo na defesa com dados",
     ),
 }
 

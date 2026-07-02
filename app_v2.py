@@ -488,9 +488,10 @@ def _page_simulacao(result: dict) -> None:
     for col, p in zip(cols, personas):
         with col:
             source_label = "Dados reais" if p.source.value == "real" else "Arquétipo"
+            role_label = _ROLE_LABEL_PT.get(p.role, p.role.value)
             st.markdown(
                 f"**{ROLE_ICON.get(p.role, '🧑')} {p.name}**  \n"
-                f"{p.role.value} · {source_label}  \nVeto: {p.decision_power:.2f}"
+                f"{role_label} · {source_label}  \nVeto: {p.decision_power:.2f}"
             )
     if account.seller_opening:
         st.markdown('<div class="ava-section-bar">Sua fala de abertura</div>', unsafe_allow_html=True)
