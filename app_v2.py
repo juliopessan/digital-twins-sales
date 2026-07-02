@@ -685,7 +685,16 @@ def _render_sidebar() -> tuple:
 
 def main() -> None:
     _inject_avanade_theme()
-    selected_page = _get_navbar()
+    
+    # Initialize session state for page tracking
+    if "selected_page" not in st.session_state:
+        st.session_state.selected_page = "🎯 Simulação"
+    
+    navbar_selection = _get_navbar()
+    if navbar_selection and navbar_selection != st.session_state.selected_page:
+        st.session_state.selected_page = navbar_selection
+    
+    selected_page = st.session_state.selected_page
 
     account, api_key, max_rounds, seller_opening, run_clicked = _render_sidebar()
 
