@@ -48,7 +48,8 @@ def start_round(state: BoardState) -> dict:
             key=lambda rv: next(p.decision_power for p in personas if p.role.value == rv),
         )
     else:
-        order = [r.value for r in account.roles_in_committee]
+        # Default order based on the persona list (already prepends salesman in Factory)
+        order = [p.role.value for p in personas]
 
     return {
         "round_number": round_number,

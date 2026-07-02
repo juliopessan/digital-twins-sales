@@ -42,6 +42,7 @@ from digital_twins.research import ResearchError, research_stakeholder
 ACCOUNTS_DIR = Path(__file__).parent / "accounts"
 
 ROLE_ICON = {
+    StakeholderRole.SALESMAN: "🎤",
     StakeholderRole.CEO: "👑",
     StakeholderRole.CTO: "💻",
     StakeholderRole.CFO: "💰",
@@ -68,6 +69,7 @@ SENTIMENT_LABEL_PT = {
 }
 
 _ROLE_LABEL_PT = {
+    StakeholderRole.SALESMAN: "Vendedor",
     StakeholderRole.CEO: "CEO",
     StakeholderRole.CTO: "CTO",
     StakeholderRole.CFO: "CFO",
@@ -130,31 +132,47 @@ def _inject_avanade_theme() -> None:
             --ava-grey-10: #e5e5e5; --ava-solar: #FFD700; --ava-aurora: #890078;
         }
         html, body, [class*="css"] { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: var(--ava-grey-80); }
-        /* Remove Streamlit default header bar and all extra top gaps */
-        [data-testid="stHeader"] { display: none !important; }
-        [data-testid="stDecoration"] { display: none !important; }
-        /* Pull main content flush against the navbar (remove 96px header-reserved padding) */
-        [data-testid="stMainBlockContainer"],
-        .block-container { padding-top: 2.875rem !important; }
-        /* Correct st_navbar margin-top: library assumes header=6rem, but header is hidden (0) */
-        /* in-flow y of navbar = block-container padding (2.875rem) + element-container gap (1rem) = 3.875rem */
-        iframe[title="streamlit_navigation_bar.st_navbar"] {
-            margin-top: calc(-3.875rem) !important;
+        /* Core scroll fix for Streamlit */
+        [data-testid="stAppViewContainer"], [data-testid="stApp"], .main {
+            overflow: auto !important;
         }
-        /* Overlay the sidebar toggle over the navbar — no vertical space taken */
+        /* Ensure specific containers don't trap scroll */
+        .st-emotion-cache-1gwvy71, .st-emotion-cache-12fmjuu {
+            overflow: visible !important;
+        }
+        /* Remove Streamlit default header bar and decoration */
+        [data-testid="stHeader"] { 
+            display: none !important;
+        }
+        [data-testid="stDecoration"] { display: none !important; }
+        /* Main content padding - offset for fixed navbar */
+        .block-container { 
+            padding-top: 4.5rem !important; 
+            padding-bottom: 2rem !important;
+            overflow: visible !important;
+        }
+        /* Fixed st_navbar at top=0 */
+        iframe[title="streamlit_navigation_bar.st_navbar"] {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100vw !important;
+            height: 50px !important;
+            z-index: 1000000 !important;
+            margin-top: 0 !important;
+        }
+        /* Sidebar toggle positioning - must be above navbar */
         [data-testid="stSidebarCollapsedControl"] {
             position: fixed !important;
-            top: 4px !important;
-            left: 4px !important;
-            z-index: 9999 !important;
-            height: 44px !important;
-            width: 44px !important;
-            background: transparent !important;
-            border: none !important;
+            top: 10px !important;
+            left: 10px !important;
+            z-index: 1000001 !important;
+            background: #FF5800 !important;
+            border-radius: 4px !important;
+            padding: 2px !important;
         }
         [data-testid="stSidebarCollapsedControl"] button {
             color: #FFFFFF !important;
-            background: transparent !important;
         }
         .ava-hero {
             background: linear-gradient(135deg, #FF5800 0%, #890078 100%);
