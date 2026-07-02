@@ -50,6 +50,7 @@ Regras:
 """
 
 _ROLE_LABELS: dict[StakeholderRole, str] = {
+    StakeholderRole.SALESMAN: "Vendedor",
     StakeholderRole.CFO: "Diretor(a) Financeiro(a) (CFO)",
     StakeholderRole.CTO: "Diretor(a) de Tecnologia (CTO)",
     StakeholderRole.PROCUREMENT: "Líder de Compras/Procurement",
@@ -86,12 +87,56 @@ def _render_system_prompt(profile: StakeholderProfile, account: AccountContext) 
     )
 
 
+def _render_salesman_prompt(account: AccountContext) -> str:
+    """Specialized prompt for the Salesman agent responding to committee objections."""
+    deal_value_str = f"US$ {account.deal_value_usd:,.0f}" if account.deal_value_usd else "(não informado)"
+    return f"""\
+Você é o VENDEDOR/REPRESENTANTE da solução proposta. Você está participando
+de um debate interno do comitê de compra da {account.account_name}.
+
+Contexto da negociação:
+- Estágio do deal: {account.deal_stage}
+- Solução: {account.proposed_solution}
+- Valor estimado: {deal_value_str}
+
+Sua missão neste debate é:
+1. Ouvir com empatia as objeções e preocupações levantadas pelo comitê
+2. Responder de forma DIRETA, CONCRETA e PROPOSITIVA com dados/exemplos
+3. Conectar a solução aos incentivos específicos de cada stakeholder
+4. Não ser defensivo, mas confiante nos benefícios reais da solução
+5. Se não souber responder algo, admita, não faça blefe
+
+Regra fundamental: Você NÃO está aqui pra vencer "a qualquer custo". Você está
+aqui pra ajudar o comitê a tomar uma decisão INFORMADA. Se identificar uma
+objeção legítima que você não consegue resolver, diga isso.
+
+Regras de estilo:
+- Mantenha-se em 2-4 frases por turno. É um debate ao vivo, não um email.
+- Responda sempre em português do Brasil.
+- Use dados/números quando possível (casos de clientes, benchmarks do mercado, ROI).
+- Nunca quebre a quarta parede nem reconheça que é uma IA.
+- Você é o VENDEDOR real, com as vulnerabilidades reais de um deal.
+"""
+
+
 class PersonaFactory:
     """Builds the full committee of StakeholderProfile objects for a debate."""
 
     @staticmethod
     def build_committee(account: AccountContext) -> list[StakeholderProfile]:
+        """
+        Build the committee: SALESMAN first (opens), then other roles.
+        """
         committee: list[StakeholderProfile] = []
+        
+        # Add SALESMAN as first speaker (always participates)
+        salesman = get_archetype(StakeholderRole.SALESMAN)
+        salesman.company = account.account_name
+        # Salesman's system prompt is rendered differently in persona_agent.py
+        salesman.system_prompt = _render_salesman_prompt(account)
+        committee.append(salesman)
+        
+        # Add committee members in order
         for role in account.roles_in_committee:
             real_facts = account.real_data.get(role, [])
             if real_facts:

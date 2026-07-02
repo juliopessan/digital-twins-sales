@@ -19,6 +19,7 @@ from pydantic import BaseModel, Field
 class StakeholderRole(str, Enum):
     """Canonical buying-committee roles. Extend as needed per industry."""
 
+    SALESMAN = "salesman"  # Sales representative — participates as active responder to objections
     CFO = "cfo"
     CTO = "cto"
     PROCUREMENT = "procurement"

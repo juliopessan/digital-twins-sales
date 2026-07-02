@@ -25,6 +25,7 @@ import json
 from digital_twins.models import StakeholderProfile, StakeholderRole
 
 ROLE_ICON = {
+    StakeholderRole.SALESMAN: "🎤",  # Active speaker
     StakeholderRole.CEO: "👑",
     StakeholderRole.CTO: "💻",
     StakeholderRole.CFO: "💰",

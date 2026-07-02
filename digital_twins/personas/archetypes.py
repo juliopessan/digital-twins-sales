@@ -149,6 +149,24 @@ ARCHETYPES: dict[StakeholderRole, StakeholderProfile] = {
         decision_power=1.0,
         tone="visão de conjunto, impaciente com detalhe, decisivo assim que convencido da narrativa",
     ),
+    StakeholderRole.SALESMAN: StakeholderProfile(
+        role=StakeholderRole.SALESMAN,
+        name="Vendedor",
+        company="",
+        source=DataSource.ARCHETYPE,
+        priorities=[
+            "Vencer objeções apresentando casos de uso e ROI concreto",
+            "Conectar a solução às prioridades específicas de cada stakeholder",
+            "Construir credibilidade através de referências e benchmarks do mercado",
+        ],
+        known_objections=[
+            "Esperamos questões de integração, custo e risco de entrega",
+            "Stakeholders tentarão sabotar com FUD (fear, uncertainty, doubt)",
+            "Precisaremos ser diretos, concretos e ágeis nas respostas",
+        ],
+        decision_power=0.0,  # Salesman é um participante, não tem poder de veto
+        tone="profissional, empático com objeções, propositivo na defesa com dados",
+    ),
 }
 
 
