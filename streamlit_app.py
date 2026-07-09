@@ -22,6 +22,7 @@ from pathlib import Path
 from queue import Empty, Queue
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 from digital_twins.config import settings
 from digital_twins.feedback import (
@@ -42,6 +43,7 @@ from digital_twins.office import (
     build_agent_states,
     build_layout,
     build_office_html,
+    office_canvas_height,
 )
 from digital_twins.orchestration.graph import build_board_graph
 from digital_twins.personas.resolver import PersonaFactory
@@ -295,12 +297,11 @@ body { margin: 0; padding: 0; font-family: 'Segoe UI', system-ui, -apple-system,
 
 
 def render_pixel_office(transcript) -> None:
-    """Renders the transcript as a standalone HTML document via st.html
-    instead of st.markdown(unsafe_allow_html=True). A single large block of
-    concatenated <div>s passed through Streamlit's CommonMark markdown parser
-    can lose track mid-document (a blank line between divs ends the "raw
-    HTML block" early), causing later turns to render as literal text/code
-    instead of HTML. An iframe sidesteps markdown parsing entirely."""
+    """Renders the transcript as a standalone HTML document inside a
+    components.html iframe. st.markdown(unsafe_allow_html=True) can lose
+    track mid-document (a blank line between divs ends the "raw HTML block"
+    early) and st.html sanitiza/inline o conteúdo sem isolamento — o iframe
+    do components.html evita os dois problemas e ganha scroll próprio."""
     parts = ['<div class="pixel-office">']
     last_round = 0
     for turn in transcript:
@@ -323,7 +324,9 @@ def render_pixel_office(transcript) -> None:
     parts.append("</div>")
     inner_html = "".join(parts)
     full_html = f'<!DOCTYPE html><html><head><meta charset="utf-8"><style>{_PIXEL_TRANSCRIPT_CSS}</style></head><body>{inner_html}</body></html>'
-    st.html(full_html)
+    # Altura proporcional ao nº de falas, com teto — acima disso o iframe rola.
+    height = min(900, 120 + 130 * max(1, len(transcript)))
+    components.html(full_html, height=height, scrolling=True)
 
 
 def _run_debate_with_events(app, initial_state: dict, q: Queue) -> None:
@@ -372,12 +375,15 @@ def _run_debate_with_events(app, initial_state: dict, q: Queue) -> None:
 
 
 def render_office(personas, log: list[dict]) -> None:
+    """IMPORTANTE: o canvas do office é JavaScript puro (requestAnimationFrame,
+    sprites, BFS). st.html NÃO executa <script> — renderizava um bloco vazio.
+    components.html roda num iframe com JS habilitado."""
     agent_defs = build_agent_defs(personas)
     layout, ncols, nrows = build_layout(len(personas))
     keys = [d["key"] for d in agent_defs]
     agent_states = build_agent_states(log, keys)
     office_html = build_office_html(agent_defs, layout, ncols, nrows, agent_states)
-    st.html(office_html)
+    components.html(office_html, height=office_canvas_height(nrows), scrolling=False)
 
 
 def render_roadmap(items: list[str]) -> None:
@@ -651,7 +657,13 @@ def main() -> None:
         account_options = {}
         account_files = []
         if ACCOUNTS_DIR.exists():
-            account_files = sorted(ACCOUNTS_DIR.glob("*.json"))
+            # Só listar JSONs que são de fato AccountContext (objeto JSON) —
+            # a pasta também guarda listas de cenários (ex: cenarios_exemplo.json),
+            # que quebrariam o model_validate na seleção.
+            account_files = [
+                f for f in sorted(ACCOUNTS_DIR.glob("*.json"))
+                if f.read_text(encoding="utf-8").lstrip()[:1] == "{"
+            ]
             for f in account_files:
                 account_options[f.stem] = ("file", f)
         account_options["📤 Carregar JSON customizado"] = ("upload", None)
@@ -674,7 +686,7 @@ def main() -> None:
                 st.markdown(f"**Empresa:** {account.account_name}")
                 st.markdown(f"**Pitch:** {account.pitch_summary}")
                 st.markdown(f"**Solução:** {account.proposed_solution}")
-                st.markdown(f"**Valor:** ${account.deal_value_usd:,}")
+                st.markdown(f"**Valor:** US$ {account.deal_value_usd:,.0f}" if account.deal_value_usd else "**Valor:** —")
                 st.markdown(f"**Comitê:** {', '.join(r.value for r in account.roles_in_committee)}")
         elif account_type == "upload":
             uploaded = st.file_uploader("AccountContext (.json)", type="json")
@@ -684,7 +696,7 @@ def main() -> None:
                     st.markdown(f"**Empresa:** {account.account_name}")
                     st.markdown(f"**Pitch:** {account.pitch_summary}")
                     st.markdown(f"**Solução:** {account.proposed_solution}")
-                    st.markdown(f"**Valor:** ${account.deal_value_usd:,}")
+                    st.markdown(f"**Valor:** US$ {account.deal_value_usd:,.0f}" if account.deal_value_usd else "**Valor:** —")
                     st.markdown(f"**Comitê:** {', '.join(r.value for r in account.roles_in_committee)}")
 
         seller_opening = st.text_area(
@@ -753,13 +765,19 @@ def main() -> None:
 
         st.markdown('<div class="ava-section-bar">Sala de reunião</div>', unsafe_allow_html=True)
         office_container = st.empty()
-        # Initial render com log vazio
+        # Layout é fixo durante o run — computa uma vez fora do loop.
         agent_defs = build_agent_defs(personas)
         layout, ncols, nrows = build_layout(len(personas))
         keys = [d["key"] for d in agent_defs]
-        agent_states = build_agent_states([], keys)
-        office_html = build_office_html(agent_defs, layout, ncols, nrows, agent_states)
-        office_container.html(office_html)
+        canvas_height = office_canvas_height(nrows)
+
+        def _paint_office(current_log: list[dict]) -> None:
+            agent_states = build_agent_states(current_log, keys)
+            office_html = build_office_html(agent_defs, layout, ncols, nrows, agent_states)
+            with office_container:
+                components.html(office_html, height=canvas_height, scrolling=False)
+
+        _paint_office([])
 
         q: Queue = Queue()
         t = threading.Thread(target=_run_debate_with_events, args=(app, initial_state, q), daemon=True)
@@ -779,17 +797,14 @@ def main() -> None:
                 if ev["event"] in ("start", "done"):
                     log.append(ev)
                     # ✨ Real-time office canvas update
-                    agent_defs = build_agent_defs(personas)
-                    layout, ncols, nrows = build_layout(len(personas))
-                    keys = [d["key"] for d in agent_defs]
-                    agent_states = build_agent_states(log, keys)
-                    office_html = build_office_html(agent_defs, layout, ncols, nrows, agent_states)
-                    office_container.html(office_html)
+                    _paint_office(log)
                 elif ev["event"] == "result":
                     transcript = ev["transcript"]
                     verdict = ev["verdict"]
                 elif ev["event"] == "error":
                     error_msg = ev.get("error", "erro desconhecido")
+                    log.append(ev)
+                    _paint_office(log)
                 elif ev["event"] == "finished":
                     break
 

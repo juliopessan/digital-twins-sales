@@ -18,10 +18,11 @@ from pathlib import Path
 
 from digital_twins.config import settings
 from digital_twins.llm.client import build_default_client
-from digital_twins.models import AccountContext, StakeholderRole
+from digital_twins.models import AccountContext, SimulationRecord, StakeholderRole
 from digital_twins.orchestration.graph import build_board_graph
 from digital_twins.personas.resolver import PersonaFactory
 from digital_twins.reporting import build_html_report, build_markdown_report
+from digital_twins.scenarios import ScenarioSpec, build_comparison_markdown, run_scenarios
 
 
 def _sample_account() -> AccountContext:
@@ -69,6 +70,14 @@ def main() -> int:
         help="Diretório onde salvar o relatório para o time de vendas (padrão: reports/)",
     )
     parser.add_argument("--no-report", action="store_true", help="Não gerar o relatório")
+    parser.add_argument(
+        "--scenarios", type=str, default=None,
+        help=(
+            "Caminho para um JSON com uma lista de cenários what-if (ScenarioSpec). "
+            "Em vez de um debate único, roda um debate por cenário e gera um "
+            "comparativo lado a lado ordenado por risco."
+        ),
+    )
     parser.add_argument("-v", "--verbose", action="store_true")
     args = parser.parse_args()
 
@@ -78,6 +87,10 @@ def main() -> int:
     )
 
     account = _load_account(args.account) if args.account else _sample_account()
+
+    if args.scenarios:
+        return _run_scenario_mode(account, args)
+
     personas = PersonaFactory.build_committee(account)
 
     print(f"\n=== Comitê: {account.account_name} ({account.deal_stage}) ===")
@@ -159,8 +172,54 @@ def main() -> int:
         html_path = report_dir / f"{slug}-{timestamp}.html"
         html_path.write_text(html_report, encoding="utf-8")
 
+        # Snapshot completo para a calibração pós-call (digital_twins.calibration):
+        # compara depois o que o twin previu com a transcrição da call real.
+        record = SimulationRecord(
+            created_at=datetime.now(timezone.utc).isoformat(),
+            account=account,
+            transcript=transcript,
+            verdict=verdict,
+        )
+        json_path = report_dir / f"{slug}-{timestamp}.json"
+        json_path.write_text(record.model_dump_json(indent=2), encoding="utf-8")
+
         print(f"\nRelatório salvo em: {md_path}")
         print(f"Relatório estilizado (HTML) salvo em: {html_path}")
+        print(f"Snapshot para calibração pós-call salvo em: {json_path}")
+        print(
+            "Depois da call real: python -m digital_twins.calibration "
+            f"--simulation {json_path} --call-transcript <arquivo.txt>"
+        )
+
+    return 0
+
+
+def _run_scenario_mode(account: AccountContext, args) -> int:
+    """Modo cenários what-if: um debate por variante do deal, comparativo por risco."""
+    with open(args.scenarios, "r", encoding="utf-8") as f:
+        specs = [ScenarioSpec.model_validate(s) for s in json.load(f)]
+    if not specs:
+        print("Arquivo de cenários vazio — nada a rodar.")
+        return 1
+
+    print(f"\n=== Cenários what-if: {account.account_name} ({len(specs)} branches) ===")
+    for s in specs:
+        print(f"  - {s.name}" + (f": {s.description}" if s.description else ""))
+
+    llm = build_default_client()
+    outcomes = run_scenarios(account, specs, llm, max_rounds=args.max_rounds)
+
+    comparison = build_comparison_markdown(account, outcomes)
+    print("\n" + comparison)
+
+    if not args.no_report:
+        report_dir = Path(args.report_dir)
+        report_dir.mkdir(parents=True, exist_ok=True)
+        slug = re.sub(r"[^a-z0-9]+", "-", account.account_name.lower()).strip("-")
+        timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        cmp_path = report_dir / f"{slug}-cenarios-{timestamp}.md"
+        cmp_path.write_text(comparison, encoding="utf-8")
+        print(f"\nComparativo salvo em: {cmp_path}")
 
     return 0
 
