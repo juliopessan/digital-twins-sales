@@ -162,3 +162,18 @@ class DebateVerdict(BaseModel):
             "(AccountContext.seller_opening); caso contrário fica None."
         ),
     )
+
+
+class SimulationRecord(BaseModel):
+    """Snapshot serializável de uma simulação completa.
+
+    É o que o CLI salva em reports/<slug>-<ts>.json e o que a calibração
+    pós-call (digital_twins.calibration) consome para comparar o que o twin
+    PREVIU com o que a call real de fato trouxe — o loop "twin vs realidade"
+    do Vertex/Foundry aplicado a vendas.
+    """
+
+    created_at: str
+    account: AccountContext
+    transcript: list[DebateTurn] = Field(default_factory=list)
+    verdict: DebateVerdict
