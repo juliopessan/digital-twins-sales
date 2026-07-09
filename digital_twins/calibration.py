@@ -1,10 +1,10 @@
 """
-Calibração pós-call — o loop "twin vs realidade" do Palantir Vertex aplicado
-a vendas.
+Calibração pós-call — o loop "twin vs realidade" aplicado a vendas.
 
-No Vertex, o digital twin é continuamente comparado com os sensores reais do
-ativo; o desvio entre simulado e real mede a fidelidade do twin e aponta onde
-o modelo precisa ser retunado. Aqui o "sensor" é a transcrição da call real:
+Em digital twins industriais, o twin é continuamente comparado com os
+sensores reais do ativo; o desvio entre simulado e real mede a fidelidade do
+twin e aponta onde o modelo precisa ser retunado. Aqui o "sensor" é a
+transcrição da call real:
 
   1. Você rodou a simulação antes da call (o CLI salvou um SimulationRecord
      em reports/<slug>-<ts>.json).

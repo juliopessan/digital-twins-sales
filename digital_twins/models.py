@@ -169,8 +169,8 @@ class SimulationRecord(BaseModel):
 
     É o que o CLI salva em reports/<slug>-<ts>.json e o que a calibração
     pós-call (digital_twins.calibration) consome para comparar o que o twin
-    PREVIU com o que a call real de fato trouxe — o loop "twin vs realidade"
-    do Vertex/Foundry aplicado a vendas.
+    PREVIU com o que a call real de fato trouxe — o loop "twin vs
+    realidade" aplicado a vendas.
     """
 
     created_at: str

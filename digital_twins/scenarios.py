@@ -1,6 +1,6 @@
 """
-Cenários what-if — inspirado no "Scenarios & Simulations" do Palantir Foundry
-("Treating Your Business Like Code; branch, simulate, and explore").
+Cenários what-if — branch, simulate, compare: trate o deal como código,
+ramifique variantes e compare os resultados lado a lado.
 
 A ideia: em vez de rodar UM debate com UM pitch, você declara N variantes do
 deal (preço A vs B, com/sem POC, ancorar em ROI vs risco), cada uma vira um

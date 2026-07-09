@@ -1,5 +1,5 @@
 """
-Testes das features inspiradas no Palantir Foundry Digital Twin:
+Testes das features de digital twin:
 
 - scenarios: branch/simulate/compare (what-if de pitch)
 - calibration: twin vs realidade (objeções previstas vs call real)

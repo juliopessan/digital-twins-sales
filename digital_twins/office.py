@@ -40,6 +40,20 @@ FACILITATOR_KEY = "facilitator"
 SYNTHESIZER_KEY = "synthesizer"
 NCOLS = 4
 
+# Mirrors the JS engine constants below — needed Python-side so the Streamlit
+# apps can size the components.html iframe correctly (st.html does NOT run
+# JavaScript, so the canvas must live inside an iframe component with an
+# explicit height).
+_TILE, _ZOOM = 16, 3
+_BORDER, _CELL_H = 2, 4
+_LABEL_PAD = 28
+
+
+def office_canvas_height(nrows: int) -> int:
+    """Altura em px do canvas do office para `nrows` fileiras de layout."""
+    g_rows = _BORDER * 2 + nrows * _CELL_H
+    return g_rows * _TILE * _ZOOM + _LABEL_PAD + 16
+
 
 def build_agent_defs(personas: list[StakeholderProfile]) -> list[dict]:
     defs = [{"key": FACILITATOR_KEY, "ic": "🎯", "nm": "Facilitador", "variant": 0}]
@@ -67,10 +81,16 @@ def build_layout(n_personas: int) -> tuple[list[list[int]], int, int]:
 
 
 def build_agent_states(log: list[dict], keys: list[str]) -> dict:
+    # Um erro global (agent fora de `keys`, ex: "squad") derruba quem estava
+    # rodando — sem isso o boneco fica digitando para sempre após uma falha.
+    global_error = any(e["event"] == "error" and e.get("agent") not in keys for e in log)
     states = {}
     for key in keys:
         evts = [e for e in log if e.get("agent") == key]
-        if any(e["event"] == "error" for e in evts):
+        if any(e["event"] == "error" for e in evts) or (
+            global_error and any(e["event"] == "start" for e in evts)
+            and not any(e["event"] == "done" for e in evts)
+        ):
             states[key] = {"status": "error", "count": 0}
         elif any(e["event"] == "done" for e in evts):
             states[key] = {"status": "done", "count": sum(1 for e in evts if e["event"] == "done")}
@@ -689,7 +709,12 @@ function initOffice() {{
   canvasH = G_ROWS * TS + 28;  // extra room for name labels
   const cv = document.getElementById('cv');
   cv.width  = canvasW; cv.height = canvasH;
-  cv.style.width = canvasW+'px'; cv.style.height = canvasH+'px';
+  // Responsivo: encolhe com o container (mantendo proporção via height:auto),
+  // mas nunca estica além do tamanho nativo do pixel-art.
+  cv.style.width = '100%';
+  cv.style.maxWidth = canvasW+'px';
+  cv.style.height = 'auto';
+  cv.style.margin = '0 auto';
 }}
 
 // ── Main render frame (squad-pod renderFrame) ─────────────────────────────────
