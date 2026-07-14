@@ -133,8 +133,13 @@ def _inject_avanade_theme() -> None:
         }
         html, body, [class*="css"] { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: var(--ava-grey-80); }
         /* Core scroll fix for Streamlit */
-        [data-testid="stAppViewContainer"], [data-testid="stApp"], .main {
-            overflow: auto !important;
+        html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"],
+        [data-testid="stMain"], [data-testid="stMainBlockContainer"], .main,
+        section.main {
+            overflow-x: hidden !important;
+            overflow-y: auto !important;
+            height: auto !important;
+            min-height: 100vh !important;
         }
         /* Ensure specific containers don't trap scroll */
         .st-emotion-cache-1gwvy71, .st-emotion-cache-12fmjuu {
@@ -146,10 +151,15 @@ def _inject_avanade_theme() -> None:
         }
         [data-testid="stDecoration"] { display: none !important; }
         /* Main content padding - offset for fixed navbar */
-        .block-container { 
-            padding-top: 4.5rem !important; 
+        .block-container {
+            padding-top: 4.5rem !important;
             padding-bottom: 2rem !important;
             overflow: visible !important;
+            min-height: calc(100vh - 4.5rem) !important;
+        }
+        [data-testid="stSidebar"], [data-testid="stSidebarContent"] {
+            overflow-y: auto !important;
+            height: 100vh !important;
         }
         /* Fixed st_navbar at top=0 */
         iframe[title="streamlit_navigation_bar.st_navbar"] {
