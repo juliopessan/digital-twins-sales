@@ -12,6 +12,7 @@ from pathlib import Path
 from queue import Empty, Queue
 
 import streamlit as st
+import streamlit.components.v1 as components
 from streamlit_navigation_bar import st_navbar
 
 from digital_twins.config import settings
@@ -33,6 +34,7 @@ from digital_twins.office import (
     build_agent_states,
     build_layout,
     build_office_html,
+    office_canvas_height,
 )
 from digital_twins.orchestration.graph import build_board_graph
 from digital_twins.personas.resolver import PersonaFactory
@@ -314,12 +316,15 @@ def render_roadmap(items: list[str]) -> None:
 
 
 def render_office(personas, log: list[dict]) -> None:
+    # O canvas do office é JS puro (requestAnimationFrame/sprites); st.html
+    # NÃO executa <script> e renderizava um bloco vazio — components.html
+    # roda num iframe com JS habilitado e altura explícita.
     agent_defs = build_agent_defs(personas)
     layout, ncols, nrows = build_layout(len(personas))
     keys = [d["key"] for d in agent_defs]
     agent_states = build_agent_states(log, keys)
     office_html = build_office_html(agent_defs, layout, ncols, nrows, agent_states)
-    st.html(office_html)
+    components.html(office_html, height=office_canvas_height(nrows), scrolling=False)
 
 
 _PIXEL_TRANSCRIPT_CSS = """
@@ -364,7 +369,8 @@ def render_pixel_office(transcript) -> None:
     parts.append("</div>")
     inner_html = "".join(parts)
     full_html = f'<!DOCTYPE html><html><head><meta charset="utf-8"><style>{_PIXEL_TRANSCRIPT_CSS}</style></head><body>{inner_html}</body></html>'
-    st.html(full_html)
+    height = min(900, 120 + 130 * max(1, len(transcript)))
+    components.html(full_html, height=height, scrolling=True)
 
 
 def _run_debate_with_events(app, initial_state: dict, q: Queue) -> None:
@@ -650,7 +656,13 @@ def _render_sidebar() -> tuple:
         account_options = {}
         account_files = []
         if ACCOUNTS_DIR.exists():
-            account_files = sorted(ACCOUNTS_DIR.glob("*.json"))
+            # Só listar JSONs que são de fato AccountContext (objeto JSON) —
+            # a pasta também guarda listas de cenários (ex: cenarios_exemplo.json),
+            # que quebrariam o model_validate na seleção.
+            account_files = [
+                f for f in sorted(ACCOUNTS_DIR.glob("*.json"))
+                if f.read_text(encoding="utf-8").lstrip()[:1] == "{"
+            ]
             for f in account_files:
                 account_options[f.stem] = ("file", f)
         account_options["📤 Carregar JSON customizado"] = ("upload", None)
@@ -780,8 +792,15 @@ def main() -> None:
         agent_defs = build_agent_defs(personas)
         layout, ncols, nrows = build_layout(len(personas))
         keys = [d["key"] for d in agent_defs]
-        agent_states = build_agent_states([], keys)
-        office_container.html(build_office_html(agent_defs, layout, ncols, nrows, agent_states))
+        canvas_height = office_canvas_height(nrows)
+
+        def _paint_office(current_log: list[dict]) -> None:
+            agent_states = build_agent_states(current_log, keys)
+            office_html = build_office_html(agent_defs, layout, ncols, nrows, agent_states)
+            with office_container:
+                components.html(office_html, height=canvas_height, scrolling=False)
+
+        _paint_office([])
 
         q: Queue = Queue()
         t = threading.Thread(target=_run_debate_with_events, args=(app, initial_state, q), daemon=True)
@@ -800,13 +819,14 @@ def main() -> None:
                     break
                 if ev["event"] in ("start", "done"):
                     log.append(ev)
-                    agent_states = build_agent_states(log, keys)
-                    office_container.html(build_office_html(agent_defs, layout, ncols, nrows, agent_states))
+                    _paint_office(log)
                 elif ev["event"] == "result":
                     transcript = ev["transcript"]
                     verdict = ev["verdict"]
                 elif ev["event"] == "error":
                     error_msg = ev.get("error", "erro desconhecido")
+                    log.append(ev)
+                    _paint_office(log)
                 elif ev["event"] == "finished":
                     break
 

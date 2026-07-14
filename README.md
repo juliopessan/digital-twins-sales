@@ -101,8 +101,40 @@ python -m digital_twins.main -v
 python -m digital_twins.main --account accounts/ifood.json -v
 ```
 
-Cada run grava um relatório em `.md` e um em `.html` (estilizado, ver
-seção abaixo) dentro de `reports/`.
+Cada run grava um relatório em `.md`, um em `.html` (estilizado, ver
+seção abaixo) e um snapshot `.json` (`SimulationRecord`, usado pela
+calibração pós-call) dentro de `reports/`.
+
+## Cenários what-if ("branch, simulate, compare")
+
+Em vez de um debate único, declare N variantes do deal (preço A vs B,
+com/sem POC, ancorar em ROI vs risco) num JSON — cada uma é um "branch" do
+`AccountContext` base que só carrega o delta — e rode todas de uma vez:
+
+```bash
+python -m digital_twins.main --scenarios accounts/cenarios_exemplo.json
+```
+
+Sai um comparativo lado a lado em `reports/<conta>-cenarios-<ts>.md`,
+ordenado por um score de risco agregado (sentimento geral + nº de
+bloqueadores + falta de consenso), com o cenário recomendado no topo.
+
+## Calibração pós-call (twin vs realidade)
+
+Depois que a call real acontecer, compare o que o twin PREVIU com o que de
+fato foi dito:
+
+```bash
+python -m digital_twins.calibration \
+  --simulation reports/<conta>-<ts>.json \
+  --call-transcript call.txt \
+  --out reports/calibracao.md
+```
+
+O relatório traz: fidelidade por persona (objeções previstas que ocorreram),
+pontos cegos (objeções reais não previstas) e sugestões concretas de fatos
+para adicionar em `AccountContext.real_data` — fechando o loop de melhoria
+contínua do twin.
 
 ## Interface Streamlit
 
