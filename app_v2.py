@@ -655,7 +655,7 @@ def _render_sidebar() -> tuple:
         with pitch_label:
             st.markdown("**Sua fala de abertura (opcional)**")
         with pitch_action:
-            generate_pitch = st.button("AI", key="generate_pitch_btn", help="Gerar pitch com IA", use_container_width=True)
+            generate_pitch = st.button("✨", key="generate_pitch_btn", help="Gerar pitch com IA")
         if generate_pitch:
             generation_key = settings.anthropic_api_key or st.session_state.get("api_key_input", "")
             if not account:
