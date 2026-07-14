@@ -649,10 +649,37 @@ def _render_sidebar() -> tuple:
             if uploaded is not None:
                 account = AccountContext.model_validate(json.load(uploaded))
 
+        if "seller_opening_input" not in st.session_state:
+            st.session_state.seller_opening_input = ""
+        pitch_label, pitch_action = st.columns([5, 1])
+        with pitch_label:
+            st.markdown("**Sua fala de abertura (opcional)**")
+        with pitch_action:
+            generate_pitch = st.button("AI", key="generate_pitch_btn", help="Gerar pitch com IA", use_container_width=True)
+        if generate_pitch:
+            generation_key = settings.anthropic_api_key or st.session_state.get("api_key_input", "")
+            if not account:
+                st.warning("Selecione uma conta antes de gerar o pitch.")
+            elif not generation_key:
+                st.warning("Informe a Anthropic API Key para gerar o pitch.")
+            else:
+                try:
+                    pitch_llm = build_default_client(api_key=generation_key)
+                    st.session_state.seller_opening_input = pitch_llm.complete(
+                        system="Você é um coach de vendas B2B. Escreva uma fala de abertura natural, objetiva e persuasiva em português do Brasil. Não use markdown, títulos ou listas.",
+                        user=f"Crie um pitch de 90 segundos para {account.account_name}. Contexto: {account.deal_stage}. Problema: {account.pitch_summary}. Solução: {account.proposed_solution}. Inclua valor, diferencial e próximo passo.",
+                        model=settings.persona_model,
+                        max_tokens=500,
+                    ).strip()
+                    st.success("Pitch gerado. Revise antes de rodar a simulação.")
+                except Exception as exc:
+                    st.error(f"Não foi possível gerar o pitch: {exc}")
+
         seller_opening = st.text_area(
             "Sua fala de abertura (opcional)",
             placeholder="Cole o pitch como você vai dizer. Em branco = war-gaming sem vendedor.",
             height=100,
+            key="seller_opening_input",
         )
 
         if settings.anthropic_api_key:

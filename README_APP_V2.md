@@ -179,3 +179,6 @@ refactor: apply Microsoft App 2 UI pattern with modular pages
 ---
 
 **Status:** ✅ MVP pronto — Pages estruturadas, navegação funcionando, placeholders em lugar. Próximo: migrar lógica v1 → v2.
+### Geracao de pitch com IA
+
+Na barra lateral, ao lado de **Sua fala de abertura (opcional)**, use o botao **AI** para gerar uma sugestao de pitch contextualizada com a conta selecionada. Revise o texto antes de iniciar a simulacao. A funcionalidade requer uma `ANTHROPIC_API_KEY` valida.
