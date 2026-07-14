@@ -141,6 +141,12 @@ def _inject_avanade_theme() -> None:
             height: auto !important;
             min-height: 100vh !important;
         }
+        /* Streamlit ships stAppViewContainer with pointer-events:none by default;
+           since it's the element that actually carries the overflow above, a real
+           mouse wheel never hits it and scrolling appears locked. */
+        [data-testid="stAppViewContainer"] {
+            pointer-events: auto !important;
+        }
         /* Ensure specific containers don't trap scroll */
         .st-emotion-cache-1gwvy71, .st-emotion-cache-12fmjuu {
             overflow: visible !important;
@@ -169,7 +175,14 @@ def _inject_avanade_theme() -> None:
             width: 100vw !important;
             height: 50px !important;
             z-index: 1000000 !important;
-            margin-top: 0 !important;
+            margin: 0 !important;
+            /* Streamlit sets pointer-events:none on component iframes and only
+               re-enables it on :hover of the (now out-of-flow) wrapper div.
+               Force it back on so the fixed navbar stays clickable. */
+            pointer-events: auto !important;
+        }
+        div:has(> iframe[title="streamlit_navigation_bar.st_navbar"]) {
+            pointer-events: auto !important;
         }
         /* Sidebar toggle positioning - must be above navbar */
         [data-testid="stSidebarCollapsedControl"] {
