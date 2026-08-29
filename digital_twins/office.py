@@ -120,8 +120,9 @@ def build_office_html(
     return f"""<!DOCTYPE html>
 <html><head><meta charset="utf-8">
 <style>
+@import url('https://fonts.googleapis.com/css2?family=Pixelify+Sans:wght@400..700&display=swap');
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{background:#1a1628;overflow:hidden;font-family:-apple-system,'Segoe UI',sans-serif}}
+body{{background:#1a1628;overflow:hidden;font-family:'Pixelify Sans',-apple-system,'Segoe UI',sans-serif}}
 #wrap{{width:100%;position:relative}}
 canvas{{display:block;width:100%;image-rendering:pixelated;image-rendering:crisp-edges}}
 </style></head>
@@ -514,7 +515,7 @@ class Character {{
         const spy = sy + sprH*ZOOM/2 + Math.sin(a)*r;
         ctx.save();
         ctx.globalAlpha = Math.max(0, 0.5 + Math.sin(this.sparkAngle*2+i)*0.4);
-        ctx.fillStyle = i%2 ? '#ffd700' : '#4ade80';
+        ctx.fillStyle = i%2 ? '#FFD93D' : '#6BCF7F';
         ctx.fillRect(Math.round(spx), Math.round(spy), ZOOM, ZOOM);
         ctx.restore();
       }}
@@ -524,7 +525,7 @@ class Character {{
     if (this.state === 'error') {{
       ctx.save();
       ctx.globalAlpha = 0.28 + Math.sin(this.frameTick*0.15)*0.22;
-      ctx.fillStyle = '#ef4444';
+      ctx.fillStyle = '#FF6B6B';
       ctx.fillRect(sx, sy, sprW*ZOOM, sprH*ZOOM);
       ctx.restore();
     }}
@@ -541,13 +542,14 @@ class Character {{
       ctx.restore();
     }}
 
-    // Name label
-    ctx.font = `bold ${{Math.round(7*ZOOM/3)}}px -apple-system,sans-serif`;
+    // Name label — status colors + typeface from Munder Difflin's DESIGN.md
+    // pixel-game palette (idle/thinking-working/success/blocked).
+    ctx.font = `600 ${{Math.round(7*ZOOM/3)}}px "Pixelify Sans",-apple-system,sans-serif`;
     ctx.textAlign = 'center';
-    ctx.fillStyle = this.state==='type'  ? '#818cf8'
-                  : this.state==='done'  ? '#4ade80'
-                  : this.state==='error' ? '#f87171'
-                  :                        '#94a3b8';
+    ctx.fillStyle = this.state==='type'  ? '#FFD93D'
+                  : this.state==='done'  ? '#6BCF7F'
+                  : this.state==='error' ? '#FF6B6B'
+                  :                        '#A899B5';
     ctx.fillText(this.icon+' '+this.name, sx + sprW*ZOOM/2,
                  sy + sprH*ZOOM + 9);
     ctx.textAlign = 'left';
@@ -589,8 +591,8 @@ function drawDesk(ctx, col, row, offX, offY, active, deskTiles) {{
   ctx.beginPath(); ctx.roundRect(mx+3, my+3, mw-6, mh-6, 2); ctx.fill();
 
   if (active) {{
-    // Cyan screen glow
-    ctx.fillStyle = '#00d4ff';
+    // Screen glow — Munder Difflin's "status-thinking" sky token
+    ctx.fillStyle = '#4ECDC4';
     ctx.globalAlpha = 0.85;
     ctx.beginPath(); ctx.roundRect(mx+3, my+3, mw-6, mh-6, 2); ctx.fill();
     ctx.globalAlpha = 0.22;
@@ -601,7 +603,7 @@ function drawDesk(ctx, col, row, offX, offY, active, deskTiles) {{
       ctx.fillRect(mx+5, my+5+i*lh, lw, Math.max(1,lh-2));
     }}
     ctx.globalAlpha = 0.07;
-    ctx.fillStyle = '#00d4ff';
+    ctx.fillStyle = '#4ECDC4';
     ctx.beginPath(); ctx.roundRect(mx-4, my-4, mw+8, mh+8, 6); ctx.fill();
     ctx.globalAlpha = 1;
   }}
