@@ -8,3 +8,6 @@ exa_py>=1.10
 deep-translator>=1.11
 langdetect>=1.0.9
 streamlit-navigation-bar>=0.1.0
+fastapi>=0.115
+uvicorn[standard]>=0.30
+python-multipart>=0.0.9

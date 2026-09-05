@@ -1,5 +1,7 @@
 # Sales Digital Twins — Hierarchical Multi-Agent Stakeholder Debate
 
+![Sales Digital Twins — tela de resultados com o ledger clay/mint do comitê](docs/screenshot-results.png)
+
 Sistema multiagente em Python, orquestrado hierarquicamente via LangGraph,
 que simula debates entre personas de um comitê de compra (CFO, CTO,
 Procurement, Champion, etc.) para apoiar o time de vendas a testar pitch,
