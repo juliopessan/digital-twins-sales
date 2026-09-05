@@ -137,95 +137,144 @@ def build_markdown_report(
     return "\n".join(lines)
 
 
+_ROLE_LABEL_PT = {
+    "salesman": "Vendedor",
+    "ceo": "CEO",
+    "cto": "CTO",
+    "cfo": "CFO",
+    "procurement": "Procurement",
+    "champion": "Champion interno",
+    "end_user": "Usuário final",
+    "legal_compliance": "Jurídico/Compliance",
+    "security": "Segurança",
+}
+
+
 def build_html_report(
     account: AccountContext,
     personas: list[StakeholderProfile],
     transcript: list[DebateTurn],
     verdict: DebateVerdict,
 ) -> str:
-    """Standalone HTML report styled with custom design tokens (palette, typography,
-    hero/arc/roadmap/pull-quote/footer components). Opens in any browser, no dependencies."""
+    """Standalone HTML report using the Ledger design system — the same one applied
+    to the Next.js results page (web/app/runs/[id]/page.tsx) — so a downloaded
+    report and the live run look like the same product. The ledger's clay/mint
+    pair marks the same measured/asserted split as the web UI: comitê total vs.
+    personas grounded in real data is computed from the objects passed in here;
+    everything else (objections, veredito, coaching) is left unmarked, per the
+    Ledger rule against badging anything that wasn't actually verified."""
     e = html.escape
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     consensus_label = "Sim" if verdict.consensus_reached else "Não"
     sentiment_label = _SENTIMENT_LABEL.get(verdict.overall_sentiment.value, verdict.overall_sentiment.value)
-    blockers = ", ".join(r.value for r in verdict.blocking_stakeholders) or "Nenhum"
     value_line = f"US$ {account.deal_value_usd:,.0f}" if account.deal_value_usd else "—"
+
+    committee = [p for p in personas if p.role.value != "salesman"]
+    real_personas = [p for p in committee if p.source.value == "real"]
+    archetype_personas = [p for p in committee if p.source.value == "archetype"]
+    real_pct = (len(real_personas) / len(committee) * 100) if committee else 0
+    rounds = max((t.round_number for t in transcript), default=0)
+
+    def role_label(role_value: str) -> str:
+        return _ROLE_LABEL_PT.get(role_value, role_value)
 
     committee_rows = "\n".join(
         f"""<tr>
+            <td>{e(role_label(p.role.value))}</td>
             <td>{e(p.name)}</td>
-            <td>{e(p.role.value)}</td>
-            <td>{"Dados reais da conta" if p.source.value == "real" else "Arquétipo genérico"}</td>
-            <td>{p.decision_power:.2f}</td>
+            <td><span class="pill {"pill-mint" if p.source.value == "real" else "pill-clay"}">{"real" if p.source.value == "real" else "arquétipo"}</span></td>
+            <td class="num">{p.decision_power:.2f}</td>
+            <td>{e(", ".join(p.priorities[:3]))}</td>
         </tr>"""
-        for p in personas
+        for p in committee
     )
 
     objections_html = "\n".join(f"<li>{e(o)}</li>" for o in verdict.top_objections)
 
-    roadmap_html = "\n".join(
-        f"""<div class="dt-roadmap-step">
-            <div class="dt-roadmap-num">{i}</div>
-            <p>{e(t)}</p>
-        </div>"""
-        for i, t in enumerate(verdict.recommended_talk_track, start=1)
-    )
+    roadmap_html = "\n".join(f"<li>{e(t)}</li>" for t in verdict.recommended_talk_track)
+
+    blockers_html = ""
+    if verdict.blocking_stakeholders:
+        blockers = ", ".join(role_label(r.value) for r in verdict.blocking_stakeholders)
+        blockers_html = f"""
+  <div class="flag">
+    <span class="flag-k">Bloqueadores</span>
+    <p>{e(blockers)}</p>
+  </div>"""
 
     meddpicc_html = ""
     if verdict.meddpicc_scorecard:
         rows = "\n".join(
-            f"<tr><td><strong>{e(dim)}</strong></td><td>{e(assessment)}</td></tr>"
+            f"<tr><td style=\"text-transform:capitalize\">{e(dim)}</td><td>{e(assessment)}</td></tr>"
             for dim, assessment in verdict.meddpicc_scorecard.items()
         )
         meddpicc_html = f"""
-  <div class="dt-section-bar">Scorecard MEDDPICC</div>
-  <table>
-    <tr><th>Dimensão</th><th>Avaliação</th></tr>
-    {rows}
-  </table>
-"""
+  <div class="tbl-wrap">
+    <table>
+      <tr><th>MEDDPICC</th><th>Avaliação</th></tr>
+      {rows}
+    </table>
+  </div>"""
 
     coaching_html = ""
     if verdict.seller_coaching:
         sc = verdict.seller_coaching
 
-        def _list_block(title: str, items: list[str], ordered: bool = False) -> str:
-            if not items:
-                return ""
-            tag = "ol" if ordered else "ul"
-            lis = "\n".join(f"<li>{e(i)}</li>" for i in items)
-            return f"<p><strong>{title}</strong></p><{tag}>{lis}</{tag}>"
+        def _joined(items: list[str]) -> str:
+            return e(" · ".join(items)) if items else "—"
 
         coaching_html = f"""
-  <div class="dt-section-bar">Coach — avaliação do seu pitch</div>
-  <div class="dt-pullquote">{e(sc.pitch_grade)}</div>
-  {_list_block("O que funcionou", sc.what_landed)}
-  {_list_block("O que saiu pela culatra", sc.what_backfired)}
-  {_list_block("Sugestões de reescrita", sc.rewrite_suggestions, ordered=True)}
-"""
+  <div class="card">
+    <p class="h3">Coach — nota: <span class="mono">{e(sc.pitch_grade)}</span></p>
+    <p class="body-text"><strong>O que funcionou:</strong> {_joined(sc.what_landed)}</p>
+    <p class="body-text"><strong>O que pegou mal:</strong> {_joined(sc.what_backfired)}</p>
+    <p class="body-text" style="margin-bottom:0"><strong>Reescreva assim:</strong> {_joined(sc.rewrite_suggestions)}</p>
+  </div>"""
 
     transcript_html_parts: list[str] = []
-    last_round = 0
     for turn in transcript:
-        if turn.round_number != last_round:
-            last_round = turn.round_number
-            transcript_html_parts.append(f'<div class="dt-section-bar">Rodada {last_round}</div>')
         turn_sentiment = _SENTIMENT_LABEL.get(turn.sentiment.value, turn.sentiment.value)
+        objections_li = "\n".join(f"<li>{e(o)}</li>" for o in turn.objections_raised)
         transcript_html_parts.append(
-            f"""<div class="dt-turn">
-                <span class="dt-turn-name">{e(turn.name)} · {e(turn_sentiment)}</span>
-                <p>{e(turn.statement)}</p>
-            </div>"""
+            f"""<div class="card">
+        <div class="row" style="justify-content:space-between; margin-bottom:10px">
+          <span class="h3" style="margin:0">{e(turn.name)} · {e(role_label(turn.role.value))}</span>
+          <span class="mono meta">round {turn.round_number} · {e(turn_sentiment)}</span>
+        </div>
+        <p class="body-text" style="max-width:none">{e(turn.statement)}</p>
+        {f'<ul style="margin:10px 0 0; padding-left:18px">{objections_li}</ul>' if turn.objections_raised else ""}
+      </div>"""
         )
     transcript_html = "\n".join(transcript_html_parts)
 
+    measured_html = ""
+    if real_personas:
+        names = ", ".join(f"{e(p.name)} ({e(role_label(p.role.value))})" for p in real_personas)
+        verb = "tem fala apoiada" if len(real_personas) == 1 else "têm falas apoiadas"
+        measured_html = f"""
+  <div class="measured">
+    <span class="tick">✓</span>
+    <p><span class="k">Grounded em dados reais</span>{names} {verb} em fatos verificáveis
+    coletados sobre a pessoa real.</p>
+  </div>"""
+
+    flag_html = ""
+    if archetype_personas:
+        names = ", ".join(f"{e(p.name)} ({e(role_label(p.role.value))})" for p in archetype_personas)
+        verb = "não tem" if len(archetype_personas) == 1 else "não têm"
+        pronoun = "a reação dela" if len(archetype_personas) == 1 else "as reações delas"
+        flag_html = f"""
+  <div class="flag">
+    <span class="flag-k">Sem dado real</span>
+    <p>{names} {verb} nenhum fato real associado — {"sua fala vem" if len(archetype_personas) == 1 else "suas falas vêm"}
+    de um arquétipo genérico do papel. Trate {pronoun} como ilustrativa, não preditiva.</p>
+  </div>"""
+
     seller_opening_html = ""
     if account.seller_opening:
-        seller_opening_html = (
-            '<div class="dt-section-bar">Fala de abertura do vendedor</div>'
-            f'<div class="dt-pullquote">{e(account.seller_opening)}</div>'
-        )
+        seller_opening_html = f"""
+  <p class="body-text" style="max-width:none"><strong>Fala de abertura do vendedor:</strong></p>
+  <p class="body-text" style="max-width:none; font-style:italic">"{e(account.seller_opening)}"</p>"""
 
     return f"""<!DOCTYPE html>
 <html lang="pt-BR">
@@ -234,192 +283,154 @@ def build_html_report(
 <title>Simulação de Comitê — {e(account.account_name)}</title>
 <style>
 :root {{
-  --dt-orange: #FF5800;
-  --dt-dark-orange: #DC4600;
-  --dt-grey-80: #333333;
-  --dt-grey-60: #666666;
-  --dt-grey-40: #999999;
-  --dt-grey-20: #cccccc;
-  --dt-grey-10: #e5e5e5;
-  --dt-aurora: #890078;
+  --display: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  --voice: Georgia, "Times New Roman", serif;
+  --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --paper: #f2efe8; --paper-deep: #e7e3da; --rule: #d6d2c8;
+  --ink: #11110f; --ink-soft: #55524b; --ink-faint: #9c988e;
+  --clay: #ed6738; --clay-deep: #c8481c; --mint: #4f9c6b;
+  --ledger-bg: #14140f; --ledger-ink: #efece4; --ledger-dim: #85817a;
+  --ledger-rule: #2c2b25; --ledger-mint: #8fcfa6;
 }}
-body {{
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  color: var(--dt-grey-80);
-  background: #fafafa;
-  margin: 0;
-  padding: 0 0 48px 0;
-}}
-.dt-container {{ max-width: 880px; margin: 0 auto; padding: 0 24px; }}
-.dt-hero {{
-  background: linear-gradient(135deg, #FF5800 0%, #890078 100%);
-  color: #fff; padding: 48px 40px; position: relative; overflow: hidden;
-}}
-.dt-hero::after {{
-  content: ""; position: absolute; right: -120px; top: -120px;
-  width: 420px; height: 420px;
-  background: radial-gradient(circle, rgba(255,215,0,.45) 0%, rgba(255,215,0,0) 70%);
-}}
-.dt-hero .kicker {{ font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; opacity: .9; margin-bottom: 12px; }}
-.dt-hero h1 {{ font-weight: 300; font-size: 36px; margin: 0 0 8px 0; max-width: 22ch; }}
-.dt-hero h1 b {{ font-weight: 700; }}
-.dt-hero .lede {{ font-weight: 300; opacity: .95; max-width: 70ch; margin: 4px 0; }}
-
-.dt-arc {{
-  background: #fff; border-top: 4px solid var(--dt-orange);
-  box-shadow: 0 4px 12px rgba(0,0,0,0.10); display: flex; margin: -24px 24px 32px 24px;
-  position: relative; z-index: 2; border-radius: 4px;
-}}
-.dt-arc-cell {{ flex: 1; padding: 20px 16px; border-right: 1px solid var(--dt-grey-10); text-align: center; }}
-.dt-arc-cell:last-child {{ border-right: none; }}
-.dt-arc-big {{ font-weight: 700; font-size: 28px; color: var(--dt-dark-orange); }}
-.dt-arc-label {{ font-weight: 600; font-size: 12.5px; margin-top: 4px; }}
-
-.dt-section-bar {{
-  border-left: 4px solid var(--dt-orange); padding-left: 14px; margin: 36px 0 16px 0;
-  font-weight: 600; font-size: 21px;
-}}
-
-table {{ width: 100%; border-collapse: collapse; font-size: 14px; }}
-th, td {{ text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--dt-grey-10); }}
-th {{ color: var(--dt-grey-60); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .04em; }}
-
-.dt-pullquote {{
-  background: var(--dt-orange); color: #fff; font-weight: 400; font-size: 22px;
-  line-height: 1.4; padding: 28px 32px; border-radius: 4px; margin: 16px 0;
-}}
-
-.dt-roadmap-step {{
-  background: #fff; border: 1px solid var(--dt-grey-10); border-radius: 8px;
-  padding: 16px 18px; margin-bottom: 12px; display: flex; gap: 14px;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.06);
-}}
-.dt-roadmap-num {{
-  flex: 0 0 32px; height: 32px; border-radius: 50%;
-  background: linear-gradient(135deg, #FFD700 0%, #FF5800 100%);
-  color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 14px;
-}}
-.dt-roadmap-step p {{ margin: 0; font-size: 14.5px; }}
-
-.dt-turn {{ border-left: 3px solid var(--dt-grey-20); padding-left: 14px; margin-bottom: 16px; }}
-.dt-turn-name {{ font-weight: 600; font-size: 13px; color: var(--dt-dark-orange); text-transform: uppercase; letter-spacing: .02em; }}
-.dt-turn p {{ margin: 6px 0 0 0; font-size: 14.5px; line-height: 1.6; }}
-
-.dt-footer {{
-  background: var(--dt-grey-80); color: var(--dt-grey-40);
-  padding: 28px 40px; margin-top: 48px; font-size: 12px; line-height: 1.7;
-}}
-.dt-footer b {{ color: #fff; }}
-
 @media (prefers-color-scheme: dark) {{
   :root {{
-    --dt-grey-80: #e5e5e5;
-    --dt-grey-60: #b0b0b0;
-    --dt-grey-40: #808080;
-    --dt-grey-20: #4a4a4a;
-    --dt-grey-10: #2a2a2a;
-  }}
-  body {{
-    color: #e5e5e5;
-    background: #1a1a1a;
-  }}
-  .dt-arc {{
-    background: #2a2a2a;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.40);
-  }}
-  .dt-arc-big {{
-    color: #FFD700;
-  }}
-  .dt-roadmap-step {{
-    background: #2a2a2a;
-    border-color: #4a4a4a;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.40);
-  }}
-  table {{
-    color: #e5e5e5;
-  }}
-  th {{
-    color: #b0b0b0;
-  }}
-  .dt-turn {{
-    border-left-color: #4a4a4a;
-  }}
-  .dt-turn-name {{
-    color: #FFD700;
-  }}
-  .dt-turn p {{
-    color: #d0d0d0;
-  }}
-  .dt-footer {{
-    background: #0f0f0f;
-    color: #808080;
-  }}
-  .dt-footer b {{
-    color: #e5e5e5;
-  }}
-  ul, ol {{
-    color: #e5e5e5;
-  }}
-  ul li, ol li {{
-    color: #d0d0d0;
-  }}
-  p {{
-    color: #d0d0d0;
-  }}
-  .dt-section-bar {{
-    color: #e5e5e5;
+    --paper: #12120e; --paper-deep: #1b1b16; --rule: #2e2d27;
+    --ink: #f0ede5; --ink-soft: #a8a49b; --ink-faint: #6d6a63;
+    --clay: #f57d51; --clay-deep: #ff9a71; --mint: #7fc79a;
+    --ledger-bg: #0b0b08; --ledger-rule: #232219;
   }}
 }}
+* {{ box-sizing: border-box; }}
+html, body {{ background: var(--paper); color: var(--ink); font-family: var(--display); margin: 0; padding: 0; }}
+body {{ font-size: 15px; line-height: 1.5; }}
+.page {{ max-width: 880px; margin: 0 auto; padding: 56px 32px 80px; }}
+.eyebrow {{
+  display: flex; align-items: center; gap: 14px; font-family: var(--mono); font-size: 11px;
+  font-weight: 500; letter-spacing: .17em; text-transform: uppercase; color: var(--ink-faint); margin: 0 0 20px;
+}}
+.eyebrow::before {{ content: ""; width: 40px; height: 1px; background: var(--ink-faint); flex: none; }}
+.display {{ font-weight: 800; letter-spacing: -0.03em; line-height: 1.05; font-size: 40px; margin: 0 0 18px; }}
+.voice {{ font-family: var(--voice); font-weight: 400; font-style: italic; letter-spacing: -0.01em; }}
+.lede {{ font-size: 16px; line-height: 1.6; color: var(--ink-soft); max-width: 62ch; margin: 0 0 12px; }}
+.h3, .card p.h3 {{ font-size: 17px; font-weight: 800; letter-spacing: -0.02em; margin: 0 0 12px; }}
+.body-text {{ font-size: 14.5px; line-height: 1.65; color: var(--ink-soft); max-width: 68ch; }}
+.mono {{ font-family: var(--mono); }}
+.meta {{ font-size: 11px; color: var(--ink-faint); }}
+
+.ledger {{
+  background: var(--ledger-bg); color: var(--ledger-ink); padding: 26px 28px;
+  display: flex; flex-direction: column; gap: 20px; margin: 32px 0 40px;
+}}
+.ledger-head {{
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+  font-family: var(--mono); font-size: 11px; letter-spacing: .14em; text-transform: uppercase;
+}}
+.ledger-head .live {{ display: flex; align-items: center; gap: 9px; }}
+.ledger-head .live::before {{ content: ""; width: 6px; height: 6px; border-radius: 50%; background: var(--ledger-mint); }}
+.ledger-head .meta {{ color: var(--ledger-dim); }}
+.bar-row {{ display: flex; flex-direction: column; gap: 9px; padding-top: 18px; border-top: 1px solid var(--ledger-rule); }}
+.bar-label {{ display: flex; align-items: baseline; justify-content: space-between; gap: 16px; font-family: var(--mono); font-size: 12.5px; color: var(--ledger-dim); }}
+.bar-label b {{ font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; color: var(--ledger-ink); }}
+.bar-track {{ height: 5px; background: var(--ledger-rule); }}
+.bar-fill {{ height: 100%; }}
+.figs {{ display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 20px 24px; padding-top: 18px; border-top: 1px solid var(--ledger-rule); }}
+.fig {{ display: flex; align-items: baseline; gap: 9px; }}
+.fig b {{ font-family: var(--display); font-weight: 700; font-size: 24px; letter-spacing: -0.025em; font-variant-numeric: tabular-nums; color: var(--ledger-ink); }}
+.fig span {{ font-family: var(--mono); font-size: 11.5px; color: var(--ledger-dim); }}
+
+.measured {{ display: flex; gap: 14px; border: 1px solid var(--rule); padding: 15px 16px; margin: 0 0 20px; }}
+.measured .tick {{ flex: none; width: 26px; height: 26px; display: grid; place-items: center; background: var(--mint); color: #fff; font-size: 14px; font-weight: 700; }}
+.measured p {{ font-size: 13.5px; line-height: 1.55; color: var(--ink); margin: 0; }}
+.measured .k {{ font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--ink-faint); display: block; margin-bottom: 5px; }}
+
+.flag {{
+  border-left: 2px solid var(--clay); background: color-mix(in srgb, var(--clay) 9%, transparent);
+  padding: 15px 18px; display: flex; flex-direction: column; gap: 7px; margin: 0 0 20px;
+}}
+.flag-k {{ font-family: var(--mono); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--clay-deep); }}
+.flag p {{ font-size: 13.5px; color: var(--ink-soft); margin: 0; }}
+
+.pill {{
+  display: inline-flex; align-items: center; font-family: var(--mono); font-size: 10.5px;
+  letter-spacing: .1em; text-transform: uppercase; padding: 3px 9px; border: 1px solid var(--rule);
+}}
+.pill-mint {{ border-color: var(--mint); color: var(--mint); }}
+.pill-clay {{ border-color: var(--clay); color: var(--clay); }}
+
+.section {{ border-top: 1px solid var(--rule); padding: 40px 0; }}
+.section:first-of-type {{ padding-top: 0; border-top: none; }}
+.tbl-wrap {{ overflow-x: auto; }}
+table {{ width: 100%; border-collapse: collapse; font-size: 13.5px; }}
+th, td {{ text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--rule); }}
+th {{ font-family: var(--mono); font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-faint); font-weight: 500; }}
+td.num {{ text-align: right; font-variant-numeric: tabular-nums; font-family: var(--mono); font-size: 12.5px; }}
+.card {{ border: 1px solid var(--rule); padding: 18px 20px; margin-bottom: 14px; }}
+.row {{ display: flex; align-items: center; }}
+ul, ol {{ color: var(--ink-soft); }}
 </style>
 </head>
 <body>
-<div class="dt-hero">
-  <div class="dt-container">
-    <div class="kicker">Sales Digital Twins · Board Simulator</div>
-    <h1>Simulação de Comitê — <b>{e(account.account_name)}</b></h1>
-    <div class="lede">{e(account.pitch_summary)}</div>
-    <div class="lede"><strong>Estágio:</strong> {e(account.deal_stage)} &nbsp;·&nbsp; <strong>Valor:</strong> {value_line} &nbsp;·&nbsp; Gerado em {generated_at}</div>
-  </div>
-</div>
-
-<div class="dt-arc">
-  <div class="dt-arc-cell"><div class="dt-arc-big">{consensus_label}</div><div class="dt-arc-label">Consenso atingido</div></div>
-  <div class="dt-arc-cell"><div class="dt-arc-big">{e(sentiment_label)}</div><div class="dt-arc-label">Sentimento geral</div></div>
-  <div class="dt-arc-cell"><div class="dt-arc-big">{len(verdict.blocking_stakeholders)}</div><div class="dt-arc-label">Bloqueadores</div></div>
-  <div class="dt-arc-cell"><div class="dt-arc-big">{len(verdict.top_objections)}</div><div class="dt-arc-label">Objeções</div></div>
-</div>
-
-<div class="dt-container">
-  <div class="dt-section-bar">Proposta avaliada</div>
-  <p><strong>Solução proposta:</strong> {e(account.proposed_solution)}</p>
+<div class="page">
+  <p class="eyebrow">Sales Digital Twins — {e(account.account_name)}</p>
+  <h1 class="display">O comitê reagiu. <span class="voice">Agora a leitura é sua.</span></h1>
+  <p class="lede">{e(account.pitch_summary)}</p>
+  <p class="body-text" style="max-width:none">{e(account.proposed_solution)}</p>
   {seller_opening_html}
-  <div class="dt-section-bar">Comitê simulado</div>
-  <table>
-    <tr><th>Stakeholder</th><th>Papel</th><th>Base de dados</th><th>Peso de veto</th></tr>
-    {committee_rows}
-  </table>
 
-  <div class="dt-section-bar">Stakeholders bloqueadores</div>
-  <div class="dt-pullquote">{e(blockers)}</div>
+  <div class="ledger">
+    <div class="ledger-head">
+      <span class="live">Concluído</span>
+      <span class="meta">{e(account.deal_stage)} · gerado em {generated_at}{f" · {value_line}" if account.deal_value_usd else ""}</span>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label"><span>Comitê simulado</span><b>{len(committee)}</b></div>
+      <div class="bar-track"><div class="bar-fill" style="width:100%; background:var(--clay)"></div></div>
+      <div class="bar-label"><span>Grounded em dados reais</span><b>{len(real_personas)}</b></div>
+      <div class="bar-track"><div class="bar-fill" style="width:{real_pct:.0f}%; background:var(--ledger-mint)"></div></div>
+    </div>
+    <div class="figs">
+      <div class="fig"><b>{rounds}</b><span>rounds</span></div>
+      <div class="fig"><b>{len(transcript)}</b><span>falas no debate</span></div>
+      <div class="fig"><b>{len(verdict.blocking_stakeholders)}</b><span>bloqueadores</span></div>
+      <div class="fig"><b>{len(verdict.top_objections)}</b><span>objeções</span></div>
+    </div>
+  </div>
 
-  <div class="dt-section-bar">Principais objeções</div>
-  <ul>{objections_html}</ul>
+  {measured_html}
+  {flag_html}
 
-  <div class="dt-section-bar">Plano de ação recomendado</div>
-  {roadmap_html}
+  <div class="section">
+    <p class="eyebrow">Comitê</p>
+    <div class="tbl-wrap">
+      <table>
+        <tr><th>Papel</th><th>Nome</th><th>Fonte</th><th>Peso de decisão</th><th>Prioridades</th></tr>
+        {committee_rows}
+      </table>
+    </div>
+  </div>
 
-  <div class="dt-section-bar">Avaliação de risco</div>
-  <p>{e(verdict.risk_summary)}</p>
-  {meddpicc_html}
-  {coaching_html}
-  <div class="dt-section-bar">Transcrição completa do debate simulado</div>
-  {transcript_html}
-</div>
+  <div class="section">
+    <p class="eyebrow">Transcrição do debate</p>
+    {transcript_html}
+  </div>
 
-<div class="dt-footer">
-  <b>Relatório gerado automaticamente</b> por uma simulação de IA do comitê de compra.
-  Use como preparação tática, não como previsão garantida do comportamento real dos stakeholders.<br>
-  Visual: tokens de design proprietário v1.1.
+  <div class="section">
+    <p class="eyebrow">Veredito</p>
+    <p class="lede">{"O comitê chegou a um " + '<span class="voice">consenso.</span>' if verdict.consensus_reached else 'O comitê <span class="voice">não chegou a um consenso.</span>'}</p>
+    <p class="body-text" style="max-width:none; margin-bottom:20px">{e(verdict.risk_summary)}</p>
+    {blockers_html}
+    <p class="h3" style="margin-top:24px">Principais objeções</p>
+    <ul>{objections_html}</ul>
+    <p class="h3" style="margin-top:24px">Plano de ação recomendado</p>
+    <ol>{roadmap_html}</ol>
+    {meddpicc_html}
+    {coaching_html}
+  </div>
+
+  <p class="meta" style="margin-top:40px">
+    Relatório gerado automaticamente por uma simulação de IA do comitê de compra.
+    Use como preparação tática, não como previsão garantida do comportamento real dos stakeholders.
+  </p>
 </div>
 </body>
 </html>"""
