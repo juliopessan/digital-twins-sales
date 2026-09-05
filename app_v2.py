@@ -1,6 +1,6 @@
 """
 Digital Twins Sales Simulator — UI v2 with Navigation Bar.
-Applies Microsoft Streamlit App 2 pattern with Avanade theme.
+Applies Streamlit multipage-app pattern with a custom theme.
 Full functionality ported from streamlit_app.py — tabs replaced by st_navbar.
 """
 from __future__ import annotations
@@ -113,8 +113,8 @@ def _inject_light_theme() -> None:
         <style>
         [data-testid="stAppViewContainer"] { background-color: #ffffff !important; color: #1a1a1a !important; }
         [data-testid="stSidebar"] { background-color: #f5f5f5 !important; }
-        .ava-hero { background: linear-gradient(135deg, #FF5800 0%, #890078 100%) !important; }
-        .ava-arc { background: #ffffff !important; border-top: 4px solid #FF5800; }
+        .dt-hero { background: linear-gradient(135deg, #FF5800 0%, #890078 100%) !important; }
+        .dt-arc { background: #ffffff !important; border-top: 4px solid #FF5800; }
         [data-testid="stMarkdownContainer"], [data-testid="stText"] { color: #1a1a1a !important; }
         input, select, textarea { background-color: #ffffff !important; color: #1a1a1a !important; border: 1px solid #cccccc !important; }
         </style>
@@ -123,17 +123,17 @@ def _inject_light_theme() -> None:
     )
 
 
-def _inject_avanade_theme() -> None:
+def _inject_theme() -> None:
     st.markdown(
         """
         <style>
         :root {
-            --ava-orange: #FF5800; --ava-dark-orange: #DC4600;
-            --ava-grey-80: #333333; --ava-grey-60: #666666;
-            --ava-grey-40: #999999; --ava-grey-20: #cccccc;
-            --ava-grey-10: #e5e5e5; --ava-solar: #FFD700; --ava-aurora: #890078;
+            --dt-orange: #FF5800; --dt-dark-orange: #DC4600;
+            --dt-grey-80: #333333; --dt-grey-60: #666666;
+            --dt-grey-40: #999999; --dt-grey-20: #cccccc;
+            --dt-grey-10: #e5e5e5; --dt-solar: #FFD700; --dt-aurora: #890078;
         }
-        html, body, [class*="css"] { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: var(--ava-grey-80); }
+        html, body, [class*="css"] { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; color: var(--dt-grey-80); }
         /* Core scroll fix for Streamlit */
         html, body, [data-testid="stApp"], [data-testid="stAppViewContainer"],
         [data-testid="stMain"], [data-testid="stMainBlockContainer"], .main,
@@ -199,47 +199,47 @@ def _inject_avanade_theme() -> None:
         [data-testid="stSidebarCollapsedControl"] button {
             color: #FFFFFF !important;
         }
-        .ava-hero {
+        .dt-hero {
             background: linear-gradient(135deg, #FF5800 0%, #890078 100%);
             color: #fff; padding: 40px 36px; border-radius: 8px;
             position: relative; overflow: hidden; margin-bottom: 24px;
         }
-        .ava-hero::after {
+        .dt-hero::after {
             content: ""; position: absolute; right: -100px; top: -100px;
             width: 360px; height: 360px;
             background: radial-gradient(circle, rgba(255,215,0,.45) 0%, rgba(255,215,0,0) 70%);
         }
-        .ava-hero h1 { font-weight: 300; font-size: 34px; margin: 0 0 6px 0; }
-        .ava-hero h1 b { font-weight: 700; }
-        .ava-hero .kicker { font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; opacity: .9; margin-bottom: 10px; }
-        .ava-hero .lede { font-weight: 300; opacity: .95; max-width: 70ch; }
-        .ava-arc {
-            background: #fff; border-top: 4px solid var(--ava-orange);
+        .dt-hero h1 { font-weight: 300; font-size: 34px; margin: 0 0 6px 0; }
+        .dt-hero h1 b { font-weight: 700; }
+        .dt-hero .kicker { font-size: 12px; font-weight: 600; letter-spacing: .1em; text-transform: uppercase; opacity: .9; margin-bottom: 10px; }
+        .dt-hero .lede { font-weight: 300; opacity: .95; max-width: 70ch; }
+        .dt-arc {
+            background: #fff; border-top: 4px solid var(--dt-orange);
             box-shadow: 0 4px 12px rgba(0,0,0,0.10); border-radius: 4px;
             display: flex; margin-bottom: 24px;
         }
-        .ava-arc-cell { flex: 1; padding: 18px 16px; border-right: 1px solid var(--ava-grey-10); text-align: center; }
-        .ava-arc-cell:last-child { border-right: none; }
-        .ava-arc-big { font-weight: 700; font-size: 28px; color: var(--ava-dark-orange); }
-        .ava-arc-label { font-weight: 600; font-size: 12.5px; color: var(--ava-grey-80); margin-top: 4px; }
-        .ava-section-bar {
-            border-left: 4px solid var(--ava-orange);
+        .dt-arc-cell { flex: 1; padding: 18px 16px; border-right: 1px solid var(--dt-grey-10); text-align: center; }
+        .dt-arc-cell:last-child { border-right: none; }
+        .dt-arc-big { font-weight: 700; font-size: 28px; color: var(--dt-dark-orange); }
+        .dt-arc-label { font-weight: 600; font-size: 12.5px; color: var(--dt-grey-80); margin-top: 4px; }
+        .dt-section-bar {
+            border-left: 4px solid var(--dt-orange);
             padding-left: 12px; margin: 28px 0 12px 0;
-            font-weight: 600; font-size: 19px; color: var(--ava-grey-80);
+            font-weight: 600; font-size: 19px; color: var(--dt-grey-80);
         }
-        .ava-roadmap-step {
-            background: #fff; border: 1px solid var(--ava-grey-10); border-radius: 8px;
+        .dt-roadmap-step {
+            background: #fff; border: 1px solid var(--dt-grey-10); border-radius: 8px;
             padding: 14px 16px; margin-bottom: 10px; display: flex; gap: 12px;
             box-shadow: 0 4px 12px rgba(0,0,0,0.06);
         }
-        .ava-roadmap-num {
+        .dt-roadmap-num {
             flex: 0 0 30px; height: 30px; border-radius: 50%;
             background: linear-gradient(135deg, #FFD700 0%, #FF5800 100%);
             color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center;
             font-size: 13px;
         }
-        .ava-roadmap-step p { margin: 0; font-size: 14px; color: var(--ava-grey-80); }
-        .ava-footnote { font-size: 11.5px; color: var(--ava-grey-40); margin-top: 18px; }
+        .dt-roadmap-step p { margin: 0; font-size: 14px; color: var(--dt-grey-80); }
+        .dt-footnote { font-size: 11.5px; color: var(--dt-grey-40); margin-top: 18px; }
         .stButton > button {
             background: linear-gradient(135deg, #FF5800 0%, #DC4600 100%) !important;
             color: white !important; border: none !important; font-weight: 600 !important;
@@ -272,7 +272,7 @@ def render_hero(account: AccountContext) -> None:
     value = f"US$ {account.deal_value_usd:,.0f}" if account.deal_value_usd else "—"
     st.markdown(
         f"""
-        <div class="ava-hero">
+        <div class="dt-hero">
             <div class="kicker">Sales Digital Twins · Board Simulator</div>
             <h1>Simulação de comitê — <b>{html_module.escape(account.account_name)}</b></h1>
             <div class="lede">{html_module.escape(account.pitch_summary)}</div>
@@ -291,11 +291,11 @@ def render_arc(verdict) -> None:
     blockers = len(verdict.blocking_stakeholders)
     st.markdown(
         f"""
-        <div class="ava-arc">
-            <div class="ava-arc-cell"><div class="ava-arc-big">{consensus}</div><div class="ava-arc-label">Consenso atingido</div></div>
-            <div class="ava-arc-cell"><div class="ava-arc-big">{sentiment}</div><div class="ava-arc-label">Sentimento geral</div></div>
-            <div class="ava-arc-cell"><div class="ava-arc-big">{blockers}</div><div class="ava-arc-label">Stakeholders bloqueadores</div></div>
-            <div class="ava-arc-cell"><div class="ava-arc-big">{len(verdict.top_objections)}</div><div class="ava-arc-label">Objeções levantadas</div></div>
+        <div class="dt-arc">
+            <div class="dt-arc-cell"><div class="dt-arc-big">{consensus}</div><div class="dt-arc-label">Consenso atingido</div></div>
+            <div class="dt-arc-cell"><div class="dt-arc-big">{sentiment}</div><div class="dt-arc-label">Sentimento geral</div></div>
+            <div class="dt-arc-cell"><div class="dt-arc-big">{blockers}</div><div class="dt-arc-label">Stakeholders bloqueadores</div></div>
+            <div class="dt-arc-cell"><div class="dt-arc-big">{len(verdict.top_objections)}</div><div class="dt-arc-label">Objeções levantadas</div></div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -306,8 +306,8 @@ def render_roadmap(items: list[str]) -> None:
     for i, item in enumerate(items, start=1):
         st.markdown(
             f"""
-            <div class="ava-roadmap-step">
-                <div class="ava-roadmap-num">{i}</div>
+            <div class="dt-roadmap-step">
+                <div class="dt-roadmap-num">{i}</div>
                 <p>{html_module.escape(item)}</p>
             </div>
             """,
@@ -467,7 +467,7 @@ def _render_objections_with_feedback(verdict, account_slug: str) -> None:
 
 
 def _render_memory_dashboard(account_slug: str) -> None:
-    st.markdown('<div class="ava-section-bar">Feedback Loop — Sistema Imune</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dt-section-bar">Feedback Loop — Sistema Imune</div>', unsafe_allow_html=True)
     st.markdown(
         "Inspirado no princípio: *\"Agents are 30% of the work. The other 70% is the immune system.\"*  \n"
         "Aprovações e rejeições condicionam simulações futuras via injeção direta no prompt de sistema."
@@ -512,7 +512,7 @@ def _page_simulacao(result: dict) -> None:
     personas = result["personas"]
     verdict = result["verdict"]
     render_arc(verdict)
-    st.markdown('<div class="ava-section-bar">Comitê simulado</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dt-section-bar">Comitê simulado</div>', unsafe_allow_html=True)
     cols = st.columns(len(personas))
     for col, p in zip(cols, personas):
         with col:
@@ -523,7 +523,7 @@ def _page_simulacao(result: dict) -> None:
                 f"{role_label} · {source_label}  \nVeto: {p.decision_power:.2f}"
             )
     if account.seller_opening:
-        st.markdown('<div class="ava-section-bar">Sua fala de abertura</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dt-section-bar">Sua fala de abertura</div>', unsafe_allow_html=True)
         st.info(account.seller_opening)
 
 
@@ -531,9 +531,9 @@ def _page_office(result: dict) -> None:
     personas = result["personas"]
     transcript = result["transcript"]
     office_log = result.get("office_log", [])
-    st.markdown('<div class="ava-section-bar">Sala de reunião</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dt-section-bar">Sala de reunião</div>', unsafe_allow_html=True)
     render_office(personas, office_log)
-    st.markdown('<div class="ava-section-bar">Transcrição do debate</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dt-section-bar">Transcrição do debate</div>', unsafe_allow_html=True)
     render_pixel_office(transcript)
 
 
@@ -542,11 +542,11 @@ def _page_veredito(result: dict) -> None:
     verdict = result["verdict"]
     account_slug = account.account_name.lower().replace(" ", "-")
 
-    st.markdown('<div class="ava-section-bar">Principais objeções</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dt-section-bar">Principais objeções</div>', unsafe_allow_html=True)
     _render_objections_with_feedback(verdict, account_slug)
 
     if verdict.blocking_stakeholders:
-        st.markdown('<div class="ava-section-bar">Bloqueadores & Contorno</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dt-section-bar">Bloqueadores & Contorno</div>', unsafe_allow_html=True)
         st.warning(
             f"**{len(verdict.blocking_stakeholders)} bloqueador(es) identificado(s):**  "
             f"{', '.join(ROLE_ICON.get(s, '🧑') for s in verdict.blocking_stakeholders)}"
@@ -560,7 +560,7 @@ def _page_veredito(result: dict) -> None:
         """)
 
     if not verdict.consensus_reached:
-        st.markdown('<div class="ava-section-bar">Busca de consenso</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dt-section-bar">Busca de consenso</div>', unsafe_allow_html=True)
         st.metric("Consenso", "0%")
         st.markdown("""
         **Diagnóstico:** Sem consensus total.
@@ -572,7 +572,7 @@ def _page_veredito(result: dict) -> None:
         """)
 
     if verdict.meddpicc_scorecard:
-        st.markdown('<div class="ava-section-bar">Scorecard MEDDPICC ✱</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dt-section-bar">Scorecard MEDDPICC ✱</div>', unsafe_allow_html=True)
         with st.expander("O que é MEDDPICC?"):
             st.markdown("""
 **MEDDPICC** é o framework de qualificação de oportunidade mais rigoroso do mercado Enterprise:
@@ -589,9 +589,9 @@ Score ruim em qualquer dimensão = bloqueador crítico.
         for dimension, assessment in verdict.meddpicc_scorecard.items():
             st.markdown(f"**{dimension}:**  \n{assessment}\n")
 
-    st.markdown('<div class="ava-section-bar">Plano de ação recomendado</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dt-section-bar">Plano de ação recomendado</div>', unsafe_allow_html=True)
     render_roadmap(verdict.recommended_talk_track)
-    st.markdown('<div class="ava-section-bar">Avaliação de risco</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dt-section-bar">Avaliação de risco</div>', unsafe_allow_html=True)
     st.write(verdict.risk_summary)
 
 
@@ -599,7 +599,7 @@ def _page_coach(result: dict) -> None:
     verdict = result["verdict"]
     if verdict.seller_coaching:
         sc = verdict.seller_coaching
-        st.markdown('<div class="ava-section-bar">Coach — avaliação do seu pitch</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dt-section-bar">Coach — avaliação do seu pitch</div>', unsafe_allow_html=True)
         st.markdown(f"**Nota:** {sc.pitch_grade}")
         if sc.what_landed:
             st.markdown("**O que funcionou:**")
@@ -622,7 +622,7 @@ def _page_export(result: dict) -> None:
     transcript = result["transcript"]
     verdict = result["verdict"]
     account_slug = account.account_name.lower().replace(" ", "-")
-    st.markdown('<div class="ava-section-bar">Exportar relatório</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dt-section-bar">Exportar relatório</div>', unsafe_allow_html=True)
     report_md = build_markdown_report(account, personas, transcript, verdict)
     report_html = build_html_report(account, personas, transcript, verdict)
     dl_col1, dl_col2 = st.columns(2)
@@ -746,7 +746,7 @@ def _render_sidebar() -> tuple:
 
 
 def main() -> None:
-    _inject_avanade_theme()
+    _inject_theme()
     
     # Initialize session state for page tracking
     if "selected_page" not in st.session_state:
@@ -787,7 +787,7 @@ def main() -> None:
             "facilitator_decision": "continue",
         }
 
-        st.markdown('<div class="ava-section-bar">Sala de reunião — ao vivo</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dt-section-bar">Sala de reunião — ao vivo</div>', unsafe_allow_html=True)
         office_container = st.empty()
         agent_defs = build_agent_defs(personas)
         layout, ncols, nrows = build_layout(len(personas))
@@ -847,7 +847,7 @@ def main() -> None:
     if not result:
         st.markdown(
             """
-            <div class="ava-hero">
+            <div class="dt-hero">
                 <div class="kicker">Sales Digital Twins · Board Simulator</div>
                 <h1><b>Simule seu comitê de compras</b></h1>
                 <div class="lede">Selecione uma conta na barra lateral e clique em <b>▶️ Rodar simulação</b> para começar.</div>
@@ -874,7 +874,7 @@ def main() -> None:
     else:
         _page_simulacao(result)
 
-    st.markdown('<div class="ava-footnote">Visual: tokens de design Avanade · Squad-pod pixel engine · LangGraph multi-agent debate</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dt-footnote">Visual: tokens de design proprietário · Squad-pod pixel engine · LangGraph multi-agent debate</div>', unsafe_allow_html=True)
 
 
 if __name__ == "__main__":

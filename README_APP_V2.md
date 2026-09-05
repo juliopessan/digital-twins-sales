@@ -5,7 +5,7 @@
 Refatoração completa da UI/UX seguindo o padrão **Microsoft Streamlit_UI_Template App 2** com:
 - ✅ **Barra de navegação customizada** (`streamlit-navigation-bar`)
 - ✅ **Estrutura modular** (pages/ directory)
-- ✅ **Design System Avanade** (#FF5800, #890078, Segoe UI)
+- ✅ **Paleta de design proprietária** (#FF5800, #890078, Segoe UI)
 - ✅ **Tema dark/light** mantido
 - ✅ **Canvas 2D em tempo real** funcionando
 
@@ -44,7 +44,7 @@ Acesse: **http://localhost:8501**
 
 ## 🎨 Design System
 
-### Paleta Avanade
+### Paleta de cores
 - **Primário:** #FF5800 (Orange)
 - **Secundário:** #890078 (Aurora)
 - **Accent:** #FFD700 (Solar)
@@ -161,7 +161,7 @@ def simulacao_page():
 ```
 refactor: apply Microsoft App 2 UI pattern with modular pages
 - Created pages/ directory structure
-- Implemented st_navbar() with Avanade colors (#FF5800, #890078)
+- Implemented st_navbar() with the custom brand colors (#FF5800, #890078)
 - Created placeholder pages: setup, simulacao, veredito, coach, export
 - Added custom CSS with theme variables and navigation styling
 - Installed streamlit-navigation-bar dependency

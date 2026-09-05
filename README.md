@@ -7,6 +7,44 @@ que simula debates entre personas de um comitê de compra (CFO, CTO,
 Procurement, Champion, etc.) para apoiar o time de vendas a testar pitch,
 antecipar objeções e calibrar talk track antes de uma reunião real.
 
+## 🎬 "A Sala"
+
+Todo vendedor B2B conhece aquela sala. É onde o maior negócio do trimestre
+vai ser decidido, com o CFO, o CTO e Compras do outro lado da mesa — e uma
+única chance de convencê-los. O problema é que esse comitê existe para
+despedaçar propostas: cada número é questionado, cada promessa é testada, e
+o vendedor quase sempre descobre onde seu pitch tinha furos tarde demais,
+quando o "não" já foi dado. O ensaio real acontece na hora errada, na frente
+das pessoas erradas.
+
+O Digital Twins Sales nasce de uma pergunta simples: e se você pudesse
+entrar nessa sala antes da sala? Em vez de descobrir as objeções na reunião,
+o vendedor as enfrenta antes — contra um comitê de compra sintético que se
+comporta como o real. Cada stakeholder é um gêmeo digital: quando há dados
+reais da conta (de LinkedIn, CRM ou de uma pesquisa automática via EXA), a
+persona é embasada nesses fatos; quando não há, ela cai para um arquétipo
+curado do papel. Não são estereótipos genéricos, e sim personas ancoradas no
+contexto real de mercado.
+
+E elas não pegam leve. O vendedor cola o próprio pitch de abertura e o
+comitê reage às palavras exatas dele — o CFO cobra os números por trás de um
+"payback em 3 meses", o CTO ataca a integração, Compras exige benchmark.
+Tudo orquestrado por um Facilitador que decide quem fala, quando escalar uma
+objeção bloqueadora e quando o debate chegou ao fim — uma dinâmica de sala de
+reunião de verdade, não respostas isoladas.
+
+No fim, o produto entrega o que importa: um veredito acionável. Um scorecard
+MEDDPICC mostra onde o deal está de pé e onde está em risco; e, quando o
+vendedor testou o próprio pitch, um coach avalia o desempenho dele — o que
+ressoou, o que saiu pela culatra e exatamente o que dizer da próxima vez,
+com reescritas linha a linha. O vendedor volta para a sala real com a
+postura de quem já esteve lá.
+
+É essa a promessa que o produto entrega: **ensaie o pior comitê da sua vida,
+antes que ele seja real.**
+
+---
+
 Roda em **dois modos**, com o mesmo pipeline:
 
 - **War-gaming de deal** (autônomo): o comitê debate sozinho a sua proposta
@@ -71,13 +109,44 @@ Em ambos os modos, o veredito também traz um **scorecard MEDDPICC**
 
 ## Status
 
-✅ **Streamlit app running** — Interface fully functional at http://localhost:8501.  
-- Fixed Streamlit 1.40.0 compatibility: `st.iframe()` → `st.html()` (committee view + debate transcript).
-- All personas render correctly with veto scores and stakeholder information.
-- **Office canvas upgraded** to squad-pod Canvas 2D engine: pixel-art sprites (16×24), BFS pathfinding, Z-sorted render loop, speech bubbles with alpha fade.
-- Ready for testing: select account, configure committee, run simulation.
+✅ **Web UI (Next.js + FastAPI)** — frontend principal, em `web/` + `api/`,
+com um design system próprio ("Ledger") aplicado ao relatório: o par
+clay/mint distingue visualmente o que foi **medido**
+(contagem do comitê, personas grounded, duração, nº de chamadas LLM) do que
+foi **gerado pelo LLM** (objeções, veredito, scorecard MEDDPICC).
+- Backend (`api/main.py`) é uma camada HTTP fina sobre o mesmo motor
+  `digital_twins/` — nenhuma lógica de debate foi duplicada.
+- Frontend (`web/`) consome a API e roda o fluxo completo: Setup → Run →
+  Resultado (ledger, callout de grounding, flag de arquétipo, transcrição,
+  veredito, export).
+- **Streamlit** (`streamlit_app.py`, `app_v2.py`) continua funcional e é
+  mantido como UI legada — inclui o Office Canvas em pixel-art que ainda
+  não foi portado para o Next.js.
 
-## Setup local (terminal)
+## Setup local — Web UI (Next.js + FastAPI)
+
+```bash
+# 1. Backend: crie o virtualenv e instale as dependências
+python3 -m venv .venv
+source .venv/bin/activate        # Windows: .venv\Scripts\activate
+pip install -r requirements.txt
+
+# 2. Configure a chave da Anthropic (ela é passada por request, nunca fica salva)
+cp .env.example .env
+# edite o .env e preencha ANTHROPIC_API_KEY=sk-ant-...
+
+# 3. Suba a API
+uvicorn api.main:app --reload --port 8000
+
+# 4. Em outro terminal, suba o frontend
+cd web
+npm install
+npm run dev
+# abre em http://localhost:3000 — a API key também pode ser digitada
+# direto no formulário (fica só em memória durante a run)
+```
+
+## Setup local — Streamlit (legado)
 
 ```bash
 # 1. Dentro da pasta do projeto, crie e ative um virtualenv
@@ -147,7 +216,7 @@ streamlit run streamlit_app.py
 Abre automaticamente em **http://localhost:8501**. Pra parar o servidor,
 `Ctrl+C` no terminal.
 
-UI com tokens de design Avanade Style Guide (paleta, tipografia, componentes
+UI com tokens de design proprietários (paleta, tipografia, componentes
 hero/arc/roadmap).
 
 ### Sala de reunião (Office canvas — squad-pod Canvas 2D engine)
@@ -183,7 +252,7 @@ abertura** (ativa o modo treino + Coach), informar a chave Anthropic
 máximo de rounds. Ao final, o resultado mostra o comitê, a sala de reunião
 animada, objeções, plano de ação, avaliação de risco, o scorecard MEDDPICC
 e — se você colou seu pitch — a avaliação do Coach; mais dois botões de
-download: relatório `.md` simples e relatório `.html` estilizado (Avanade),
+download: relatório `.md` simples e relatório `.html` estilizado,
 prontos pra enviar pro time de vendas.
 
 ### Pesquisa automática de stakeholder (EXA)
@@ -268,45 +337,6 @@ Outros itens de backlog:
    geradas batem com objeções reais coletadas pós-call (precision/recall
    de objeção).
 
-## 🎬 "A Sala" · Digital Twins Sales
-
-Todo vendedor B2B conhece aquela sala. É onde o maior negócio do trimestre
-vai ser decidido, com o CFO, o CTO e Compras do outro lado da mesa — e uma
-única chance de convencê-los. O problema é que esse comitê existe para
-despedaçar propostas: cada número é questionado, cada promessa é testada, e
-o vendedor quase sempre descobre onde seu pitch tinha furos tarde demais,
-quando o "não" já foi dado. O ensaio real acontece na hora errada, na frente
-das pessoas erradas.
-
-O Digital Twins Sales nasce de uma pergunta simples: e se você pudesse
-entrar nessa sala antes da sala? Em vez de descobrir as objeções na reunião,
-o vendedor as enfrenta antes — contra um comitê de compra sintético que se
-comporta como o real. Cada stakeholder é um gêmeo digital: quando há dados
-reais da conta (de LinkedIn, CRM ou de uma pesquisa automática via EXA), a
-persona é embasada nesses fatos; quando não há, ela cai para um arquétipo
-curado do papel. Não são estereótipos genéricos, e sim personas ancoradas no
-contexto real de mercado.
-
-E elas não pegam leve. O vendedor cola o próprio pitch de abertura e o
-comitê reage às palavras exatas dele — o CFO cobra os números por trás de um
-"payback em 3 meses", o CTO ataca a integração, Compras exige benchmark.
-Tudo orquestrado por um Facilitador que decide quem fala, quando escalar uma
-objeção bloqueadora e quando o debate chegou ao fim — uma dinâmica de sala de
-reunião de verdade, não respostas isoladas. E o vendedor acompanha isso numa
-sala de reunião animada, vendo o debate ganhar forma em tempo real.
-
-No fim, o produto entrega o que importa: um veredito acionável. Um scorecard
-MEDDPICC mostra onde o deal está de pé e onde está em risco; e, quando o
-vendedor testou o próprio pitch, um coach avalia o desempenho dele — o que
-ressoou, o que saiu pela culatra e exatamente o que dizer da próxima vez,
-com reescritas linha a linha. O vendedor volta para a sala real com a
-postura de quem já esteve lá.
-
-É essa a promessa que o produto entrega: **ensaie o pior comitê da sua vida,
-antes que ele seja real.** Digital Twins Sales — *Do what matters.*
-
----
-
 ## 🎨 Web UI — Tabs & Office Canvas
 
 ```bash
@@ -322,7 +352,7 @@ streamlit run streamlit_app.py
 | 🎭 **Office Canvas** | Sala de reunião animada pixel-art — cada persona em uma mesa, Facilitador caminhando entre mesas | Veja em tempo real o estado de cada stakeholder (idle, working, done) |
 | 📊 **Veredito** | Scorecard MEDDPICC, resumo de convergência/divergência, lista de objeções por persona | Entenda onde o deal está de pé e onde falha |
 | 🏆 **Coach** *(se pitch inserido)* | Avaliação de desempenho do seu pitch, reescritas linha a linha, áreas para melhoria | Calibre talk track antes da call real |
-| 📥 **Exportar** | Download `.md` (relatório simples) ou `.html` (estilizado Avanade, pronto pra e-mail) | Compartilhe resultados com o time de vendas |
+| 📥 **Exportar** | Download `.md` (relatório simples) ou `.html` (estilizado, pronto pra e-mail) | Compartilhe resultados com o time de vendas |
 
 ### 🎮 Office Canvas — Sala de Reunião em Tempo Real
 
@@ -464,17 +494,25 @@ Aba "🧠 Memory" (a implementar) mostrará:
 
 ---
 
-## 📦 Integração com Avanade Design Tokens
+## 📦 Design tokens (UI legada Streamlit)
 
-Todos os reports (`.md` e `.html`) e o canvas usam a paleta Avanade:
+Os reports (`.md` e `.html`) gerados pelo `streamlit_app.py`/`app_v2.py` e o
+canvas usam uma paleta de design proprietária, definida como custom
+properties CSS (`--dt-orange`, `--dt-aurora`, etc.) em
+`digital_twins/reporting.py`:
 
 | Elemento | Token | Cor |
 |----------|-------|-----|
-| Primário | `--ava-orange` | `#FF5800` |
-| Secundário | `--ava-aurora` | `#890078` |
-| Success | `--ava-success` | `#107C10` |
-| Warning | `--ava-warning` | `#FFB900` |
-| Error | `--ava-error` | `#E81123` |
+| Primário | `--dt-orange` | `#FF5800` |
+| Secundário | `--dt-aurora` | `#890078` |
+| Success | `--dt-success` | `#107C10` |
+| Warning | `--dt-warning` | `#FFB900` |
+| Error | `--dt-error` | `#E81123` |
 | Dark mode | `@media (prefers-color-scheme: dark)` | Gold + escala cinza |
+
+A **Web UI (Next.js)**, em contraste, usa o design system Ledger — papel
+quente, tinta quase preta, e o par clay/mint reservado exclusivamente para
+sinalizar dado medido vs. gerado (ver seção "Status" acima e
+`web/app/globals.css`).
 
 Relatórios adaptam-se automaticamente ao tema do navegador (light/dark).
