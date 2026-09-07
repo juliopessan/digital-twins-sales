@@ -7,10 +7,13 @@ later swap in per-node models (already wired via config.settings).
 """
 from __future__ import annotations
 
+import logging
 import re
 from abc import ABC, abstractmethod
 
 from digital_twins.config import settings
+
+logger = logging.getLogger(__name__)
 
 _JSON_FENCE_RE = re.compile(r"^```(?:json)?\s*\n?(.*?)\n?```\s*$", re.DOTALL)
 
@@ -90,6 +93,17 @@ class DeepSeekLLMClient(LLMClient):
             raise RuntimeError("DEEPSEEK_API_KEY is not configured. Export the variable or pass api_key explicitly.")
         self._api_key = resolved_key
 
+    # deepseek-v4-pro is a reasoning model: `reasoning_content` shares the
+    # same max_tokens budget as the visible `content`, and how much
+    # reasoning a given prompt triggers isn't predictable ahead of time. A
+    # request that hits the cap mid-thought comes back with finish_reason
+    # "length" and either an empty or truncated answer — silently passing
+    # that through breaks the caller's SENTIMENT-tag parsing (persona
+    # turns) or produces invalid JSON (facilitator/synthesizer). Retry once
+    # with a much larger budget, sized off how many tokens reasoning
+    # actually consumed on the first attempt, rather than guessing.
+    _MAX_RETRY_TOKENS = 16_000
+
     def complete(
         self,
         *,
@@ -99,6 +113,27 @@ class DeepSeekLLMClient(LLMClient):
         max_tokens: int,
         json_mode: bool = False,
     ) -> str:
+        text, finish_reason, reasoning_tokens = self._call(
+            system=system, user=user, model=model, max_tokens=max_tokens, json_mode=json_mode
+        )
+        if finish_reason == "length" and max_tokens < self._MAX_RETRY_TOKENS:
+            retry_budget = min(
+                max(max_tokens * 2, max_tokens + reasoning_tokens + 512),
+                self._MAX_RETRY_TOKENS,
+            )
+            logger.warning(
+                "DeepSeek response truncated (finish_reason=length, reasoning_tokens=%s) "
+                "at max_tokens=%s; retrying once with max_tokens=%s.",
+                reasoning_tokens, max_tokens, retry_budget,
+            )
+            text, _, _ = self._call(
+                system=system, user=user, model=model, max_tokens=retry_budget, json_mode=json_mode
+            )
+        return _strip_json_fence(text) if json_mode else text
+
+    def _call(
+        self, *, system: str, user: str, model: str, max_tokens: int, json_mode: bool
+    ) -> tuple[str, str | None, int]:
         import requests
 
         sys_prompt = system
@@ -131,8 +166,13 @@ class DeepSeekLLMClient(LLMClient):
         )
         response.raise_for_status()
         data = response.json()
-        text = data["choices"][0]["message"]["content"]
-        return _strip_json_fence(text) if json_mode else text
+        choice = data["choices"][0]
+        text = choice["message"]["content"] or ""
+        finish_reason = choice.get("finish_reason")
+        reasoning_tokens = (
+            data.get("usage", {}).get("completion_tokens_details", {}).get("reasoning_tokens", 0)
+        )
+        return text, finish_reason, reasoning_tokens
 
 
 def build_default_client(api_key: str | None = None, provider: str = "anthropic") -> LLMClient:

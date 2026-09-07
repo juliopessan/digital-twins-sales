@@ -243,6 +243,26 @@ Configurable via env (`digital_twins/config.py`) — everything uses
   and final synthesis. Default: `claude-haiku-4-5-20251001` (swap to
   `claude-sonnet-5` if you want higher quality on these two nodes).
 
+### Token-economy gate (Tollgate)
+
+Every LLM call — persona, facilitator, synthesizer — is routed through a
+`GovernedLLMClient` (`digital_twins/llm/governance.py`) backed by
+[Tollgate](https://github.com/juliopessanuk/toolgate): a deterministic
+pre-call admission gate plus an auditable "waste ledger" (SQLite, default
+`~/.digital-twins/tollgate.db`) recording what was admitted, rejected, and
+why, per debate session. Each role gets its own tier (`daylight` for
+persona turns, `horizon` for the facilitator, `starlight` for the wider
+synthesis pass) sized off this project's own `max_tokens_*` budgets rather
+than a bespoke complexity scorer, since these prompts are short,
+structured debate turns, not the file/repo context Tollgate's context
+layer is built for.
+
+It fails open by design: if Tollgate isn't installed or any call into it
+raises, the LLM call still goes through ungated and a warning is logged —
+a token-economy layer must never be the reason a rehearsal fails. No
+configuration is required; override the ledger path with `TOLLGATE_DB` if
+you want it somewhere other than the default.
+
 ## Language
 
 The entire pipeline — UI, CLI, reports, and the prompts that generate the
