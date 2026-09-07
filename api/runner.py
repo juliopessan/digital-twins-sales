@@ -1,8 +1,12 @@
 """
-Runs a debate in a background thread, pushing start/done events into a
-RunState so the API can be polled for progress — same event shape as the
-archived legacy/streamlit_app.py's _run_debate_with_events, decoupled from
-any UI framework.
+Runs a debate in a background thread, pushing rich progress events into a
+RunState so the API can be polled and the frontend can narrate the debate
+turn by turn instead of showing a bare, repeating list of agent names.
+
+Each event carries enough state to render a story on its own — phase,
+round number, a statement preview, sentiment, the facilitator's own
+reasoning, and a server-computed progress fraction — so the frontend never
+has to reverse-engineer round/phase from a flat start/done agent log.
 """
 from __future__ import annotations
 
@@ -27,13 +31,37 @@ def slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
+def _preview(text: str, limit: int = 140) -> str:
+    text = " ".join(text.split())
+    return text if len(text) <= limit else text[: limit - 1].rstrip() + "…"
+
+
 def start_run(account: AccountContext, api_key: str, max_rounds: int, provider: str = "anthropic") -> str:
-    run = runs.create()
+    run = runs.create(max_rounds=max_rounds)
     thread = threading.Thread(
         target=_execute, args=(run, account, api_key, max_rounds, provider), daemon=True
     )
     thread.start()
     return run.run_id
+
+
+class _Progress:
+    """Server-computed progress fraction, so the frontend never has to guess.
+
+    Budgeted in "units": each round costs (ordering + one per speaker +
+    evaluating); synthesis costs 2 more at the very end. If the facilitator
+    concludes before max_rounds, the bar simply jumps ahead on synthesis
+    rather than crawling — treated as a feature, not a bug: it's honest
+    about not knowing the round count in advance.
+    """
+
+    def __init__(self, max_rounds: int, committee_size: int) -> None:
+        self.total = max(max_rounds * (committee_size + 2) + 2, 1)
+        self.done = 0
+
+    def step(self) -> float:
+        self.done += 1
+        return min(self.done / self.total, 0.98)
 
 
 def _execute(
@@ -54,6 +82,19 @@ def _execute(
         personas: list[StakeholderProfile] = PersonaFactory.build_committee(account)
         llm = build_default_client(api_key=api_key, provider=provider)
         app = build_board_graph(llm)
+        progress = _Progress(max_rounds, len(personas))
+
+        def emit(event: str, agent: str, phase: str, round_number: int, **extra) -> None:
+            run.append_event(
+                {
+                    "event": event,
+                    "agent": agent,
+                    "phase": phase,
+                    "round": round_number,
+                    "progress": progress.step() if event == "done" else min(progress.done / progress.total, 0.98),
+                    **extra,
+                }
+            )
 
         initial_state = {
             "account": account,
@@ -73,38 +114,56 @@ def _execute(
         verdict: DebateVerdict | None = None
         speaking_order: list[str] = []
         next_idx = 0
+        round_number = 0
 
-        run.append_event({"event": "start", "agent": FACILITATOR_KEY})
+        emit("start", FACILITATOR_KEY, "ordering", round_number + 1)
         for step in app.stream(initial_state, stream_mode="updates"):
             for node_name, update in step.items():
                 if node_name == "start_round":
                     llm_calls += 0  # heuristic, deterministic reorder — no LLM call
-                    run.append_event({"event": "done", "agent": FACILITATOR_KEY})
+                    round_number = update.get("round_number", round_number + 1)
+                    emit("done", FACILITATOR_KEY, "ordering", round_number)
                     speaking_order = update.get("speaking_order", [])
                     next_idx = 0
                     if speaking_order:
-                        run.append_event({"event": "start", "agent": speaking_order[0]})
+                        emit("start", speaking_order[0], "speaking", round_number)
                 elif node_name == "persona_turn":
                     llm_calls += 1
                     turn = update["transcript"][0]
                     transcript.append(turn)
-                    run.append_event({"event": "done", "agent": turn.role.value})
+                    emit(
+                        "done",
+                        turn.role.value,
+                        "speaking",
+                        round_number,
+                        sentiment=turn.sentiment.value,
+                        preview=_preview(turn.statement),
+                        objections=len(turn.objections_raised),
+                    )
                     next_idx += 1
                     if next_idx < len(speaking_order):
-                        run.append_event({"event": "start", "agent": speaking_order[next_idx]})
+                        emit("start", speaking_order[next_idx], "speaking", round_number)
                     else:
-                        run.append_event({"event": "start", "agent": FACILITATOR_KEY})
+                        emit("start", FACILITATOR_KEY, "evaluating", round_number)
                 elif node_name == "evaluate_round":
                     llm_calls += 1
-                    run.append_event({"event": "done", "agent": FACILITATOR_KEY})
-                    if update.get("facilitator_decision") == "conclude":
-                        run.append_event({"event": "start", "agent": SYNTHESIZER_KEY})
+                    decision = update.get("facilitator_decision", "continue")
+                    emit(
+                        "done",
+                        FACILITATOR_KEY,
+                        "evaluating",
+                        round_number,
+                        decision=decision,
+                        reasoning=_preview(update.get("facilitator_reasoning", ""), 120),
+                    )
+                    if decision == "conclude":
+                        emit("start", SYNTHESIZER_KEY, "synthesizing", round_number)
                     else:
-                        run.append_event({"event": "start", "agent": FACILITATOR_KEY})
+                        emit("start", FACILITATOR_KEY, "ordering", round_number + 1)
                 elif node_name == "synthesize":
                     llm_calls += 1
                     verdict = update["verdict"]
-                    run.append_event({"event": "done", "agent": SYNTHESIZER_KEY})
+                    emit("done", SYNTHESIZER_KEY, "synthesizing", round_number)
 
         duration_seconds = round(time.monotonic() - t0, 1)
         with run.lock:

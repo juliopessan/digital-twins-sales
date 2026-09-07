@@ -247,7 +247,7 @@ Configurable via env (`digital_twins/config.py`) — everything uses
 
 Every LLM call — persona, facilitator, synthesizer — is routed through a
 `GovernedLLMClient` (`digital_twins/llm/governance.py`) backed by
-[Tollgate](https://github.com/juliopessanuk/toolgate): a deterministic
+[Tollgate](https://github.com/juliopessan/toolgate): a deterministic
 pre-call admission gate plus an auditable "waste ledger" (SQLite, default
 `~/.digital-twins/tollgate.db`) recording what was admitted, rejected, and
 why, per debate session. Each role gets its own tier (`daylight` for

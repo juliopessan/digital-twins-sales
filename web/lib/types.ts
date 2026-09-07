@@ -103,13 +103,26 @@ export interface RunResult {
 
 export type RunStatus = "running" | "done" | "error";
 
+export type RunPhase = "ordering" | "speaking" | "evaluating" | "synthesizing";
+
 export interface RunEvent {
   event: "start" | "done";
   agent: string;
+  phase: RunPhase;
+  round: number;
+  progress: number;
+  // Only set on "done" events for a persona's speaking turn.
+  sentiment?: Sentiment;
+  preview?: string;
+  objections?: number;
+  // Only set on the facilitator's "done" event in the "evaluating" phase.
+  decision?: "continue" | "escalate" | "conclude";
+  reasoning?: string;
 }
 
 export interface RunSnapshot {
   run_id: string;
+  max_rounds: number;
   status: RunStatus;
   log: RunEvent[];
   result: RunResult | null;

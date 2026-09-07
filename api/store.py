@@ -20,6 +20,7 @@ RunStatus = Literal["running", "done", "error"]
 @dataclass
 class RunState:
     run_id: str
+    max_rounds: int = 0
     status: RunStatus = "running"
     log: list[dict] = field(default_factory=list)
     result: dict[str, Any] | None = None
@@ -36,6 +37,7 @@ class RunState:
         with self.lock:
             return {
                 "run_id": self.run_id,
+                "max_rounds": self.max_rounds,
                 "status": self.status,
                 "log": list(self.log),
                 "result": self.result,
@@ -50,8 +52,8 @@ class RunStore:
         self._runs: dict[str, RunState] = {}
         self._lock = threading.Lock()
 
-    def create(self) -> RunState:
-        run = RunState(run_id=str(uuid.uuid4()))
+    def create(self, max_rounds: int = 0) -> RunState:
+        run = RunState(run_id=str(uuid.uuid4()), max_rounds=max_rounds)
         with self._lock:
             self._runs[run.run_id] = run
         return run

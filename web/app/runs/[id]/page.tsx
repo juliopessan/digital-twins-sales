@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { getRun, reportUrl } from "@/lib/api";
-import type { RunSnapshot, StakeholderProfile } from "@/lib/types";
+import type { RunEvent, RunPhase, RunSnapshot, StakeholderProfile, StakeholderRole } from "@/lib/types";
 import { ROLE_LABEL, SENTIMENT_LABEL } from "@/lib/types";
 import { SPINNER_VERBS } from "@/lib/spinnerVerbs";
 
@@ -21,6 +21,79 @@ function useSpinnerVerb(active: boolean, intervalMs = 1700): string {
     return () => clearInterval(t);
   }, [active, intervalMs]);
   return SPINNER_VERBS[i];
+}
+
+const PHASE_LABEL: Record<RunPhase, string> = {
+  ordering: "Setting the order",
+  speaking: "Debating",
+  evaluating: "Weighing the round",
+  synthesizing: "Drafting the verdict",
+};
+
+const DECISION_LINE: Record<NonNullable<RunEvent["decision"]>, string> = {
+  continue: "more ground to cover — the debate continues",
+  escalate: "escalating — the biggest veto in the room gets the final word",
+  conclude: "calling it — moving to the verdict",
+};
+
+function roleLabel(agent: string): string {
+  return ROLE_LABEL[agent as StakeholderRole] ?? agent;
+}
+
+/** One completed narrative beat, for a "done" event. */
+function narrate(ev: RunEvent): string {
+  if (ev.phase === "ordering") {
+    return `Round ${ev.round} begins — the facilitator sets the speaking order.`;
+  }
+  if (ev.phase === "speaking") {
+    const sentiment = ev.sentiment ? ` (${SENTIMENT_LABEL[ev.sentiment]})` : "";
+    const objections =
+      ev.objections && ev.objections > 0
+        ? ` · raised ${ev.objections} objection${ev.objections > 1 ? "s" : ""}`
+        : "";
+    return `${roleLabel(ev.agent)}${sentiment}: "${ev.preview ?? ""}"${objections}`;
+  }
+  if (ev.phase === "evaluating") {
+    const verdict = ev.decision ? DECISION_LINE[ev.decision] : "weighing the room";
+    const reasoning = ev.reasoning ? ` — "${ev.reasoning}"` : "";
+    return `Facilitator: ${verdict}${reasoning}`;
+  }
+  return "The synthesizer has the full transcript — drafting the verdict.";
+}
+
+/** The single in-progress line for whichever "start" event hasn't resolved yet. */
+function narrateInProgress(ev: RunEvent): string {
+  if (ev.phase === "ordering") return `Round ${ev.round}: the facilitator is setting the order…`;
+  if (ev.phase === "speaking") return `${roleLabel(ev.agent)} is taking the floor…`;
+  if (ev.phase === "evaluating") return "The facilitator is weighing the room's reaction…";
+  return "The synthesizer is drafting the verdict…";
+}
+
+/** Turn-by-turn story of the debate, auto-scrolling as new beats land. */
+function NarrativeFeed({ beats, inProgress }: { beats: RunEvent[]; inProgress: RunEvent | null }) {
+  const scrollRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const el = scrollRef.current;
+    if (el) el.scrollTop = el.scrollHeight;
+  }, [beats.length, inProgress?.agent, inProgress?.event]);
+
+  return (
+    <div className="narrative" ref={scrollRef}>
+      {beats.map((ev, i) => (
+        <div className="narrative-line animate-in" key={i}>
+          <span className="tag">R{ev.round}</span>
+          <p>{narrate(ev)}</p>
+        </div>
+      ))}
+      {inProgress && (
+        <div className="narrative-line current">
+          <span className="tag">R{inProgress.round}</span>
+          <p>{narrateInProgress(inProgress)}</p>
+        </div>
+      )}
+    </div>
+  );
 }
 
 export default function RunPage() {
@@ -64,6 +137,14 @@ export default function RunPage() {
 
   if (!snap || snap.status === "running") {
     const log = snap?.log ?? [];
+    const last = log[log.length - 1];
+    const inProgress = last?.event === "start" ? last : null;
+    const beats = log.filter((ev) => ev.event === "done");
+    const round = last?.round ?? 1;
+    const maxRounds = snap?.max_rounds || undefined;
+    const progressPct = Math.round((last?.progress ?? 0) * 100);
+    const phaseLabel = last ? PHASE_LABEL[last.phase] : "Getting started";
+
     return (
       <div className="page animate-in" style={{ paddingTop: 68 }}>
         <p className="eyebrow">Sales Digital Twins</p>
@@ -74,27 +155,25 @@ export default function RunPage() {
           </span>
           .
         </h1>
-        <div className="ledger" style={{ maxWidth: 480 }}>
+        <div className="ledger" style={{ maxWidth: 560 }}>
           <div className="ledger-head">
             <span className="live">Running</span>
-            <span className="meta">run {id.slice(0, 8)}</span>
+            <span className="meta">
+              Round {round}
+              {maxRounds ? ` of ${maxRounds}` : ""} · {phaseLabel}
+            </span>
           </div>
-          <div className="bar-track indeterminate">
-            <div className="bar-fill" style={{ background: "var(--ledger-mint)" }} />
+          <div className="bar-track">
+            <div
+              className="bar-fill"
+              style={{ width: `${progressPct}%`, background: "var(--ledger-mint)", transition: "width .6s ease" }}
+            />
           </div>
-          <div className="figs">
-            {log.slice(-6).map((ev, i) => (
-              <div
-                className="fig animate-in"
-                key={`${log.length - 6 + i}-${ev.agent}-${ev.event}`}
-                style={{ animationDelay: `${i * 40}ms` }}
-              >
-                <span>
-                  {ev.event === "start" ? "▸" : "✓"} {ev.agent}
-                </span>
-              </div>
-            ))}
+          <div className="bar-label" style={{ paddingTop: 0 }}>
+            <span>run {id.slice(0, 8)}</span>
+            <span>{progressPct}%</span>
           </div>
+          <NarrativeFeed beats={beats} inProgress={inProgress} />
         </div>
       </div>
     );
