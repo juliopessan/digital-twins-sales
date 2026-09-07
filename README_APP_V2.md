@@ -1,92 +1,92 @@
 # Sales Digital Twins — UI/UX v2 with Navigation Bar
 
-## 🎯 Objetivo
+## 🎯 Goal
 
-Refatoração completa da UI/UX seguindo o padrão **Microsoft Streamlit_UI_Template App 2** com:
-- ✅ **Barra de navegação customizada** (`streamlit-navigation-bar`)
-- ✅ **Estrutura modular** (pages/ directory)
-- ✅ **Paleta de design proprietária** (#FF5800, #890078, Segoe UI)
-- ✅ **Tema dark/light** mantido
-- ✅ **Canvas 2D em tempo real** funcionando
+Full UI/UX refactor following the **Microsoft Streamlit_UI_Template App 2** pattern, with:
+- ✅ **Custom navigation bar** (`streamlit-navigation-bar`)
+- ✅ **Modular structure** (pages/ directory)
+- ✅ **Proprietary design palette** (#FF5800, #890078, Segoe UI)
+- ✅ **Dark/light theme** preserved
+- ✅ **Real-time 2D canvas** working
 
 ---
 
-## 📦 Estrutura Modular
+## 📦 Modular structure
 
 ```
 digital-twins-sales/
-├── app_v2.py                 (main app com navegação)
-├── streamlit_app.py          (versão anterior — mantida para referência)
+├── app_v2.py                 (main app with navigation)
+├── streamlit_app.py          (previous version — kept for reference)
 ├── pages/
 │   ├── __init__.py
-│   ├── setup.py              (🎯 Configuração)
-│   ├── simulacao.py          (🎨 Canvas + Debate)
-│   ├── veredito.py           (📋 Objeções + MEDDPICC)
-│   ├── coach.py              (👔 Feedback do pitch)
-│   └── export.py             (📤 Relatórios)
+│   ├── setup.py              (🎯 Setup)
+│   ├── simulation.py         (🎨 Canvas + Debate)
+│   ├── verdict.py            (📋 Objections + MEDDPICC)
+│   ├── coach.py              (👔 Pitch feedback)
+│   └── export.py             (📤 Reports)
 ```
 
 ---
 
-## 🚀 Como Rodar
+## 🚀 How to run
 
 ```bash
-# Via navegação (padrão App 2)
+# Via navigation (App 2 pattern)
 streamlit run app_v2.py
 
-# Via versão anterior (legado)
+# Via the previous version (legacy)
 streamlit run streamlit_app.py
 ```
 
-Acesse: **http://localhost:8501**
+Open: **http://localhost:8501**
 
 ---
 
 ## 🎨 Design System
 
-### Paleta de cores
-- **Primário:** #FF5800 (Orange)
-- **Secundário:** #890078 (Aurora)
+### Color palette
+- **Primary:** #FF5800 (Orange)
+- **Secondary:** #890078 (Aurora)
 - **Accent:** #FFD700 (Solar)
-- **Texto:** #333333 (Grey-80)
+- **Text:** #333333 (Grey-80)
 - **Background:** #FFFFFF (White)
 
-### Tipografia
+### Typography
 - **Font:** Segoe UI
 - **Nav:** 500 weight, 14px
-- **Seções:** 600 weight, 19px
+- **Sections:** 600 weight, 19px
 - **Body:** 400 weight, 14px
 
 ---
 
-## 📄 Seções de Cada Página
+## 📄 Sections of each page
 
 ### 🎯 Setup
-- Seleção de conta (iFood, Nubank, Vale, etc)
-- API Key da Anthropic
-- Máximo de rounds (slider)
-- Fala de abertura do seller (textarea)
-- Botão: Rodar simulação
+- Account selection (iFood, Nubank, Vale, etc.)
+- Anthropic API key
+- Max rounds (slider)
+- Seller's opening statement (textarea)
+- Button: Run simulation
 
-### 🎨 Simulação
-- Canvas 2D com office (squad-pod engine)
-- Agents navegando, digitando, transitando de estados
-- Transcrição completa do debate
-- Status em tempo real
+### 🎨 Simulation
+- 2D canvas with the office (squad-pod engine)
+- Agents walking, typing, transitioning between states
+- Full debate transcript
+- Real-time status
 
-### 📋 Veredito
-- **Principais objeções** — tabela com stakeholder + objeção + sentimento
-- **Bloqueadores & Contorno** — quem está bloqueando, estratégias de contorno
-- **Busca de consenso** — métrica (%), próximos passos
-- **MEDDPICC** — scorecard com 7 dimensões (Metrics, Economic Buyer, Decision Criteria, Decision Process, Pain, Identified Champion, Compelling Reason)
-- **Plano de ação** — roadmap recomendado
-- **Avaliação de risco** — 🟢🟡🔴 status
+### 📋 Verdict
+- **Top objections** — table with stakeholder + objection + sentiment
+- **Blockers & workarounds** — who's blocking, workaround strategies
+- **Consensus tracking** — metric (%), next steps
+- **MEDDPICC** — scorecard with 7 dimensions (Metrics, Economic Buyer, Decision Criteria, Decision Process, Pain, Identified Champion, Compelling Reason)
+- **Action plan** — recommended roadmap
+- **Risk assessment** — 🟢🟡🔴 status
 
 ### 👔 Coach
-- Nota geral do pitch (A–F)
-- O que funcionou (pontos de aterramento)
-- O que saiu pela culatra (armadilhas)
-- Sugestões de reescrita (antes/depois)
+- Overall pitch grade (A–F)
+- What landed
+- What backfired (pitfalls)
+- Rewrite suggestions (before/after)
 
 ### 📤 Export
 - Markdown (.md)
@@ -95,9 +95,9 @@ Acesse: **http://localhost:8501**
 
 ---
 
-## 🔄 Migrando Código da v1
+## 🔄 Migrating code from v1
 
-Se você tem lógica em `streamlit_app.py` que quer mover para `app_v2.py`, siga este padrão:
+If you have logic in `streamlit_app.py` that you want to move to `app_v2.py`, follow this pattern:
 
 ### Original (streamlit_app.py)
 ```python
@@ -106,10 +106,10 @@ def render_office(personas, log):
     st.html(office_html)
 ```
 
-### Novo (pages/simulacao.py)
+### New (pages/simulation.py)
 ```python
-def simulacao_page():
-    # Importar e chamar render_office(personas, log)
+def simulation_page():
+    # Import and call render_office(personas, log)
     from digital_twins.office import render_office
     # ...
     st.html(office_html)
@@ -117,52 +117,52 @@ def simulacao_page():
 
 ---
 
-## ✅ Próximos Passos
+## ✅ Next steps
 
-1. **Integrar lógica de Setup**
-   - Carregar accounts JSON
-   - Validar API key
-   - Salvar em session_state
+1. **Integrate Setup logic**
+   - Load accounts JSON
+   - Validate the API key
+   - Save to session_state
 
-2. **Integrar Simulação**
-   - Rodar graph com app.stream()
-   - Passar eventos para fila
-   - Renderizar canvas em tempo real
+2. **Integrate Simulation**
+   - Run the graph with app.stream()
+   - Push events to a queue
+   - Render the canvas in real time
 
-3. **Integrar Veredito**
-   - Renderizar objeções + blockers + consenso
-   - MEDDPICC expandable
-   - Roadmap com timelines
+3. **Integrate Verdict**
+   - Render objections + blockers + consensus
+   - Expandable MEDDPICC
+   - Roadmap with timelines
 
-4. **Integrar Coach**
-   - Avaliar fala de abertura
-   - Gerar feedback estruturado
+4. **Integrate Coach**
+   - Evaluate the opening statement
+   - Generate structured feedback
 
-5. **Integrar Export**
-   - Gerar Markdown
-   - Gerar HTML
-   - Gerar JSON
+5. **Integrate Export**
+   - Generate Markdown
+   - Generate HTML
+   - Generate JSON
 
 ---
 
-## 🛠️ Tecnologias
+## 🛠️ Technologies
 
 - **Streamlit 1.40.0** — Web UI framework
 - **streamlit-navigation-bar** — Navigation component
 - **LangGraph** — Multi-agent orchestration
-- **Claude Haiku 4.5** — LLM (padrão)
+- **Claude Haiku 4.5** — LLM (default)
 - **Pydantic 2.12+** — Data validation
-- **squad-pod engine** — Canvas 2D (self-contained)
+- **squad-pod engine** — 2D Canvas (self-contained)
 
 ---
 
-## 📝 Commits Recentes
+## 📝 Recent commits
 
 ```
 refactor: apply Microsoft App 2 UI pattern with modular pages
 - Created pages/ directory structure
 - Implemented st_navbar() with the custom brand colors (#FF5800, #890078)
-- Created placeholder pages: setup, simulacao, veredito, coach, export
+- Created placeholder pages: setup, simulation, verdict, coach, export
 - Added custom CSS with theme variables and navigation styling
 - Installed streamlit-navigation-bar dependency
 - Preserved all existing features (real-time rendering, theme toggle, favicon)
@@ -170,7 +170,7 @@ refactor: apply Microsoft App 2 UI pattern with modular pages
 
 ---
 
-## 🔗 Referências
+## 🔗 References
 
 - [Microsoft Streamlit_UI_Template](https://github.com/microsoft/Streamlit_UI_Template)
 - [streamlit-navigation-bar Docs](https://github.com/Gabriel-Leao/streamlit-navigation-bar)
@@ -178,7 +178,8 @@ refactor: apply Microsoft App 2 UI pattern with modular pages
 
 ---
 
-**Status:** ✅ MVP pronto — Pages estruturadas, navegação funcionando, placeholders em lugar. Próximo: migrar lógica v1 → v2.
-### Geracao de pitch com IA
+**Status:** ✅ MVP ready — pages structured, navigation working, placeholders in place. Next: migrate v1 logic → v2.
 
-Na barra lateral, ao lado de **Sua fala de abertura (opcional)**, use o ícone **✨** para gerar uma sugestão de pitch contextualizada com a conta selecionada. Revise o texto antes de iniciar a simulação. A funcionalidade requer uma `ANTHROPIC_API_KEY` válida.
+### AI-assisted pitch generation
+
+In the sidebar, next to **Your opening statement (optional)**, use the **✨** icon to generate a pitch suggestion contextualized to the selected account. Review the text before starting the simulation. This feature requires a valid `ANTHROPIC_API_KEY`.

@@ -59,20 +59,22 @@ def start_round(state: BoardState) -> dict:
 
 
 _DECISION_SYSTEM_PROMPT = """\
-Você é o motor de decisão do facilitador de um debate simulado de comitê de
-compra. Leia a última rodada de falas e decida o que acontece a seguir.
+You are the decision engine for the facilitator of a simulated buying
+committee debate. Read the latest round of statements and decide what
+happens next.
 
-Retorne ESTRITAMENTE um objeto JSON com este formato (os valores de
-"decision" devem ficar exatamente em inglês, como mostrado abaixo; o
-"reasoning" pode ser em português):
-{"decision": "continue" | "escalate" | "conclude", "reasoning": "<uma frase, em português>"}
+Return STRICTLY a JSON object in this format (the "decision" values must
+stay exactly in English, as shown below; "reasoning" should also be in
+English):
+{"decision": "continue" | "escalate" | "conclude", "reasoning": "<one sentence, in English>"}
 
-- "continue": mais debate é útil, não precisa mudar a dinâmica.
-- "escalate": um stakeholder de alto poder (CFO/CEO/CTO) levantou uma
-  objeção bloqueadora que os outros ainda não endereçaram — reordene para
-  que ele tenha uma réplica pontual.
-- "conclude": ou o consenso está se formando, ou as posições já endureceram
-  claramente e mais uma rodada só repetiria objeções já colocadas na mesa.
+- "continue": more debate is useful, no need to change the dynamic.
+- "escalate": a high-power stakeholder (CFO/CEO/CTO) raised a blocking
+  objection that the others haven't addressed yet — reorder so they get a
+  pointed rebuttal.
+- "conclude": either consensus is forming, or positions have clearly
+  hardened and one more round would just repeat objections already on the
+  table.
 """
 
 
@@ -85,11 +87,11 @@ def make_evaluate_round_node(llm: LLMClient):
         summary = "\n".join(f"- {t.name} ({t.sentiment.value}): {t.statement}" for t in this_round_turns)
 
         if round_number >= max_rounds:
-            decision, reasoning = "conclude", f"Atingiu max_rounds={max_rounds}."
+            decision, reasoning = "conclude", f"Reached max_rounds={max_rounds}."
         else:
             raw = llm.complete(
                 system=_DECISION_SYSTEM_PROMPT,
-                user=f"Falas da rodada {round_number}:\n{summary}",
+                user=f"Statements from round {round_number}:\n{summary}",
                 model=settings.facilitator_model,
                 max_tokens=settings.max_tokens_facilitator,
                 json_mode=True,
@@ -100,7 +102,7 @@ def make_evaluate_round_node(llm: LLMClient):
                 reasoning = parsed.get("reasoning", "")
             except json.JSONDecodeError:
                 logger.warning("Facilitator returned non-JSON, defaulting to 'continue': %r", raw)
-                decision, reasoning = "continue", "fallback: saída do facilitador não era um JSON válido"
+                decision, reasoning = "continue", "fallback: facilitator output was not valid JSON"
 
         logger.info("Facilitator decision after round %s: %s (%s)", round_number, decision, reasoning)
         return {"facilitator_decision": decision, "facilitator_reasoning": reasoning}

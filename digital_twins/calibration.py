@@ -1,22 +1,23 @@
 """
-Calibração pós-call — o loop "twin vs realidade" aplicado a vendas.
+Post-call calibration — the "twin vs reality" loop applied to sales.
 
-Em digital twins industriais, o twin é continuamente comparado com os
-sensores reais do ativo; o desvio entre simulado e real mede a fidelidade do
-twin e aponta onde o modelo precisa ser retunado. Aqui o "sensor" é a
-transcrição da call real:
+In industrial digital twins, the twin is continuously compared against the
+asset's real sensors; the deviation between simulated and real measures the
+twin's fidelity and points to where the model needs retuning. Here the
+"sensor" is the real call transcript:
 
-  1. Você rodou a simulação antes da call (o CLI salvou um SimulationRecord
-     em reports/<slug>-<ts>.json).
-  2. A call aconteceu; você tem a transcrição (Gong/Granola/notas).
-  3. Este módulo compara objeção a objeção: o que o twin PREVIU e aconteceu
-     (acerto), o que previu e não aconteceu (ruído) e o que aconteceu sem
-     ter sido previsto (ponto cego) — com fidelidade por persona e sugestões
-     concretas de quais fatos adicionar em AccountContext.real_data.
+  1. You ran the simulation before the call (the CLI saved a
+     SimulationRecord to reports/<slug>-<ts>.json).
+  2. The call happened; you have the transcript (Gong/Granola/notes).
+  3. This module compares objection by objection: what the twin PREDICTED
+     and happened (hit), what it predicted and did not happen (noise), and
+     what happened without being predicted (blind spot) — with fidelity per
+     persona and concrete suggestions on which facts to add to
+     AccountContext.real_data.
 
-Uso via CLI:
+CLI usage:
 
-    python -m digital_twins.calibration --simulation reports/conta-x.json \
+    python -m digital_twins.calibration --simulation reports/account-x.json \
         --call-transcript call.txt
 """
 from __future__ import annotations
@@ -41,7 +42,7 @@ class ObjectionMatch(BaseModel):
     occurred: bool
     evidence: str = Field(
         default="",
-        description="Trecho da call real que confirma a objeção (vazio se não ocorreu).",
+        description="Excerpt from the real call confirming the objection (empty if it didn't occur).",
     )
 
 
@@ -51,7 +52,7 @@ class PersonaCalibration(BaseModel):
 
     @property
     def fidelity(self) -> float:
-        """Fração das objeções previstas por esta persona que ocorreram de fato."""
+        """Fraction of the objections predicted by this persona that actually occurred."""
         if not self.matches:
             return 0.0
         return sum(1 for m in self.matches if m.occurred) / len(self.matches)
@@ -62,11 +63,11 @@ class CalibrationReport(BaseModel):
     personas: list[PersonaCalibration] = Field(default_factory=list)
     blind_spots: list[str] = Field(
         default_factory=list,
-        description="Objeções que apareceram na call real mas o twin NÃO previu.",
+        description="Objections that came up in the real call but the twin did NOT predict.",
     )
     data_enrichment_suggestions: list[str] = Field(
         default_factory=list,
-        description="Fatos concretos a adicionar em AccountContext.real_data para a próxima simulação.",
+        description="Concrete facts to add to AccountContext.real_data for the next simulation.",
     )
 
     @property
@@ -78,74 +79,75 @@ class CalibrationReport(BaseModel):
 
     def to_markdown(self) -> str:
         lines = [
-            f"# Calibração do twin — {self.account_name}",
+            f"# Twin Calibration — {self.account_name}",
             "",
-            f"**Fidelidade geral: {self.overall_fidelity:.0%}** "
-            "(objeções previstas que ocorreram de fato na call)",
+            f"**Overall fidelity: {self.overall_fidelity:.0%}** "
+            "(predicted objections that actually occurred on the call)",
             "",
-            "| Persona | Fidelidade | Previstas | Confirmadas |",
+            "| Persona | Fidelity | Predicted | Confirmed |",
             "|---|---|---|---|",
         ]
         for p in self.personas:
             hits = sum(1 for m in p.matches if m.occurred)
             lines.append(f"| {p.role.value} | {p.fidelity:.0%} | {len(p.matches)} | {hits} |")
 
-        lines += ["", "## Acertos e ruído por persona", ""]
+        lines += ["", "## Hits and noise by persona", ""]
         for p in self.personas:
             lines.append(f"### {p.role.value}")
             for m in p.matches:
                 mark = "✅" if m.occurred else "❌"
                 lines.append(f"- {mark} {m.predicted_objection}")
                 if m.evidence:
-                    lines.append(f"  - evidência: \"{m.evidence}\"")
+                    lines.append(f"  - evidence: \"{m.evidence}\"")
             lines.append("")
 
-        lines += ["## Pontos cegos (ocorreram e não foram previstos)", ""]
-        lines += [f"- {b}" for b in self.blind_spots] or ["- (nenhum)"]
-        lines += ["", "## Enriquecimento de dados sugerido (real_data)", ""]
-        lines += [f"- {s}" for s in self.data_enrichment_suggestions] or ["- (nenhum)"]
+        lines += ["## Blind spots (occurred but not predicted)", ""]
+        lines += [f"- {b}" for b in self.blind_spots] or ["- (none)"]
+        lines += ["", "## Suggested data enrichment (real_data)", ""]
+        lines += [f"- {s}" for s in self.data_enrichment_suggestions] or ["- (none)"]
         return "\n".join(lines)
 
 
 def _collect_predictions(record: SimulationRecord) -> dict[str, list[str]]:
-    """Objeções previstas por papel: das falas do debate + top_objections do veredito.
+    """Objections predicted per role: from the debate turns + the verdict's top_objections.
 
-    As top_objections do veredito não têm papel — vão para o papel do
-    stakeholder bloqueador mais provável se identificável, senão ficam de
-    fora da conta por-persona (o LLM ainda as vê no bloco geral).
+    The verdict's top_objections have no role attached — they go to the most
+    likely blocking stakeholder's role if identifiable, otherwise they are
+    left out of the per-persona count (the LLM still sees them in the
+    general block).
     """
     by_role: dict[str, list[str]] = defaultdict(list)
     for turn in record.transcript:
         for obj in turn.objections_raised:
             if obj not in by_role[turn.role.value]:
                 by_role[turn.role.value].append(obj)
-        # Falas céticas/bloqueadoras são, na prática, objeções mesmo quando o
-        # matching literal com known_objections não capturou nada.
+        # Skeptical/blocking statements are, in practice, objections even
+        # when literal matching against known_objections caught nothing.
         if turn.sentiment.value in ("skeptical", "blocking") and not turn.objections_raised:
             by_role[turn.role.value].append(turn.statement)
     return dict(by_role)
 
 
 _CALIBRATION_SYSTEM_PROMPT = """\
-Você compara o que um comitê de compra SIMULADO previu com o que aconteceu
-numa call de vendas REAL. Para cada objeção prevista, decida se ela ocorreu
-de fato na call (mesmo com outras palavras — o que importa é a substância) e
-cite o trecho da call que comprova. Depois liste objeções que apareceram na
-call real e NÃO estavam previstas (pontos cegos), e sugira fatos concretos
-sobre os stakeholders reais que, se adicionados aos dados da conta,
-melhorariam a próxima simulação.
+You compare what a SIMULATED buying committee predicted against what
+happened on a REAL sales call. For each predicted objection, decide whether
+it actually occurred on the call (even in different words — what matters is
+the substance) and cite the excerpt from the call that proves it. Then list
+objections that came up on the real call and were NOT predicted (blind
+spots), and suggest concrete facts about the real stakeholders that, if
+added to the account data, would improve the next simulation.
 
-Retorne ESTRITAMENTE um objeto JSON neste formato (chaves em inglês, textos
-em português; "role" usa exatamente os valores de papel fornecidos no input):
+Return STRICTLY a JSON object in this format (keys in English, text in
+English; "role" uses exactly the role values provided in the input):
 {
   "matches": [
-    {"role": "cfo", "predicted_objection": "...", "occurred": true, "evidence": "trecho da call"}
+    {"role": "cfo", "predicted_objection": "...", "occurred": true, "evidence": "excerpt from the call"}
   ],
-  "blind_spots": ["objeção real não prevista", ...],
-  "data_enrichment_suggestions": ["fato concreto a adicionar em real_data", ...]
+  "blind_spots": ["real objection not predicted", ...],
+  "data_enrichment_suggestions": ["concrete fact to add to real_data", ...]
 }
-Inclua em "matches" TODAS as objeções previstas fornecidas, cada uma com seu
-veredito occurred true/false.
+Include in "matches" ALL of the predicted objections provided, each with its
+occurred true/false verdict.
 """
 
 
@@ -162,9 +164,9 @@ def calibrate(
     verdict_block = "\n".join(f"- {o}" for o in record.verdict.top_objections)
 
     user = (
-        f"Objeções previstas pelo twin (por papel):\n{predicted_block or '(nenhuma)'}\n\n"
-        f"Top objeções do veredito simulado (sem papel atribuído):\n{verdict_block or '(nenhuma)'}\n\n"
-        f"Transcrição da call REAL:\n{call_transcript}"
+        f"Objections predicted by the twin (by role):\n{predicted_block or '(none)'}\n\n"
+        f"Top objections from the simulated verdict (no role assigned):\n{verdict_block or '(none)'}\n\n"
+        f"Transcript of the REAL call:\n{call_transcript}"
     )
 
     raw = llm.complete(
@@ -185,7 +187,7 @@ def calibrate(
             try:
                 role = StakeholderRole(role_value)
             except ValueError:
-                logger.warning("Calibração retornou papel desconhecido %r — ignorando", role_value)
+                logger.warning("Calibration returned unknown role %r — ignoring", role_value)
                 continue
             entry = by_role.setdefault(role.value, PersonaCalibration(role=role))
             entry.matches.append(
@@ -198,8 +200,8 @@ def calibrate(
         blind_spots = [str(b) for b in parsed.get("blind_spots", [])]
         suggestions = [str(s) for s in parsed.get("data_enrichment_suggestions", [])]
     except json.JSONDecodeError as exc:
-        logger.error("Saída da calibração não é JSON válido (%s); raw=%r", exc, raw)
-        blind_spots = ["A calibração falhou — saída do LLM não era JSON válido; rode novamente."]
+        logger.error("Calibration output is not valid JSON (%s); raw=%r", exc, raw)
+        blind_spots = ["Calibration failed — the LLM output was not valid JSON; run it again."]
 
     return CalibrationReport(
         account_name=record.account.account_name,
@@ -211,11 +213,11 @@ def calibrate(
 
 def main() -> int:
     parser = argparse.ArgumentParser(
-        description="Compara uma simulação salva com a transcrição da call real (calibração do twin)."
+        description="Compares a saved simulation against the real call transcript (twin calibration)."
     )
-    parser.add_argument("--simulation", required=True, help="reports/<slug>-<ts>.json salvo pelo main")
-    parser.add_argument("--call-transcript", required=True, help="arquivo texto com a transcrição da call real")
-    parser.add_argument("--out", default=None, help="salvar o relatório markdown neste caminho")
+    parser.add_argument("--simulation", required=True, help="reports/<slug>-<ts>.json saved by main")
+    parser.add_argument("--call-transcript", required=True, help="text file with the real call transcript")
+    parser.add_argument("--out", default=None, help="save the markdown report to this path")
     args = parser.parse_args()
 
     logging.basicConfig(level=logging.INFO, format="%(message)s")
@@ -231,7 +233,7 @@ def main() -> int:
     if args.out:
         with open(args.out, "w", encoding="utf-8") as f:
             f.write(md)
-        print(f"\nRelatório salvo em: {args.out}")
+        print(f"\nReport saved to: {args.out}")
     return 0
 
 

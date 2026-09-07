@@ -12,27 +12,27 @@ export type StakeholderRole =
   | "ceo"
   | "security";
 
-export const ROLE_LABEL_PT: Record<StakeholderRole, string> = {
-  salesman: "Vendedor",
+export const ROLE_LABEL: Record<StakeholderRole, string> = {
+  salesman: "Salesperson",
   ceo: "CEO",
   cto: "CTO",
   cfo: "CFO",
   procurement: "Procurement",
-  champion: "Champion interno",
-  end_user: "Usuário final",
-  legal_compliance: "Jurídico/Compliance",
-  security: "Segurança",
+  champion: "Internal champion",
+  end_user: "End user",
+  legal_compliance: "Legal/Compliance",
+  security: "Security",
 };
 
 export type DataSource = "real" | "archetype";
 
 export type Sentiment = "supportive" | "neutral" | "skeptical" | "blocking";
 
-export const SENTIMENT_LABEL_PT: Record<Sentiment, string> = {
-  supportive: "Favorável",
-  neutral: "Neutro",
-  skeptical: "Cético",
-  blocking: "Bloqueador",
+export const SENTIMENT_LABEL: Record<Sentiment, string> = {
+  supportive: "Supportive",
+  neutral: "Neutral",
+  skeptical: "Skeptical",
+  blocking: "Blocking",
 };
 
 export interface StakeholderProfile {

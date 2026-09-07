@@ -46,7 +46,7 @@ class AnthropicLLMClient(LLMClient):
 
         resolved_key = api_key or settings.anthropic_api_key
         if not resolved_key:
-            raise RuntimeError("ANTHROPIC_API_KEY não configurada. Exporte a variável ou passe api_key explicitamente.")
+            raise RuntimeError("ANTHROPIC_API_KEY is not configured. Export the variable or pass api_key explicitly.")
         self._client = anthropic.Anthropic(api_key=resolved_key)
 
     def complete(
@@ -61,8 +61,8 @@ class AnthropicLLMClient(LLMClient):
         sys_prompt = system
         if json_mode:
             sys_prompt += (
-                "\n\nResponda APENAS com um único objeto JSON válido. Sem texto "
-                "explicativo, sem blocos de markdown, sem preâmbulo."
+                "\n\nRespond ONLY with a single valid JSON object. No explanatory "
+                "text, no markdown blocks, no preamble."
             )
         response = self._client.messages.create(
             model=model,

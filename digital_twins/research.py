@@ -28,11 +28,11 @@ class ResearchError(RuntimeError):
 
 def research_stakeholder(name: str, role_label: str, company: str, api_key: str) -> list[str]:
     """Returns a list of fact strings grounded by Exa's Answer API, with a
-    trailing 'Fontes:' line listing the cited source URLs."""
+    trailing 'Sources:' line listing the cited source URLs."""
     try:
         from exa_py import Exa
     except ImportError as exc:
-        raise ResearchError("exa_py não está instalado (pip install exa_py).") from exc
+        raise ResearchError("exa_py is not installed (pip install exa_py).") from exc
 
     query = f"What are recent, specific, publicly known facts about {name}, {role_label} at {company}?"
 
@@ -40,17 +40,17 @@ def research_stakeholder(name: str, role_label: str, company: str, api_key: str)
         exa = Exa(api_key=api_key)
         response = exa.answer(query, system_prompt=_SYSTEM_PROMPT)
     except Exception as exc:
-        raise ResearchError(f"Falha na pesquisa EXA: {exc}") from exc
+        raise ResearchError(f"EXA research failed: {exc}") from exc
 
     raw_answer = response.answer if isinstance(response.answer, str) else str(response.answer)
     facts = [line.strip().lstrip("-•").strip() for line in raw_answer.splitlines()]
     facts = [f for f in facts if len(f) > 8]
 
     if not facts:
-        raise ResearchError(f"EXA não encontrou fatos públicos sobre '{name}' em '{company}'.")
+        raise ResearchError(f"EXA found no public facts about '{name}' at '{company}'.")
 
     sources = sorted({c.url for c in response.citations if getattr(c, "url", None)})[:3]
     if sources:
-        facts.append("Fontes: " + ", ".join(sources))
+        facts.append("Sources: " + ", ".join(sources))
 
     return facts

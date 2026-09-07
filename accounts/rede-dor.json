@@ -1,18 +1,18 @@
 {
   "account_name": "Rede D'Or São Luiz",
-  "deal_stage": "Proposta técnica em revisão pelo comitê de compras",
-  "pitch_summary": "Plataforma multiagente de Gen AI para automatizar a análise de glosas e o ciclo de faturamento entre hospitais da rede e operadoras de saúde — incluindo a integração pós-fusão com a SulAmérica — substituindo grande parte da triagem manual de auditoria de contas médicas por supervisão humana em exceções.",
-  "proposed_solution": "Pipeline agêntico na Azure com agentes de leitura de prontuário/conta médica, cruzamento com regras contratuais por operadora e priorização de glosas recorrentes. Implementação de 22 semanas, US$ 720 mil no Ano 1 (licença + serviços).",
+  "deal_stage": "Technical proposal under review by the purchasing committee",
+  "pitch_summary": "Multi-agent Gen AI platform to automate denial-of-claims analysis and the billing cycle between network hospitals and health insurers — including post-merger integration with SulAmérica — replacing most of the manual medical-bill audit triage with human supervision on exceptions.",
+  "proposed_solution": "Agentic pipeline on Azure with medical-record/bill-reading agents, cross-referencing against per-insurer contract rules, and prioritization of recurring claim denials. 22-week implementation, US$720k in Year 1 (license + services).",
   "deal_value_usd": 720000,
   "roles_in_committee": ["ceo", "cto", "cfo", "procurement"],
   "real_data": {
     "ceo": [
-      "Paulo Moll é CEO da Rede D'Or São Luiz e recentemente recebeu o Prêmio Executivo de Valor 2026 na categoria Saúde",
-      "Em seu discurso de premiação, referiu-se à liderança de cerca de 80 mil colaboradores da companhia",
-      "Sob a liderança do grupo controlador (família Moll), a rede segue investindo em expansão de ensino superior, com autorização em 2026 para implementar a Faculdade de Medicina IDOR",
-      "A companhia concluiu a fusão com a SulAmérica, aprovada por Cade e ANS, com governança em que os CEOs das novas unidades de seguros/vida respondem diretamente à Rede D'Or — cujo presidente executivo é Paulo Moll e presidente do conselho é Jorge Moll Filho",
-      "A rede figura com 30 hospitais no ranking dos melhores do mundo em 2026 (Newsweek/World's Best Hospitals), com padrão tecnológico elevado mesmo em unidades fora das capitais (cirurgia robótica Da Vinci X, centros de hemodinâmica avançados)",
-      "Dado esse histórico de expansão via fusões complexas (SulAmérica) e padronização tecnológica ampla, Moll tende a avaliar propostas de automação pela lente de 'isso resolve o atrito operacional da integração pós-fusão com a SulAmérica e escala de forma uniforme entre hospitais e operadoras, sem criar mais um sistema isolado?'"
+      "Paulo Moll is CEO of Rede D'Or São Luiz and recently received the 2026 Executive of Value Award in the Healthcare category",
+      "In his award acceptance speech, he referenced leading roughly 80,000 employees at the company",
+      "Under the controlling group's leadership (the Moll family), the network continues investing in higher-education expansion, with 2026 authorization to launch the IDOR School of Medicine",
+      "The company completed its merger with SulAmérica, approved by Cade and ANS, with a governance structure in which the CEOs of the new insurance/life units report directly to Rede D'Or — whose executive chairman is Paulo Moll and whose board chairman is Jorge Moll Filho",
+      "The network has 30 hospitals in the 2026 world's-best-hospitals ranking (Newsweek/World's Best Hospitals), with a high technology standard even in units outside state capitals (Da Vinci X robotic surgery, advanced hemodynamics centers)",
+      "Given this track record of expansion via complex mergers (SulAmérica) and broad technology standardization, Moll tends to evaluate automation proposals through the lens of 'does this resolve the operational friction of the SulAmérica post-merger integration and scale uniformly across hospitals and insurers, without creating yet another siloed system?'"
     ]
   }
 }

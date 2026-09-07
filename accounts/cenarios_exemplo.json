@@ -1,17 +1,17 @@
 [
   {
-    "name": "preco-cheio",
-    "description": "Proposta como está: $640k Ano 1, 18 semanas."
+    "name": "full-price",
+    "description": "Proposal as-is: $640k Year 1, 18 weeks."
   },
   {
-    "name": "com-poc-paga",
-    "description": "Entrada via POC paga de 6 semanas antes do compromisso total.",
-    "proposed_solution": "POC paga de 6 semanas ($90k) processando 1 corredor de frete, com critérios de sucesso acordados; rollout completo de 18 semanas condicionado ao resultado ($550k adicionais).",
+    "name": "paid-poc",
+    "description": "Entry via a 6-week paid POC before the full commitment.",
+    "proposed_solution": "6-week paid POC ($90k) processing 1 freight lane, with agreed success criteria; full 18-week rollout conditioned on the result ($550k additional).",
     "deal_value_usd": 90000
   },
   {
-    "name": "ancorar-em-risco",
-    "description": "Mesmo preço, pitch reposicionado em redução de risco/compliance em vez de corte de headcount.",
-    "pitch_summary": "Plataforma de Gen AI que elimina erros de processamento de documentos de frete (multas, retrabalho, disputas com clientes), com trilha de auditoria completa — a redução de equipe é consequência, não a promessa."
+    "name": "anchor-on-risk",
+    "description": "Same price, pitch repositioned around risk/compliance reduction instead of headcount cuts.",
+    "pitch_summary": "Gen AI platform that eliminates freight document processing errors (fines, rework, customer disputes), with a full audit trail — headcount reduction is a consequence, not the promise."
   }
 ]

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createRun, getAccount, listAccounts, researchStakeholder } from "@/lib/api";
 import type { AccountContext, AccountSummary, StakeholderRole } from "@/lib/types";
-import { ROLE_LABEL_PT } from "@/lib/types";
+import { ROLE_LABEL } from "@/lib/types";
 
 const ALL_ROLES: StakeholderRole[] = [
   "champion",
@@ -22,7 +22,7 @@ const DEFAULT_COMMITTEE: StakeholderRole[] = ["champion", "cto", "cfo", "procure
 function emptyAccount(): AccountContext {
   return {
     account_name: "",
-    deal_stage: "Proposta enviada, aguardando revisão do comitê",
+    deal_stage: "Proposal sent, awaiting committee review",
     pitch_summary: "",
     proposed_solution: "",
     deal_value_usd: null,
@@ -62,7 +62,7 @@ export default function SetupPage() {
         setAccounts(list);
         if (list.length > 0) setSelectedId(list[0].id);
       })
-      .catch((e) => setFormError(`Não foi possível carregar as contas: ${e.message}`));
+      .catch((e) => setFormError(`Could not load accounts: ${e.message}`));
   }, []);
 
   useEffect(() => {
@@ -85,14 +85,14 @@ export default function SetupPage() {
   async function handleResearch() {
     setResearchError(null);
     if (!manual.account_name || !realName || !exaKey) {
-      setResearchError("Preencha empresa, nome do stakeholder e a EXA API Key antes de pesquisar.");
+      setResearchError("Fill in the company, the stakeholder's name, and the EXA API key before searching.");
       return;
     }
     setResearching(true);
     try {
       const { facts } = await researchStakeholder(
         realName,
-        ROLE_LABEL_PT[realRole],
+        ROLE_LABEL[realRole],
         manual.account_name,
         exaKey
       );
@@ -126,13 +126,13 @@ export default function SetupPage() {
     if (!base) {
       setFormError(
         mode === "pick"
-          ? "Escolha uma conta."
-          : "Preencha empresa, pitch, solução proposta e ao menos um papel no comitê."
+          ? "Choose an account."
+          : "Fill in the company, pitch, proposed solution, and at least one committee role."
       );
       return;
     }
     if (!apiKey.trim()) {
-      setFormError("Informe a Anthropic API Key.");
+      setFormError("Please provide the Anthropic API key.");
       return;
     }
     const account: AccountContext = {
@@ -153,14 +153,14 @@ export default function SetupPage() {
     <div className="page" style={{ paddingTop: 68, paddingBottom: 68 }}>
       <p className="eyebrow">Sales Digital Twins</p>
       <h1 className="display" style={{ marginBottom: 14 }}>
-        Ensaie o pior comitê da sua vida,{" "}
-        <span className="voice">antes que ele seja real.</span>
+        Rehearse the worst committee of your life,{" "}
+        <span className="voice">before it's real.</span>
       </h1>
       <p className="lede" style={{ marginBottom: 48 }}>
-        Um comitê de compra sintético — grounded em dados reais quando existem,
-        arquétipo quando não — debate a sua proposta. Cole o seu pitch e o
-        coach avalia como ele se sustentou; deixe em branco e o comitê
-        debate sozinho.
+        A synthetic buying committee — grounded in real data when it exists,
+        archetype when it doesn't — debates your proposal. Paste your pitch and
+        a coach evaluates how it held up; leave it blank and the committee
+        debates on its own.
       </p>
 
       <div className="section" style={{ paddingTop: 0 }}>
@@ -169,19 +169,19 @@ export default function SetupPage() {
             className={`btn ${mode === "pick" ? "" : "secondary"}`}
             onClick={() => setMode("pick")}
           >
-            Escolher conta
+            Choose account
           </button>
           <button
             className={`btn ${mode === "manual" ? "" : "secondary"}`}
             onClick={() => setMode("manual")}
           >
-            Digitar manualmente
+            Enter manually
           </button>
         </div>
 
         {mode === "pick" && (
           <div className="field" style={{ maxWidth: 480 }}>
-            <label>Conta</label>
+            <label>Account</label>
             <select value={selectedId} onChange={(e) => setSelectedId(e.target.value)}>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>
@@ -195,8 +195,8 @@ export default function SetupPage() {
                   <strong>Pitch:</strong> {pickedAccount.pitch_summary}
                 </p>
                 <p className="body-text" style={{ margin: 0 }}>
-                  <strong>Comitê:</strong>{" "}
-                  {pickedAccount.roles_in_committee.map((r) => ROLE_LABEL_PT[r]).join(", ")}
+                  <strong>Committee:</strong>{" "}
+                  {pickedAccount.roles_in_committee.map((r) => ROLE_LABEL[r]).join(", ")}
                 </p>
               </div>
             )}
@@ -207,31 +207,31 @@ export default function SetupPage() {
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 32 }}>
             <div>
               <div className="field">
-                <label>Empresa</label>
+                <label>Company</label>
                 <input
                   value={manual.account_name}
                   onChange={(e) => setManual({ ...manual, account_name: e.target.value })}
-                  placeholder="Ex: iFood"
+                  placeholder="E.g.: Acme Corp"
                 />
               </div>
               <div className="field">
-                <label>Resumo do pitch</label>
+                <label>Pitch summary</label>
                 <textarea
                   value={manual.pitch_summary}
                   onChange={(e) => setManual({ ...manual, pitch_summary: e.target.value })}
-                  placeholder="O que está sendo vendido e para quem"
+                  placeholder="What's being sold and to whom"
                 />
               </div>
               <div className="field">
-                <label>Solução proposta</label>
+                <label>Proposed solution</label>
                 <textarea
                   value={manual.proposed_solution}
                   onChange={(e) => setManual({ ...manual, proposed_solution: e.target.value })}
-                  placeholder="Detalhes técnicos/comerciais da proposta"
+                  placeholder="Technical/commercial details of the proposal"
                 />
               </div>
               <div className="field">
-                <label>Papéis no comitê</label>
+                <label>Committee roles</label>
                 <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
                   {ALL_ROLES.map((role) => (
                     <button
@@ -245,7 +245,7 @@ export default function SetupPage() {
                       }
                       onClick={() => toggleCommitteeRole(role)}
                     >
-                      {ROLE_LABEL_PT[role]}
+                      {ROLE_LABEL[role]}
                     </button>
                   ))}
                 </div>
@@ -253,33 +253,33 @@ export default function SetupPage() {
             </div>
 
             <div>
-              <p className="h3">Stakeholder real (digital twin)</p>
+              <p className="h3">Real stakeholder (digital twin)</p>
               <div className="field">
-                <label>Qual papel é o stakeholder real?</label>
+                <label>Which role is the real stakeholder?</label>
                 <select value={realRole} onChange={(e) => setRealRole(e.target.value as StakeholderRole)}>
                   {manual.roles_in_committee.map((r) => (
                     <option key={r} value={r}>
-                      {ROLE_LABEL_PT[r]}
+                      {ROLE_LABEL[r]}
                     </option>
                   ))}
                 </select>
               </div>
               <div className="field">
-                <label>Nome do stakeholder</label>
+                <label>Stakeholder name</label>
                 <input
                   value={realName}
                   onChange={(e) => setRealName(e.target.value)}
-                  placeholder="Ex: Diego Barreto"
+                  placeholder="E.g.: Jane Doe"
                 />
               </div>
               <div className="field">
-                <label>EXA API Key (opcional, para pesquisa automática)</label>
+                <label>EXA API key (optional, for automatic research)</label>
                 <input
                   type="password"
                   value={exaKey}
                   onChange={(e) => setExaKey(e.target.value)}
                 />
-                <div className="hint">Usada só em memória nesta sessão — não é salva.</div>
+                <div className="hint">Only kept in memory for this session — never saved.</div>
               </div>
               <button
                 type="button"
@@ -288,7 +288,7 @@ export default function SetupPage() {
                 disabled={researching}
                 style={{ marginBottom: 16 }}
               >
-                {researching ? "Pesquisando..." : "🔎 Pesquisar fatos com EXA"}
+                {researching ? "Researching..." : "🔎 Research facts with EXA"}
               </button>
               {researchError && (
                 <div className="flag" style={{ marginBottom: 16 }}>
@@ -296,15 +296,15 @@ export default function SetupPage() {
                 </div>
               )}
               <div className="field">
-                <label>Fatos conhecidos (um por linha)</label>
+                <label>Known facts (one per line)</label>
                 <textarea
                   value={realFacts}
                   onChange={(e) => setRealFacts(e.target.value)}
-                  placeholder={"Ex: Assumiu como CEO em 2026\nFoco declarado em IA generativa"}
+                  placeholder={"E.g.: Took over as CEO in 2026\nPublicly focused on generative AI"}
                   style={{ minHeight: 120 }}
                 />
                 <div className="hint">
-                  Sem fatos, esse papel também cai para o arquétipo genérico.
+                  Without facts, this role also falls back to the generic archetype.
                 </div>
               </div>
             </div>
@@ -314,23 +314,23 @@ export default function SetupPage() {
 
       <div className="section">
         <div className="field" style={{ maxWidth: 640 }}>
-          <label>Sua fala de abertura (opcional)</label>
+          <label>Your opening statement (optional)</label>
           <textarea
             value={sellerOpening}
             onChange={(e) => setSellerOpening(e.target.value)}
-            placeholder="Cole o pitch como você vai dizer. Se preenchido, as personas reagem às suas palavras reais e um Coach avalia seu pitch no final."
+            placeholder="Paste the pitch as you'll actually say it. If filled in, the personas react to your real words and a Coach evaluates your pitch at the end."
             style={{ minHeight: 110 }}
           />
         </div>
 
         <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-end" }}>
           <div className="field" style={{ width: 320 }}>
-            <label>Anthropic API Key</label>
+            <label>Anthropic API key</label>
             <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
-            <div className="hint">Usada só em memória nesta sessão — não é salva.</div>
+            <div className="hint">Only kept in memory for this session — never saved.</div>
           </div>
           <div className="field" style={{ width: 200 }}>
-            <label>Máximo de rounds: {maxRounds}</label>
+            <label>Max rounds: {maxRounds}</label>
             <input
               type="range"
               min={1}
@@ -348,7 +348,7 @@ export default function SetupPage() {
         )}
 
         <button className="btn" onClick={handleSubmit} disabled={submitting}>
-          {submitting ? "Iniciando..." : "Rodar simulação →"}
+          {submitting ? "Starting..." : "Run simulation →"}
         </button>
       </div>
     </div>

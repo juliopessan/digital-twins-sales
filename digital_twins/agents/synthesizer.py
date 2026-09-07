@@ -5,7 +5,7 @@ import json
 import logging
 
 from digital_twins.config import settings
-from digital_twins.i18n import to_pt_br, to_pt_br_list
+from digital_twins.i18n import to_en, to_en_list
 from digital_twins.llm.client import LLMClient
 from digital_twins.models import DebateVerdict, SellerCoaching, Sentiment, StakeholderRole
 from digital_twins.orchestration.state import BoardState
@@ -13,33 +13,34 @@ from digital_twins.orchestration.state import BoardState
 logger = logging.getLogger(__name__)
 
 _SYNTHESIS_SYSTEM_PROMPT = """\
-Você está sintetizando a transcrição de um debate simulado de comitê de
-compra em um veredito acionável para o vendedor que vai enfrentar esse
-comitê de verdade.
+You are synthesizing the transcript of a simulated buying committee debate
+into an actionable verdict for the salesperson who will face this
+committee for real.
 
-Além do veredito geral, avalie o debate sob a ótica do framework de vendas
-enterprise MEDDPICC — mas SÓ para as dimensões que o debate realmente
-revelou evidência (não invente avaliação para o que não apareceu):
-- "Metrics": foi possível provar ROI/métricas concretas para quem decide o orçamento?
-- "Economic Buyer": o stakeholder de maior poder de veto tendeu a bloquear ou apoiar, e por quê?
-- "Identify Pain": a dor técnica/operacional levantada foi endereçada por algum outro stakeholder (ex: o Champion) durante o debate?
-- "Champion": o Champion interno (se houver) trouxe munição real ou só ficou na defensiva?
-Inclua apenas as dimensões acima que tiverem evidência clara na transcrição.
+Beyond the overall verdict, assess the debate through the lens of the
+MEDDPICC enterprise sales framework — but ONLY for the dimensions the
+debate actually revealed evidence for (do not invent an assessment for
+what didn't come up):
+- "Metrics": was it possible to prove concrete ROI/metrics for whoever owns the budget decision?
+- "Economic Buyer": did the highest-veto-power stakeholder lean toward blocking or supporting, and why?
+- "Identify Pain": was the technical/operational pain raised addressed by any other stakeholder (e.g. the Champion) during the debate?
+- "Champion": did the internal Champion (if any) bring real ammunition or just stay on the defensive?
+Include only the dimensions above that have clear evidence in the transcript.
 
-Retorne ESTRITAMENTE um objeto JSON com este formato. As CHAVES e os
-VALORES de "overall_sentiment" e "blocking_stakeholders" devem ficar
-exatamente em inglês, como mostrado abaixo — apenas o CONTEÚDO textual
-(objeções, talk track, resumo de risco, scorecard) deve estar em português:
+Return STRICTLY a JSON object in this format. The KEYS and the VALUES of
+"overall_sentiment" and "blocking_stakeholders" must stay exactly in
+English, as shown below — all textual CONTENT (objections, talk track,
+risk summary, scorecard) should be in English as well:
 {
   "consensus_reached": bool,
   "overall_sentiment": "supportive" | "neutral" | "skeptical" | "blocking",
-  "top_objections": [string, ...],          // em português
-  "blocking_stakeholders": [string, ...]    // DEVE usar apenas estes valores exatos de papel:
+  "top_objections": [string, ...],
+  "blocking_stakeholders": [string, ...]    // MUST use only these exact role values:
                                              // "cfo", "cto", "procurement", "end_user",
                                              // "champion", "legal_compliance", "ceo", "security", "salesman"
-  "recommended_talk_track": [string, ...],  // conselho concreto e específico para a próxima call, em português
-  "risk_summary": string,                   // em português
-  "meddpicc_scorecard": {                   // em português, só dimensões com evidência (pode ser {})
+  "recommended_talk_track": [string, ...],  // concrete, specific advice for the next call
+  "risk_summary": string,
+  "meddpicc_scorecard": {                   // only dimensions with evidence (can be {})
     "Metrics": string,
     "Economic Buyer": string,
     "Identify Pain": string,
@@ -47,27 +48,26 @@ exatamente em inglês, como mostrado abaixo — apenas o CONTEÚDO textual
   }
 }
 
-Seja específico e tático. "Endereçar melhor as preocupações" é inútil;
-"Abrir com uma tabela de TCO de 3 anos antes de qualquer demo de feature,
-porque a objeção do CFO foi especificamente sobre custo de integração
-oculto" é útil.
+Be specific and tactical. "Better address the concerns" is useless;
+"Open with a 3-year TCO table before any feature demo, because the CFO's
+objection was specifically about hidden integration cost" is useful.
 """
 
 _SELLER_COACHING_ADDENDUM = """\
 
-IMPORTANTE: houve uma fala de abertura REAL do vendedor (fornecida no início
-do input). Além do veredito acima, atue como um coach de vendas e avalie o
-DESEMPENHO DO VENDEDOR — como as PALAVRAS dele se sustentaram (ou não)
-diante das objeções que o comitê levantou no debate. Não avalie o comitê
-aqui; avalie a pessoa que fez o pitch.
+IMPORTANT: there was a REAL opening statement from the salesperson
+(provided at the start of the input). Beyond the verdict above, act as a
+sales coach and assess the SALESPERSON'S PERFORMANCE — how their WORDS
+held up (or didn't) against the objections the committee raised during the
+debate. Do not assess the committee here; assess the person who gave the
+pitch.
 
-Adicione ao mesmo JSON o campo "seller_coaching" com este formato (tudo em
-português):
+Add to the same JSON the field "seller_coaching" with this format:
 "seller_coaching": {
-  "pitch_grade": string,            // nota curta e honesta, ex: "C+ — forte em ROI, fraco em governança"
-  "what_landed": [string, ...],     // afirmações da fala dele que ressoaram ou não foram contestadas
-  "what_backfired": [string, ...],  // afirmações que foram atacadas e que ele não sustentaria
-  "rewrite_suggestions": [string, ...] // reescritas concretas: "em vez de X, diga Y porque Z"
+  "pitch_grade": string,            // short, honest grade, e.g. "C+ — strong on ROI, weak on governance"
+  "what_landed": [string, ...],     // statements from their pitch that resonated or went unchallenged
+  "what_backfired": [string, ...],  // statements that were attacked and that they couldn't hold up
+  "rewrite_suggestions": [string, ...] // concrete rewrites: "instead of X, say Y because Z"
 }
 """
 
@@ -76,10 +76,10 @@ def _parse_seller_coaching(sc: dict | None) -> SellerCoaching | None:
     if not sc:
         return None
     return SellerCoaching(
-        pitch_grade=to_pt_br(sc.get("pitch_grade", "")),
-        what_landed=to_pt_br_list(sc.get("what_landed", [])),
-        what_backfired=to_pt_br_list(sc.get("what_backfired", [])),
-        rewrite_suggestions=to_pt_br_list(sc.get("rewrite_suggestions", [])),
+        pitch_grade=to_en(sc.get("pitch_grade", "")),
+        what_landed=to_en_list(sc.get("what_landed", [])),
+        what_backfired=to_en_list(sc.get("what_backfired", [])),
+        rewrite_suggestions=to_en_list(sc.get("rewrite_suggestions", [])),
     )
 
 
@@ -87,18 +87,18 @@ def make_synthesize_node(llm: LLMClient, feedback_block: str = ""):
     def synthesize(state: BoardState) -> dict:
         transcript = state.get("transcript", [])
         full_text = "\n".join(
-            f"[Rodada {t.round_number}] {t.name} ({t.sentiment.value}): {t.statement}" for t in transcript
+            f"[Round {t.round_number}] {t.name} ({t.sentiment.value}): {t.statement}" for t in transcript
         )
 
         account = state["account"]
         system_prompt = _SYNTHESIS_SYSTEM_PROMPT
         if feedback_block:
             system_prompt = feedback_block + "\n\n" + system_prompt
-        user_content = f"Transcrição completa:\n{full_text}"
+        user_content = f"Full transcript:\n{full_text}"
         if account.seller_opening:
             system_prompt = _SYNTHESIS_SYSTEM_PROMPT + _SELLER_COACHING_ADDENDUM
             user_content = (
-                f'Fala de abertura do vendedor:\n"{account.seller_opening}"\n\n' + user_content
+                f'Salesperson\'s opening statement:\n"{account.seller_opening}"\n\n' + user_content
             )
 
         raw = llm.complete(
@@ -114,12 +114,12 @@ def make_synthesize_node(llm: LLMClient, feedback_block: str = ""):
             verdict = DebateVerdict(
                 consensus_reached=parsed["consensus_reached"],
                 overall_sentiment=Sentiment(parsed["overall_sentiment"]),
-                top_objections=to_pt_br_list(parsed["top_objections"]),
+                top_objections=to_en_list(parsed["top_objections"]),
                 blocking_stakeholders=[StakeholderRole(r) for r in parsed["blocking_stakeholders"]],
-                recommended_talk_track=to_pt_br_list(parsed["recommended_talk_track"]),
-                risk_summary=to_pt_br(parsed["risk_summary"]),
+                recommended_talk_track=to_en_list(parsed["recommended_talk_track"]),
+                risk_summary=to_en(parsed["risk_summary"]),
                 meddpicc_scorecard={
-                    dim: to_pt_br(assessment)
+                    dim: to_en(assessment)
                     for dim, assessment in parsed.get("meddpicc_scorecard", {}).items()
                 },
                 seller_coaching=_parse_seller_coaching(parsed.get("seller_coaching")),
@@ -129,10 +129,10 @@ def make_synthesize_node(llm: LLMClient, feedback_block: str = ""):
             verdict = DebateVerdict(
                 consensus_reached=False,
                 overall_sentiment=Sentiment.NEUTRAL,
-                top_objections=["A síntese falhou — veja os logs; a transcrição bruta ainda está disponível."],
+                top_objections=["Synthesis failed — check the logs; the raw transcript is still available."],
                 blocking_stakeholders=[],
-                recommended_talk_track=["Rode a síntese de novo ou revise a transcrição manualmente."],
-                risk_summary=f"Erro de parsing do Synthesizer: {exc}",
+                recommended_talk_track=["Re-run the synthesis or review the transcript manually."],
+                risk_summary=f"Synthesizer parsing error: {exc}",
             )
 
         return {"verdict": verdict}

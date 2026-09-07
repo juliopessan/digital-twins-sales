@@ -1,26 +1,27 @@
 """
-Cenários what-if — branch, simulate, compare: trate o deal como código,
-ramifique variantes e compare os resultados lado a lado.
+What-if scenarios — branch, simulate, compare: treat the deal like code,
+branch variants, and compare the outcomes side by side.
 
-A ideia: em vez de rodar UM debate com UM pitch, você declara N variantes do
-deal (preço A vs B, com/sem POC, ancorar em ROI vs risco), cada uma vira um
-"branch" do AccountContext base, todas rodam o mesmo grafo de debate, e o
-resultado é um comparativo lado a lado — "em qual cenário o CFO bloqueia
-menos?" — com um score de risco por cenário.
+The idea: instead of running ONE debate with ONE pitch, you declare N
+variants of the deal (price A vs B, with/without a POC, anchoring on ROI vs
+risk), each becomes a "branch" of the base AccountContext, all of them run
+the same debate graph, and the result is a side-by-side comparison — "in
+which scenario does the CFO block least?" — with a risk score per scenario.
 
-Uso via CLI:
+CLI usage:
 
-    python -m digital_twins.main --scenarios cenarios.json
+    python -m digital_twins.main --scenarios scenarios.json
 
-onde cenarios.json é uma lista de ScenarioSpec:
+where scenarios.json is a list of ScenarioSpec:
 
     [
-      {"name": "preco-cheio", "description": "Proposta como está"},
-      {"name": "com-poc", "proposed_solution": "... POC paga de 6 semanas ...",
+      {"name": "full-price", "description": "Proposal as-is"},
+      {"name": "with-poc", "proposed_solution": "... 6-week paid POC ...",
        "deal_value_usd": 90000}
     ]
 
-Campos omitidos herdam do AccountContext base (o branch só carrega o delta).
+Omitted fields inherit from the base AccountContext (the branch only carries
+the delta).
 """
 from __future__ import annotations
 
@@ -41,7 +42,7 @@ from digital_twins.models import (
 
 logger = logging.getLogger(__name__)
 
-# Peso de cada sentimento no score de risco (maior = pior para o deal).
+# Weight of each sentiment in the risk score (higher = worse for the deal).
 _SENTIMENT_RISK = {
     Sentiment.SUPPORTIVE: 0.0,
     Sentiment.NEUTRAL: 1.0,
@@ -51,7 +52,7 @@ _SENTIMENT_RISK = {
 
 
 class ScenarioSpec(BaseModel):
-    """Um branch do deal: só os campos presentes sobrescrevem o AccountContext base."""
+    """A branch of the deal: only the fields present override the base AccountContext."""
 
     name: str
     description: str = ""
@@ -71,22 +72,23 @@ class ScenarioSpec(BaseModel):
 
 
 class ScenarioOutcome(BaseModel):
-    """Resultado de um branch: veredito + transcrição + score de risco agregado."""
+    """Result of a branch: verdict + transcript + aggregate risk score."""
 
     scenario: ScenarioSpec
     verdict: DebateVerdict
     transcript: list[DebateTurn] = Field(default_factory=list)
     risk_score: float = Field(
         default=0.0,
-        description="Agregado (menor = melhor): sentimento geral + nº de bloqueadores + falta de consenso.",
+        description="Aggregate (lower = better): overall sentiment + number of blockers + lack of consensus.",
     )
 
 
 def compute_risk_score(verdict: DebateVerdict) -> float:
-    """Score simples e comparável entre cenários (menor = melhor).
+    """Simple score comparable across scenarios (lower = better).
 
-    Não é probabilidade — é um ranking interno: sentimento geral pesa até 3,
-    cada stakeholder bloqueador soma 1, falta de consenso soma 1.
+    It is not a probability — it's an internal ranking: overall sentiment
+    weighs up to 3, each blocking stakeholder adds 1, lack of consensus
+    adds 1.
     """
     score = _SENTIMENT_RISK.get(verdict.overall_sentiment, 1.0)
     score += float(len(verdict.blocking_stakeholders))
@@ -103,13 +105,13 @@ def run_scenarios(
     max_rounds: int = 3,
     max_workers: int = 3,
 ) -> list[ScenarioOutcome]:
-    """Roda o grafo de debate uma vez por cenário e devolve os resultados ordenados por risco.
+    """Runs the debate graph once per scenario and returns the outcomes sorted by risk.
 
-    Cada cenário reconstrói o próprio comitê (o seller_opening/pitch entram no
-    system prompt das personas), então os branches são totalmente independentes
-    e podem rodar em paralelo.
+    Each scenario rebuilds its own committee (the seller_opening/pitch feed
+    into the personas' system prompt), so the branches are fully independent
+    and can run in parallel.
     """
-    # Imports locais para evitar ciclo (graph -> agents -> ... não importa scenarios).
+    # Local imports to avoid a cycle (graph -> agents -> ... does not import scenarios).
     from digital_twins.orchestration.graph import build_board_graph
     from digital_twins.personas.resolver import PersonaFactory
 
@@ -118,7 +120,7 @@ def run_scenarios(
     def _run_one(spec: ScenarioSpec) -> ScenarioOutcome:
         account = spec.apply(base_account)
         personas: list[StakeholderProfile] = PersonaFactory.build_committee(account)
-        logger.info("Rodando cenário %r ...", spec.name)
+        logger.info("Running scenario %r ...", spec.name)
         final_state = app.invoke(
             {
                 "account": account,
@@ -148,13 +150,13 @@ def run_scenarios(
 def build_comparison_markdown(
     base_account: AccountContext, outcomes: list[ScenarioOutcome]
 ) -> str:
-    """Comparativo lado a lado dos cenários, já ordenados por risco (melhor primeiro)."""
+    """Side-by-side comparison of the scenarios, already sorted by risk (best first)."""
     lines = [
-        f"# Comparativo de cenários — {base_account.account_name}",
+        f"# Scenario Comparison — {base_account.account_name}",
         "",
-        f"Estágio do deal: {base_account.deal_stage}",
+        f"Deal stage: {base_account.deal_stage}",
         "",
-        "| Cenário | Risco | Sentimento | Consenso | Bloqueadores | Objeção nº 1 |",
+        "| Scenario | Risk | Sentiment | Consensus | Blockers | Top Objection |",
         "|---|---|---|---|---|---|",
     ]
     for o in outcomes:
@@ -163,25 +165,25 @@ def build_comparison_markdown(
         top = v.top_objections[0] if v.top_objections else "—"
         lines.append(
             f"| {o.scenario.name} | {o.risk_score:.1f} | {v.overall_sentiment.value} "
-            f"| {'sim' if v.consensus_reached else 'não'} | {blockers} | {top} |"
+            f"| {'yes' if v.consensus_reached else 'no'} | {blockers} | {top} |"
         )
 
     best = outcomes[0]
     lines += [
         "",
-        f"**Cenário recomendado: `{best.scenario.name}`** (menor risco agregado: {best.risk_score:.1f}).",
+        f"**Recommended scenario: `{best.scenario.name}`** (lowest aggregate risk: {best.risk_score:.1f}).",
         "",
     ]
 
     for o in outcomes:
         v = o.verdict
-        lines += [f"## Cenário: {o.scenario.name}", ""]
+        lines += [f"## Scenario: {o.scenario.name}", ""]
         if o.scenario.description:
             lines += [f"_{o.scenario.description}_", ""]
-        lines += ["Principais objeções:", ""]
-        lines += [f"- {obj}" for obj in v.top_objections] or ["- (nenhuma)"]
-        lines += ["", "Talk track recomendado:", ""]
+        lines += ["Top objections:", ""]
+        lines += [f"- {obj}" for obj in v.top_objections] or ["- (none)"]
+        lines += ["", "Recommended talk track:", ""]
         lines += [f"- {t}" for t in v.recommended_talk_track]
-        lines += ["", f"Risco: {v.risk_summary}", ""]
+        lines += ["", f"Risk: {v.risk_summary}", ""]
 
     return "\n".join(lines)

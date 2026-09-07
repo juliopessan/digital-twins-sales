@@ -1,19 +1,19 @@
 {
   "account_name": "Magazine Luiza (Magalu)",
-  "deal_stage": "Diagnóstico técnico em andamento, apresentação ao comitê prevista para o próximo trimestre",
-  "pitch_summary": "Plataforma multiagente de Gen AI para automatizar a conciliação fiscal e logística entre o Magalog e mais de 90 clientes externos de transportadora, eliminando o gargalo manual de conferência de NF-e/CT-e que hoje limita a escalada da operação de logística como serviço.",
-  "proposed_solution": "Pipeline agêntico na Azure com agentes de leitura de documento fiscal, reconciliação de frete e tratamento de exceções com supervisão humana, integrado aos 175 hubs de cross-docking e 21 centros de distribuição. Implementação de 20 semanas, US$ 580 mil no Ano 1 (licença + serviços).",
+  "deal_stage": "Technical assessment in progress, committee presentation expected next quarter",
+  "pitch_summary": "Multi-agent Gen AI platform to automate tax and logistics reconciliation between Magalog and more than 90 external carrier clients, eliminating the manual bottleneck of NF-e/CT-e (Brazilian tax and freight document) reconciliation that today limits the scaling of the logistics-as-a-service operation.",
+  "proposed_solution": "Agentic pipeline on Azure with tax-document reading, freight reconciliation, and exception-handling agents under human supervision, integrated with 175 cross-docking hubs and 21 distribution centers. 20-week implementation, US$580k in Year 1 (license + services).",
   "deal_value_usd": 580000,
   "roles_in_committee": ["ceo", "cto", "cfo", "procurement"],
   "real_data": {
     "ceo": [
-      "Frederico Trajano é CEO do Magalu desde 2016, tendo iniciado sua trajetória na empresa no começo dos anos 2000, ajudando a estruturar o e-commerce",
-      "Criou o Luizalabs, laboratório de tecnologia da companhia, hoje referência em digitalização no varejo brasileiro",
-      "Em comunicações públicas recentes, posiciona a companhia como líder da 'revolução do ia-commerce', sucessora natural do e-commerce e do mobile-commerce",
-      "Sob sua gestão, o Magalu registrou R$ 65 bilhões em vendas totais em 2024 (72% via e-commerce), com 1.245 lojas físicas, 21 centros de distribuição e 175 hubs de cross-docking, atendendo 37 milhões de clientes em 917 cidades",
-      "A unidade de logística como serviço, Magalog, cresceu 47% em receita em 2025 e hoje atende mais de 90 clientes de mercado sem relação com o ecossistema Magalu, além de operar as marcas do próprio grupo",
-      "Trajano transformou um caixa líquido negativo de R$ 0,5 bilhão em um saldo positivo de R$ 3,1 bilhões, associando crescimento a disciplina financeira, e completou uma década à frente da companhia em 2025",
-      "Dado esse histórico de expansão via ecossistema tecnológico próprio (Luizalabs, Magalog, Magalu Cloud, Magalu Ads), tende a avaliar propostas de automação pela lente de 'isso acelera a escala do Magalog como plataforma de logística para terceiros ou é apenas eficiência interna incremental?'"
+      "Frederico Trajano has been CEO of Magalu since 2016, having started his career at the company in the early 2000s helping build out its e-commerce",
+      "Created Luizalabs, the company's technology lab, today a benchmark for digitalization in Brazilian retail",
+      "In recent public communications, positions the company as a leader of the 'ia-commerce revolution,' the natural successor to e-commerce and mobile-commerce",
+      "Under his leadership, Magalu posted R$65 billion in total sales in 2024 (72% via e-commerce), with 1,245 physical stores, 21 distribution centers, and 175 cross-docking hubs, serving 37 million customers across 917 cities",
+      "The logistics-as-a-service unit, Magalog, grew 47% in revenue in 2025 and now serves more than 90 market clients unrelated to the Magalu ecosystem, in addition to operating the group's own brands",
+      "Trajano turned a negative net cash position of R$0.5 billion into a positive balance of R$3.1 billion, pairing growth with financial discipline, and completed a decade leading the company in 2025",
+      "Given this track record of expansion via a proprietary technology ecosystem (Luizalabs, Magalog, Magalu Cloud, Magalu Ads), he tends to evaluate automation proposals through the lens of 'does this accelerate Magalog's scale as a third-party logistics platform, or is it just incremental internal efficiency?'"
     ]
   }
 }

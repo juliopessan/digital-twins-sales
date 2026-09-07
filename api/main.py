@@ -75,7 +75,7 @@ def list_accounts() -> list[dict]:
 def get_account(account_id: str) -> dict:
     path = ACCOUNTS_DIR / f"{account_id}.json"
     if not path.exists():
-        raise HTTPException(404, f"Conta '{account_id}' não encontrada.")
+        raise HTTPException(404, f"Account '{account_id}' not found.")
     data = json.loads(path.read_text(encoding="utf-8"))
     return AccountContext.model_validate(data).model_dump(mode="json")
 
@@ -93,7 +93,7 @@ class RunRequest(BaseModel):
 @app.post("/api/runs")
 def create_run(payload: RunRequest) -> dict:
     if not payload.api_key.strip():
-        raise HTTPException(400, "Informe a Anthropic API Key.")
+        raise HTTPException(400, "Please provide the Anthropic API key.")
     run_id = start_run(payload.account, payload.api_key, payload.max_rounds)
     return {"run_id": run_id}
 
@@ -102,7 +102,7 @@ def create_run(payload: RunRequest) -> dict:
 def get_run(run_id: str) -> dict:
     run = runs.get(run_id)
     if run is None:
-        raise HTTPException(404, "Run não encontrada.")
+        raise HTTPException(404, "Run not found.")
     return run.snapshot()
 
 
@@ -133,10 +133,10 @@ def get_run_report_html(run_id: str) -> str:
 def _require_result(run_id: str) -> dict:
     run = runs.get(run_id)
     if run is None:
-        raise HTTPException(404, "Run não encontrada.")
+        raise HTTPException(404, "Run not found.")
     snap = run.snapshot()
     if snap["status"] != "done" or snap["result"] is None:
-        raise HTTPException(409, "Run ainda não concluída.")
+        raise HTTPException(409, "Run not finished yet.")
     return snap["result"]
 
 

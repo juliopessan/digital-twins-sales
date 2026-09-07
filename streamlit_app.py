@@ -72,11 +72,11 @@ SENTIMENT_COLOR = {
     "skeptical": "#FFB414",
     "blocking": "#C80000",
 }
-SENTIMENT_LABEL_PT = {
-    "supportive": "Favorável",
-    "neutral": "Neutro",
-    "skeptical": "Cético",
-    "blocking": "Bloqueador",
+SENTIMENT_LABEL_EN = {
+    "supportive": "Supportive",
+    "neutral": "Neutral",
+    "skeptical": "Skeptical",
+    "blocking": "Blocking",
 }
 
 
@@ -88,14 +88,14 @@ def _role_color(role_value: str) -> str:
 def _sample_account() -> AccountContext:
     return AccountContext(
         account_name="Northwind Logistics",
-        deal_stage="Proposta enviada, aguardando revisão do comitê",
+        deal_stage="Proposal sent, awaiting committee review",
         pitch_summary=(
-            "Plataforma multiagente de Gen AI para automatizar o processamento de documentos de frete, "
-            "substituindo uma equipe de revisão manual de 14 pessoas por uma equipe de supervisão de 3."
+            "Multi-agent Gen AI platform to automate freight document processing, "
+            "replacing a 14-person manual review team with a 3-person oversight team."
         ),
         proposed_solution=(
-            "Pipeline agêntico hospedado na Azure: agentes de OCR + extração + tratamento de exceções "
-            "com humano no loop, implementação de 18 semanas, $640 mil no Ano 1 (licença + serviços)."
+            "Agentic pipeline hosted on Azure: OCR + extraction + exception-handling agents "
+            "with a human in the loop, 18-week rollout, $640K in Year 1 (license + services)."
         ),
         deal_value_usd=640_000,
         roles_in_committee=[
@@ -106,9 +106,9 @@ def _sample_account() -> AccountContext:
         ],
         real_data={
             StakeholderRole.CFO: [
-                "Publicou no LinkedIn no trimestre passado sobre 'fazer mais com menos' após um congelamento de contratações",
-                "Já rejeitou um fornecedor de automação parecido por matemática de ROI pouco clara",
-                "Reporta a um CEO que assumiu publicamente o compromisso de reduzir o opex em 15% neste ano fiscal",
+                "Posted on LinkedIn last quarter about 'doing more with less' after a hiring freeze",
+                "Already rejected a similar automation vendor over unclear ROI math",
+                "Reports to a CEO who publicly committed to cutting opex 15% this fiscal year",
             ]
         },
     )
@@ -234,10 +234,10 @@ def render_hero(account: AccountContext) -> None:
         f"""
         <div class="dt-hero">
             <div class="kicker">Sales Digital Twins · Board Simulator</div>
-            <h1>Simulação de comitê — <b>{html.escape(account.account_name)}</b></h1>
+            <h1>Committee simulation — <b>{html.escape(account.account_name)}</b></h1>
             <div class="lede">{html.escape(account.pitch_summary)}</div>
             <div class="lede" style="margin-top:8px; font-weight:600;">
-                Estágio: {html.escape(account.deal_stage)} &nbsp;·&nbsp; Valor: {value}
+                Stage: {html.escape(account.deal_stage)} &nbsp;·&nbsp; Value: {value}
             </div>
         </div>
         """,
@@ -246,16 +246,16 @@ def render_hero(account: AccountContext) -> None:
 
 
 def render_arc(verdict) -> None:
-    consensus = "Sim" if verdict.consensus_reached else "Não"
-    sentiment = SENTIMENT_LABEL_PT.get(verdict.overall_sentiment.value, verdict.overall_sentiment.value)
+    consensus = "Yes" if verdict.consensus_reached else "No"
+    sentiment = SENTIMENT_LABEL_EN.get(verdict.overall_sentiment.value, verdict.overall_sentiment.value)
     blockers = len(verdict.blocking_stakeholders)
     st.markdown(
         f"""
         <div class="dt-arc">
-            <div class="dt-arc-cell"><div class="dt-arc-big">{consensus}</div><div class="dt-arc-label">Consenso atingido</div></div>
-            <div class="dt-arc-cell"><div class="dt-arc-big">{sentiment}</div><div class="dt-arc-label">Sentimento geral</div></div>
-            <div class="dt-arc-cell"><div class="dt-arc-big">{blockers}</div><div class="dt-arc-label">Stakeholders bloqueadores</div></div>
-            <div class="dt-arc-cell"><div class="dt-arc-big">{len(verdict.top_objections)}</div><div class="dt-arc-label">Objeções levantadas</div></div>
+            <div class="dt-arc-cell"><div class="dt-arc-big">{consensus}</div><div class="dt-arc-label">Consensus reached</div></div>
+            <div class="dt-arc-cell"><div class="dt-arc-big">{sentiment}</div><div class="dt-arc-label">Overall sentiment</div></div>
+            <div class="dt-arc-cell"><div class="dt-arc-big">{blockers}</div><div class="dt-arc-label">Blocking stakeholders</div></div>
+            <div class="dt-arc-cell"><div class="dt-arc-big">{len(verdict.top_objections)}</div><div class="dt-arc-label">Objections raised</div></div>
         </div>
         """,
         unsafe_allow_html=True,
@@ -300,18 +300,18 @@ def render_pixel_office(transcript) -> None:
     """Renders the transcript as a standalone HTML document inside a
     components.html iframe. st.markdown(unsafe_allow_html=True) can lose
     track mid-document (a blank line between divs ends the "raw HTML block"
-    early) and st.html sanitiza/inline o conteúdo sem isolamento — o iframe
-    do components.html evita os dois problemas e ganha scroll próprio."""
+    early) and st.html sanitizes/inlines the content without isolation — the
+    components.html iframe avoids both problems and gets its own scroll."""
     parts = ['<div class="pixel-office">']
     last_round = 0
     for turn in transcript:
         if turn.round_number != last_round:
             last_round = turn.round_number
-            parts.append(f'<div class="pixel-round-label">RODADA {last_round}</div>')
+            parts.append(f'<div class="pixel-round-label">ROUND {last_round}</div>')
         icon = ROLE_ICON.get(turn.role, "🧑")
         color = _role_color(turn.role.value)
         sent_color = SENTIMENT_COLOR.get(turn.sentiment.value, "#666")
-        sent_label = SENTIMENT_LABEL_PT.get(turn.sentiment.value, turn.sentiment.value)
+        sent_label = SENTIMENT_LABEL_EN.get(turn.sentiment.value, turn.sentiment.value)
         parts.append(
             f"""<div class="pixel-turn">
                 <div class="pixel-avatar" style="background:{color};">{icon}</div>
@@ -324,7 +324,7 @@ def render_pixel_office(transcript) -> None:
     parts.append("</div>")
     inner_html = "".join(parts)
     full_html = f'<!DOCTYPE html><html><head><meta charset="utf-8"><style>{_PIXEL_TRANSCRIPT_CSS}</style></head><body>{inner_html}</body></html>'
-    # Altura proporcional ao nº de falas, com teto — acima disso o iframe rola.
+    # Height proportional to the number of turns, with a cap — above that the iframe scrolls.
     height = min(900, 120 + 130 * max(1, len(transcript)))
     components.html(full_html, height=height, scrolling=True)
 
@@ -375,9 +375,9 @@ def _run_debate_with_events(app, initial_state: dict, q: Queue) -> None:
 
 
 def render_office(personas, log: list[dict]) -> None:
-    """IMPORTANTE: o canvas do office é JavaScript puro (requestAnimationFrame,
-    sprites, BFS). st.html NÃO executa <script> — renderizava um bloco vazio.
-    components.html roda num iframe com JS habilitado."""
+    """IMPORTANT: the office canvas is pure JavaScript (requestAnimationFrame,
+    sprites, BFS). st.html does NOT execute <script> — it rendered an empty
+    block. components.html runs in an iframe with JS enabled."""
     agent_defs = build_agent_defs(personas)
     layout, ncols, nrows = build_layout(len(personas))
     keys = [d["key"] for d in agent_defs]
@@ -399,15 +399,15 @@ def render_roadmap(items: list[str]) -> None:
         )
 
 
-_ROLE_LABEL_PT = {
+_ROLE_LABEL_EN = {
     StakeholderRole.CEO: "CEO",
     StakeholderRole.CTO: "CTO",
     StakeholderRole.CFO: "CFO",
     StakeholderRole.PROCUREMENT: "Procurement",
-    StakeholderRole.CHAMPION: "Champion interno",
-    StakeholderRole.END_USER: "Usuário final",
-    StakeholderRole.LEGAL_COMPLIANCE: "Jurídico/Compliance",
-    StakeholderRole.SECURITY: "Segurança",
+    StakeholderRole.CHAMPION: "Internal Champion",
+    StakeholderRole.END_USER: "End User",
+    StakeholderRole.LEGAL_COMPLIANCE: "Legal/Compliance",
+    StakeholderRole.SECURITY: "Security",
 }
 
 
@@ -416,46 +416,46 @@ def render_manual_account_form() -> AccountContext | None:
     roles, and one real stakeholder (name + known facts) grounded as the
     digital twin instead of a generic archetype. The facts field can be
     filled by hand or auto-populated via EXA web research."""
-    account_name = st.text_input("Empresa", placeholder="Ex: iFood")
-    pitch_summary = st.text_area("Resumo do pitch", placeholder="O que está sendo vendido e para quem")
-    proposed_solution = st.text_area("Solução proposta", placeholder="Detalhes técnicos/comerciais da proposta")
-    deal_stage = st.text_input("Estágio do deal", value="Proposal sent, awaiting committee review")
-    deal_value = st.number_input("Valor do deal (US$)", min_value=0, value=0, step=10_000)
+    account_name = st.text_input("Company", placeholder="E.g.: iFood")
+    pitch_summary = st.text_area("Pitch summary", placeholder="What's being sold and to whom")
+    proposed_solution = st.text_area("Proposed solution", placeholder="Technical/commercial details of the proposal")
+    deal_stage = st.text_input("Deal stage", value="Proposal sent, awaiting committee review")
+    deal_value = st.number_input("Deal value (US$)", min_value=0, value=0, step=10_000)
 
     committee_roles = st.multiselect(
-        "Papéis no comitê",
+        "Committee roles",
         options=list(StakeholderRole),
         default=[StakeholderRole.CHAMPION, StakeholderRole.CTO, StakeholderRole.CFO, StakeholderRole.PROCUREMENT],
-        format_func=lambda r: _ROLE_LABEL_PT.get(r, r.value),
+        format_func=lambda r: _ROLE_LABEL_EN.get(r, r.value),
     )
 
-    st.markdown("**Stakeholder real (digital twin)**")
+    st.markdown("**Real stakeholder (digital twin)**")
     if not committee_roles:
-        st.caption("Selecione ao menos um papel no comitê acima.")
+        st.caption("Select at least one committee role above.")
         real_role = None
     else:
         real_role = st.selectbox(
-            "Qual papel é o stakeholder real?",
+            "Which role is the real stakeholder?",
             options=committee_roles,
-            format_func=lambda r: _ROLE_LABEL_PT.get(r, r.value),
+            format_func=lambda r: _ROLE_LABEL_EN.get(r, r.value),
         )
-    stakeholder_name = st.text_input("Nome do stakeholder", placeholder="Ex: Diego Barreto")
+    stakeholder_name = st.text_input("Stakeholder name", placeholder="E.g.: Diego Barreto")
 
     exa_key = st.text_input(
-        "EXA API Key (opcional, para pesquisa automática)",
+        "EXA API Key (optional, for automatic research)",
         value=settings.exa_api_key or "",
         type="password",
     )
-    st.caption("Usada só em memória nesta sessão — não é salva em disco.")
-    research_clicked = st.button("🔎 Pesquisar fatos com EXA", use_container_width=True)
+    st.caption("Used only in memory for this session — never saved to disk.")
+    research_clicked = st.button("🔎 Research facts with EXA", use_container_width=True)
 
     if research_clicked:
         if not (account_name and stakeholder_name and real_role and exa_key):
-            st.error("Preencha empresa, nome do stakeholder, papel e a EXA API Key antes de pesquisar.")
+            st.error("Fill in company, stakeholder name, role, and the EXA API Key before researching.")
         else:
-            with st.spinner("Pesquisando fatos públicos..."):
+            with st.spinner("Researching public facts..."):
                 try:
-                    role_label = _ROLE_LABEL_PT.get(real_role, real_role.value)
+                    role_label = _ROLE_LABEL_EN.get(real_role, real_role.value)
                     facts = research_stakeholder(stakeholder_name, role_label, account_name, exa_key)
                     st.session_state["manual_facts_input"] = "\n".join(facts)
                 except ResearchError as exc:
@@ -463,14 +463,14 @@ def render_manual_account_form() -> AccountContext | None:
             st.rerun()
 
     stakeholder_facts = st.text_area(
-        "Fatos conhecidos sobre essa pessoa (um por linha)",
-        placeholder="Ex: Assumiu como CEO em 2026\nFoco declarado em IA generativa e consolidação do iFood Pago",
+        "Known facts about this person (one per line)",
+        placeholder="E.g.: Became CEO in 2026\nStated focus on generative AI and consolidating iFood Pago",
         height=120,
         key="manual_facts_input",
     )
     st.caption(
-        "Sem fatos preenchidos, esse papel também cai para o arquétipo genérico. "
-        "Os demais papéis do comitê são sempre arquétipos."
+        "With no facts filled in, this role also falls back to the generic archetype. "
+        "The other committee roles are always archetypes."
     )
 
     if not account_name or not pitch_summary or not proposed_solution or not committee_roles:
@@ -517,69 +517,69 @@ def _render_objections_with_feedback(verdict, account_slug: str) -> None:
             elif existing["approved"]:
                 st.markdown(f"✅ {obj}")
             else:
-                reason_part = f" *(motivo: {existing['reason']})*" if existing.get("reason") else ""
+                reason_part = f" *(reason: {existing['reason']})*" if existing.get("reason") else ""
                 st.markdown(f"~~{obj}~~{reason_part} ❌")
 
         with col_approve:
             if existing is None:
-                if st.button("👍", key=f"approve_{account_slug}_{i}", help="Aprovar — buscar padrões similares em futuras simulações"):
+                if st.button("👍", key=f"approve_{account_slug}_{i}", help="Approve — look for similar patterns in future simulations"):
                     add_feedback(account_slug, obj, approved=True)
                     st.rerun()
-            elif existing["approved"] and st.button("↩", key=f"undo_approve_{account_slug}_{i}", help="Desfazer aprovação"):
+            elif existing["approved"] and st.button("↩", key=f"undo_approve_{account_slug}_{i}", help="Undo approval"):
                 remove_feedback(account_slug, obj)
                 st.rerun()
 
         with col_reject:
             if existing is None:
-                if st.button("👎", key=f"reject_{account_slug}_{i}", help="Rejeitar — não levantar novamente em futuras simulações"):
+                if st.button("👎", key=f"reject_{account_slug}_{i}", help="Reject — don't raise this again in future simulations"):
                     st.session_state.feedback_modal[i] = {"text": obj, "step": "reason"}
                     st.rerun()
-            elif not existing["approved"] and st.button("↩", key=f"undo_reject_{account_slug}_{i}", help="Desfazer rejeição"):
+            elif not existing["approved"] and st.button("↩", key=f"undo_reject_{account_slug}_{i}", help="Undo rejection"):
                 remove_feedback(account_slug, obj)
                 st.rerun()
 
         # Rejection modal: capture optional reason
         if st.session_state.feedback_modal.get(i, {}).get("step") == "reason":
             with st.container(border=True):
-                st.caption(f"Rejeitando: *{obj}*")
+                st.caption(f"Rejecting: *{obj}*")
                 reason = st.text_input(
-                    "Por que rejeitar? (opcional)",
+                    "Why reject? (optional)",
                     key=f"reason_{account_slug}_{i}",
-                    placeholder="Ex: Já temos WAF que mitiga isso",
+                    placeholder="E.g.: We already have a WAF that mitigates this",
                 )
                 c1, c2 = st.columns(2)
                 with c1:
-                    if st.button("Confirmar rejeição", key=f"confirm_{account_slug}_{i}", type="primary"):
+                    if st.button("Confirm rejection", key=f"confirm_{account_slug}_{i}", type="primary"):
                         add_feedback(account_slug, obj, approved=False, reason=reason or None)
                         del st.session_state.feedback_modal[i]
                         st.rerun()
                 with c2:
-                    if st.button("Cancelar", key=f"cancel_{account_slug}_{i}"):
+                    if st.button("Cancel", key=f"cancel_{account_slug}_{i}"):
                         del st.session_state.feedback_modal[i]
                         st.rerun()
 
     if not verdict.top_objections:
-        st.info("Nenhuma objeção registrada nesta simulação.")
+        st.info("No objections recorded in this simulation.")
 
     used = len(feedback_entries)
     if used > 0:
-        st.caption(f"💾 Feedback desta conta: {used}/{MAX_ENTRIES} entradas · veja a aba 🧠 Memory para detalhes")
+        st.caption(f"💾 Feedback for this account: {used}/{MAX_ENTRIES} entries · see the 🧠 Memory tab for details")
 
 
 def _render_memory_dashboard(account_slug: str) -> None:
     """Memory tab: Feedback Loop dashboard."""
-    st.markdown('<div class="dt-section-bar">Feedback Loop — Sistema Imune</div>', unsafe_allow_html=True)
+    st.markdown('<div class="dt-section-bar">Feedback Loop — Immune System</div>', unsafe_allow_html=True)
     st.markdown(
-        "Inspirado no princípio: *\u201cAgents are 30% of the work. The other 70% is the immune system.\u201d*  \n"
-        "Aprovações e rejeições condicionam simulações futuras via injeção direta no prompt de sistema.",
+        "Inspired by the principle: *\u201cAgents are 30% of the work. The other 70% is the immune system.\u201d*  \n"
+        "Approvals and rejections shape future simulations via direct injection into the system prompt.",
         unsafe_allow_html=False,
     )
 
     all_accounts = all_accounts_with_feedback()
     if not all_accounts:
         st.info(
-            "Nenhum feedback registrado ainda.  \n"
-            "Aprove (👍) ou rejeite (👎) objeções na aba **📋 Veredito** para alimentar o sistema."
+            "No feedback recorded yet.  \n"
+            "Approve (👍) or reject (👎) objections in the **📋 Verdict** tab to feed the system."
         )
         return
 
@@ -589,36 +589,36 @@ def _render_memory_dashboard(account_slug: str) -> None:
     rejected_entries = [e for e in entries if not e["approved"]]
 
     col1, col2, col3 = st.columns(3)
-    col1.metric("📊 Total de entradas", f"{len(entries)}/{MAX_ENTRIES}")
-    col2.metric("✅ Aprovados", len(approved_entries))
-    col3.metric("❌ Rejeitados", len(rejected_entries))
+    col1.metric("📊 Total entries", f"{len(entries)}/{MAX_ENTRIES}")
+    col2.metric("✅ Approved", len(approved_entries))
+    col3.metric("❌ Rejected", len(rejected_entries))
 
     if entries:
-        st.markdown("**Histórico (mais recentes primeiro):**")
+        st.markdown("**History (most recent first):**")
         for e in reversed(entries):
             badge = "✅" if e["approved"] else "❌"
             reason_part = f" — *{e['reason']}*" if e.get("reason") else ""
             st.markdown(f"{badge} `{e['date']}` {e['text']}{reason_part}")
 
         st.markdown("---")
-        if st.button("🗑️ Limpar feedback desta conta", type="secondary", key="clear_feedback_btn"):
+        if st.button("🗑️ Clear feedback for this account", type="secondary", key="clear_feedback_btn"):
             clear_feedback(account_slug)
-            st.success("Feedback desta conta apagado.")
+            st.success("Feedback for this account cleared.")
             st.rerun()
     else:
-        st.info(f"Sem feedback registrado para **{account_slug}** ainda.")
+        st.info(f"No feedback recorded for **{account_slug}** yet.")
 
     # ── Other accounts summary ────────────────────────────────────────────────
     other_accounts = [a for a in all_accounts if a != account_slug]
     if other_accounts:
         st.markdown("---")
-        st.markdown("**Outras contas com feedback:**")
+        st.markdown("**Other accounts with feedback:**")
         for acct in other_accounts:
             acct_entries = load_feedback(acct)
             n_approved = sum(1 for e in acct_entries if e["approved"])
             n_rejected = sum(1 for e in acct_entries if not e["approved"])
             st.markdown(
-                f"- `{acct}` — {len(acct_entries)}/{MAX_ENTRIES} entradas "
+                f"- `{acct}` — {len(acct_entries)}/{MAX_ENTRIES} entries "
                 f"(✅ {n_approved} · ❌ {n_rejected})"
             )
 
@@ -640,13 +640,13 @@ def main() -> None:
         # Theme toggle
         col_theme_label, col_theme_toggle = st.columns([3, 1])
         with col_theme_label:
-            st.header("Configuração da rodada")
+            st.header("Round configuration")
         with col_theme_toggle:
             if "theme_mode" not in st.session_state:
                 st.session_state.theme_mode = "dark"
             
             theme_icon = "🌙" if st.session_state.theme_mode == "dark" else "☀️"
-            if st.button(theme_icon, help="Alternar tema (light/dark)", key="theme_toggle"):
+            if st.button(theme_icon, help="Toggle theme (light/dark)", key="theme_toggle"):
                 st.session_state.theme_mode = "light" if st.session_state.theme_mode == "dark" else "dark"
                 st.rerun()
         
@@ -657,23 +657,23 @@ def main() -> None:
         account_options = {}
         account_files = []
         if ACCOUNTS_DIR.exists():
-            # Só listar JSONs que são de fato AccountContext (objeto JSON) —
-            # a pasta também guarda listas de cenários (ex: cenarios_exemplo.json),
-            # que quebrariam o model_validate na seleção.
+            # Only list JSONs that are actually an AccountContext (JSON object) —
+            # the folder also holds scenario lists (e.g. cenarios_exemplo.json),
+            # which would break model_validate on selection.
             account_files = [
                 f for f in sorted(ACCOUNTS_DIR.glob("*.json"))
                 if f.read_text(encoding="utf-8").lstrip()[:1] == "{"
             ]
             for f in account_files:
                 account_options[f.stem] = ("file", f)
-        account_options["📤 Carregar JSON customizado"] = ("upload", None)
+        account_options["📤 Upload custom JSON"] = ("upload", None)
 
         # Default to first account file if available, else show upload option
         default_index = 0
         if not account_files:
             default_index = len(account_options) - 1  # Point to upload option
 
-        choice = st.selectbox("Conta", list(account_options.keys()), index=default_index)
+        choice = st.selectbox("Account", list(account_options.keys()), index=default_index)
         
         # Load account based on selection
         uploaded = None
@@ -682,26 +682,26 @@ def main() -> None:
 
         if account_type == "file":
             account = AccountContext.model_validate(json.loads(account_path.read_text(encoding="utf-8")))
-            with st.expander("📋 Dados carregados", expanded=False):
-                st.markdown(f"**Empresa:** {account.account_name}")
+            with st.expander("📋 Loaded data", expanded=False):
+                st.markdown(f"**Company:** {account.account_name}")
                 st.markdown(f"**Pitch:** {account.pitch_summary}")
-                st.markdown(f"**Solução:** {account.proposed_solution}")
-                st.markdown(f"**Valor:** US$ {account.deal_value_usd:,.0f}" if account.deal_value_usd else "**Valor:** —")
-                st.markdown(f"**Comitê:** {', '.join(r.value for r in account.roles_in_committee)}")
+                st.markdown(f"**Solution:** {account.proposed_solution}")
+                st.markdown(f"**Value:** US$ {account.deal_value_usd:,.0f}" if account.deal_value_usd else "**Value:** —")
+                st.markdown(f"**Committee:** {', '.join(r.value for r in account.roles_in_committee)}")
         elif account_type == "upload":
             uploaded = st.file_uploader("AccountContext (.json)", type="json")
             if uploaded is not None:
                 account = AccountContext.model_validate(json.load(uploaded))
-                with st.expander("📋 Dados carregados", expanded=True):
-                    st.markdown(f"**Empresa:** {account.account_name}")
+                with st.expander("📋 Loaded data", expanded=True):
+                    st.markdown(f"**Company:** {account.account_name}")
                     st.markdown(f"**Pitch:** {account.pitch_summary}")
-                    st.markdown(f"**Solução:** {account.proposed_solution}")
-                    st.markdown(f"**Valor:** US$ {account.deal_value_usd:,.0f}" if account.deal_value_usd else "**Valor:** —")
-                    st.markdown(f"**Comitê:** {', '.join(r.value for r in account.roles_in_committee)}")
+                    st.markdown(f"**Solution:** {account.proposed_solution}")
+                    st.markdown(f"**Value:** US$ {account.deal_value_usd:,.0f}" if account.deal_value_usd else "**Value:** —")
+                    st.markdown(f"**Committee:** {', '.join(r.value for r in account.roles_in_committee)}")
 
         seller_opening = st.text_area(
-            "Sua fala de abertura (opcional)",
-            placeholder="Cole o pitch como você vai dizer. Se preenchido, as personas reagem às suas palavras reais. Em branco, o comitê debate sozinho (war-gaming).",
+            "Your opening pitch (optional)",
+            placeholder="Paste the pitch as you'll say it. If filled in, the personas react to your real words. Left blank, the committee debates on its own (war-gaming).",
             height=100,
         )
 
@@ -710,7 +710,7 @@ def main() -> None:
             st.session_state.anthropic_api_key = settings.anthropic_api_key or ""
 
         if settings.anthropic_api_key:
-            st.success("✓ API Key carregada de variável de ambiente (.env)")
+            st.success("✓ API Key loaded from environment variable (.env)")
             api_key = settings.anthropic_api_key
         else:
             api_key = st.text_input(
@@ -720,27 +720,27 @@ def main() -> None:
                 key="api_key_input",
                 on_change=lambda: st.session_state.update({"anthropic_api_key": st.session_state.api_key_input}),
             )
-            st.caption("💡 Dica: Adicione sua chave em um arquivo `.env` para carregar automaticamente")
+            st.caption("💡 Tip: Add your key to an `.env` file to load it automatically")
 
-        max_rounds = st.slider("Máximo de rounds", 1, 5, settings.max_rounds)
+        max_rounds = st.slider("Maximum rounds", 1, 5, settings.max_rounds)
 
         # Feedback summary badge
         if account:
             _slug_preview = account.account_name.lower().replace(" ", "-")
             _fb = load_feedback(_slug_preview)
             if _fb:
-                st.caption(f"🧠 Feedback desta conta: {len(_fb)}/{MAX_ENTRIES} entradas")
+                st.caption(f"🧠 Feedback for this account: {len(_fb)}/{MAX_ENTRIES} entries")
 
-        run_clicked = st.button("Rodar simulação", type="primary", use_container_width=True)
+        run_clicked = st.button("Run simulation", type="primary", use_container_width=True)
 
     # ── Run ───────────────────────────────────────────────────────────────────
     if run_clicked:
         if account is None:
-            st.error("Nenhuma conta foi carregada. Selecione uma conta existente ou envie um arquivo customizado.")
+            st.error("No account loaded. Select an existing account or upload a custom file.")
             st.stop()
 
         if not api_key:
-            st.error("Informe a Anthropic API Key na barra lateral antes de rodar.")
+            st.error("Enter the Anthropic API Key in the sidebar before running.")
             st.stop()
 
         if seller_opening.strip():
@@ -763,9 +763,9 @@ def main() -> None:
             "facilitator_decision": "continue",
         }
 
-        st.markdown('<div class="dt-section-bar">Sala de reunião</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dt-section-bar">Meeting room</div>', unsafe_allow_html=True)
         office_container = st.empty()
-        # Layout é fixo durante o run — computa uma vez fora do loop.
+        # Layout is fixed during the run — compute it once outside the loop.
         agent_defs = build_agent_defs(personas)
         layout, ncols, nrows = build_layout(len(personas))
         keys = [d["key"] for d in agent_defs]
@@ -787,12 +787,12 @@ def main() -> None:
         transcript = None
         verdict = None
         error_msg = None
-        with st.spinner("Rodando o debate do comitê..."):
+        with st.spinner("Running the committee debate..."):
             while True:
                 try:
                     ev = q.get(timeout=180)
                 except Empty:
-                    st.error("O debate expirou após 3 minutos.")
+                    st.error("The debate timed out after 3 minutes.")
                     break
                 if ev["event"] in ("start", "done"):
                     log.append(ev)
@@ -802,14 +802,14 @@ def main() -> None:
                     transcript = ev["transcript"]
                     verdict = ev["verdict"]
                 elif ev["event"] == "error":
-                    error_msg = ev.get("error", "erro desconhecido")
+                    error_msg = ev.get("error", "unknown error")
                     log.append(ev)
                     _paint_office(log)
                 elif ev["event"] == "finished":
                     break
 
         if error_msg:
-            st.error(f"Falha no debate: {error_msg}")
+            st.error(f"Debate failed: {error_msg}")
             st.stop()
 
         st.session_state["result"] = {
@@ -824,7 +824,7 @@ def main() -> None:
     # ── Results (tabs) ────────────────────────────────────────────────────────
     result = st.session_state.get("result")
     if not result:
-        st.info("Configure a conta na barra lateral e clique em **Rodar simulação** para começar.")
+        st.info("Configure the account in the sidebar and click **Run simulation** to get started.")
         return
 
     account = result["account"]
@@ -837,86 +837,86 @@ def main() -> None:
     render_hero(account)
 
     tab_sim, tab_office, tab_verdict, tab_coach, tab_export, tab_memory = st.tabs(
-        ["🎯 Simulação", "🎨 Office", "📋 Veredito", "👔 Coach", "📤 Export", "🧠 Memory"]
+        ["🎯 Simulation", "🎨 Office", "📋 Verdict", "👔 Coach", "📤 Export", "🧠 Memory"]
     )
 
-    # ── Tab 🎯 Simulação ──────────────────────────────────────────────────────
+    # ── Tab 🎯 Simulation ─────────────────────────────────────────────────────
     with tab_sim:
         render_arc(verdict)
 
-        st.markdown('<div class="dt-section-bar">Comitê simulado</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dt-section-bar">Simulated committee</div>', unsafe_allow_html=True)
         cols = st.columns(len(personas))
         for col, p in zip(cols, personas):
             with col:
-                source_label = "Dados reais" if p.source.value == "real" else "Arquétipo"
+                source_label = "Real data" if p.source.value == "real" else "Archetype"
                 st.markdown(
                     f"**{ROLE_ICON.get(p.role, '🧑')} {p.name}**  \n"
                     f"{p.role.value} · {source_label}  \nVeto: {p.decision_power:.2f}"
                 )
 
         if account.seller_opening:
-            st.markdown('<div class="dt-section-bar">Sua fala de abertura</div>', unsafe_allow_html=True)
+            st.markdown('<div class="dt-section-bar">Your opening pitch</div>', unsafe_allow_html=True)
             st.info(account.seller_opening)
 
     # ── Tab 🎨 Office ─────────────────────────────────────────────────────────
     with tab_office:
-        st.markdown('<div class="dt-section-bar">Sala de reunião</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dt-section-bar">Meeting room</div>', unsafe_allow_html=True)
         render_office(personas, office_log)
 
-        st.markdown('<div class="dt-section-bar">Transcrição do debate</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dt-section-bar">Debate transcript</div>', unsafe_allow_html=True)
         render_pixel_office(transcript)
 
-    # ── Tab 📋 Veredito ───────────────────────────────────────────────────────
+    # ── Tab 📋 Verdict ────────────────────────────────────────────────────────
     with tab_verdict:
-        st.markdown('<div class="dt-section-bar">Principais objeções</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dt-section-bar">Top objections</div>', unsafe_allow_html=True)
         _render_objections_with_feedback(verdict, account_slug)
 
         # Blockers & Breakthrough Strategies
         if verdict.blocking_stakeholders:
-            st.markdown('<div class="dt-section-bar">Bloqueadores & Contorno</div>', unsafe_allow_html=True)
+            st.markdown('<div class="dt-section-bar">Blockers & Workarounds</div>', unsafe_allow_html=True)
             st.warning(
-                f"**{len(verdict.blocking_stakeholders)} bloqueador(es) identificado(s):**  "
+                f"**{len(verdict.blocking_stakeholders)} blocker(s) identified:**  "
                 f"{', '.join(ROLE_ICON.get(s, '🧑') for s in verdict.blocking_stakeholders)}"
             )
             st.markdown("""
-            **Como contornar:**
-            - Mude de "por que comprar?" para "qual é seu custo de oportunidade do delay?"
-            - Traga TCO de 3 anos comparado com alternativa de make (custo incremental interno)
-            - Quantifique risco: fallback manual, bug fixing, tempo de mercado perdido
-            - Reposicione diferencial: não é "expertise" genérica, é conhecimento proprietário em edge cases específicos
+            **How to work around it:**
+            - Shift from "why buy?" to "what's your opportunity cost of delaying?"
+            - Bring a 3-year TCO compared to the build-it-yourself alternative (internal incremental cost)
+            - Quantify the risk: manual fallback, bug fixing, lost time-to-market
+            - Reposition the differentiator: it's not generic "expertise," it's proprietary knowledge of specific edge cases
             """)
 
         # Consensus Likelihood
         consensus_pct = 100 if verdict.consensus_reached else 0
         if not verdict.consensus_reached:
-            st.markdown('<div class="dt-section-bar">Busca de consenso</div>', unsafe_allow_html=True)
-            st.metric("Consenso", f"{consensus_pct}%")
+            st.markdown('<div class="dt-section-bar">Building consensus</div>', unsafe_allow_html=True)
+            st.metric("Consensus", f"{consensus_pct}%")
             st.markdown(f"""
-            **Diagnóstico:** Sem consensus total.  
-            **Próximos passos:**
-            1. Identifique qual bloqueador (CEO/CFO/CTO/Procurement) é o mais flexível
-            2. Foque em remover 1 objeção crítica antes de avançar
-            3. Use a talk track recomendada abaixo, testada contra cada bloqueador
-            4. Considere uma conversa 1-to-1 com o Economic Buyer (CFO) antes da próxima reunião de comitê
+            **Diagnosis:** No full consensus.  
+            **Next steps:**
+            1. Identify which blocker (CEO/CFO/CTO/Procurement) is the most flexible
+            2. Focus on removing 1 critical objection before moving forward
+            3. Use the recommended talk track below, tested against each blocker
+            4. Consider a 1-to-1 conversation with the Economic Buyer (CFO) before the next committee meeting
             """)
 
         if verdict.meddpicc_scorecard:
-            st.markdown('<div class="dt-section-bar">Scorecard MEDDPICC <span style="font-size:11px; opacity:0.7;">*</span></div>', unsafe_allow_html=True)
+            st.markdown('<div class="dt-section-bar">MEDDPICC Scorecard <span style="font-size:11px; opacity:0.7;">*</span></div>', unsafe_allow_html=True)
             st.markdown("""
             <details>
-            <summary style="cursor:pointer; font-weight:600; color:#FF5800;">O que é MEDDPICC?</summary>
+            <summary style="cursor:pointer; font-weight:600; color:#FF5800;">What is MEDDPICC?</summary>
             <p style="margin-top:8px; font-size:13px; line-height:1.6;">
-            <b>MEDDPICC</b> é o framework de qualificação de oportunidade mais rigoroso do mercado Enterprise:
+            <b>MEDDPICC</b> is the most rigorous opportunity qualification framework in the Enterprise market:
             <ul style="margin:8px 0;">
-            <li><b>Metrics:</b> A empresa tem KPIs claros? Vendedor pode defender números de ROI?</li>
-            <li><b>Economic Buyer:</b> Quem assina o cheque? Consenso com budget owner?</li>
-            <li><b>Decision Criteria:</b> Qual é a prioridade deles (preço, velocidade, suporte)?</li>
-            <li><b>Decision Process:</b> Comitê? RFP? Benchmark? Quanto tempo leva?</li>
-            <li><b>Pain:</b> Dor está real ou foi neutralizada por alternativa interna (make vs. buy)?</li>
-            <li><b>Identified Champion:</b> Quem dentro deles defende sua solução?</li>
-            <li><b>Compelling Reason to Act:</b> Por que NOW? Qual é a urgência vs. fazer internamente?</li>
+            <li><b>Metrics:</b> Does the company have clear KPIs? Can the seller defend ROI numbers?</li>
+            <li><b>Economic Buyer:</b> Who signs the check? Alignment with the budget owner?</li>
+            <li><b>Decision Criteria:</b> What's their priority (price, speed, support)?</li>
+            <li><b>Decision Process:</b> Committee? RFP? Benchmark? How long does it take?</li>
+            <li><b>Pain:</b> Is the pain real, or has it been neutralized by an internal alternative (make vs. buy)?</li>
+            <li><b>Identified Champion:</b> Who inside the company champions your solution?</li>
+            <li><b>Compelling Reason to Act:</b> Why NOW? What's the urgency vs. building it in-house?</li>
             </ul>
-            Score ruim em qualquer dimensão = bloqueador crítico.
+            A poor score on any dimension = critical blocker.
             </p>
             </details>
             """, unsafe_allow_html=True)
@@ -924,45 +924,45 @@ def main() -> None:
             for dimension, assessment in verdict.meddpicc_scorecard.items():
                 st.markdown(f"**{dimension}:**  \n{assessment}\n")
 
-        st.markdown('<div class="dt-section-bar">Plano de ação recomendado</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dt-section-bar">Recommended action plan</div>', unsafe_allow_html=True)
         render_roadmap(verdict.recommended_talk_track)
 
-        st.markdown('<div class="dt-section-bar">Avaliação de risco</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dt-section-bar">Risk assessment</div>', unsafe_allow_html=True)
         st.write(verdict.risk_summary)
 
     # ── Tab 👔 Coach ──────────────────────────────────────────────────────────
     with tab_coach:
         if verdict.seller_coaching:
             sc = verdict.seller_coaching
-            st.markdown('<div class="dt-section-bar">Coach — avaliação do seu pitch</div>', unsafe_allow_html=True)
-            st.markdown(f"**Nota:** {sc.pitch_grade}")
+            st.markdown('<div class="dt-section-bar">Coach — assessment of your pitch</div>', unsafe_allow_html=True)
+            st.markdown(f"**Grade:** {sc.pitch_grade}")
             if sc.what_landed:
-                st.markdown("**O que funcionou:**")
+                st.markdown("**What worked:**")
                 for item in sc.what_landed:
                     st.markdown(f"- {item}")
             if sc.what_backfired:
-                st.markdown("**O que saiu pela culatra:**")
+                st.markdown("**What backfired:**")
                 for item in sc.what_backfired:
                     st.markdown(f"- {item}")
             if sc.rewrite_suggestions:
-                st.markdown("**Sugestões de reescrita:**")
+                st.markdown("**Rewrite suggestions:**")
                 render_roadmap(sc.rewrite_suggestions)
         else:
             st.info(
-                "Preencha **Sua fala de abertura** na barra lateral antes de rodar "
-                "para receber feedback de coach personalizado."
+                "Fill in **Your opening pitch** in the sidebar before running "
+                "to get personalized coach feedback."
             )
 
     # ── Tab 📤 Export ─────────────────────────────────────────────────────────
     with tab_export:
-        st.markdown('<div class="dt-section-bar">Exportar relatório</div>', unsafe_allow_html=True)
+        st.markdown('<div class="dt-section-bar">Export report</div>', unsafe_allow_html=True)
         report_md = build_markdown_report(account, personas, transcript, verdict)
         report_html = build_html_report(account, personas, transcript, verdict)
         slug = account_slug
         dl_col1, dl_col2 = st.columns(2)
         with dl_col1:
             st.download_button(
-                "📄 Baixar relatório (.md)",
+                "📄 Download report (.md)",
                 data=report_md,
                 file_name=f"{slug}-report.md",
                 mime="text/markdown",
@@ -970,7 +970,7 @@ def main() -> None:
             )
         with dl_col2:
             st.download_button(
-                "🌐 Baixar relatório estilizado (.html)",
+                "🌐 Download styled report (.html)",
                 data=report_html,
                 file_name=f"{slug}-report.html",
                 mime="text/html",
@@ -982,10 +982,10 @@ def main() -> None:
         _render_memory_dashboard(account_slug)
 
     st.markdown(
-        '<div class="dt-footnote">Visual: tokens de design proprietário v1.1 · '
-        "Conversa renderizada em estilo pixel-art próprio, inspirado em pixel-agents-hq/pixel-agents "
-        "(reimplementado nativamente — aquele projeto é um visualizador de sessões Claude Code em "
-        "VS Code/terminal, não uma biblioteca Python embutível).</div>",
+        '<div class="dt-footnote">Visual: proprietary design tokens v1.1 · '
+        "Conversation rendered in a custom pixel-art style, inspired by pixel-agents-hq/pixel-agents "
+        "(reimplemented natively — that project is a Claude Code session viewer for "
+        "VS Code/terminal, not an embeddable Python library).</div>",
         unsafe_allow_html=True,
     )
 

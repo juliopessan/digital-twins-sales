@@ -1,341 +1,347 @@
 # Sales Digital Twins — Hierarchical Multi-Agent Stakeholder Debate
 
-![Sales Digital Twins — tela de resultados com o ledger clay/mint do comitê](docs/screenshot-results.png)
+![Sales Digital Twins — results screen with the committee's clay/mint ledger](docs/screenshot-results.png)
 
-Sistema multiagente em Python, orquestrado hierarquicamente via LangGraph,
-que simula debates entre personas de um comitê de compra (CFO, CTO,
-Procurement, Champion, etc.) para apoiar o time de vendas a testar pitch,
-antecipar objeções e calibrar talk track antes de uma reunião real.
+A multi-agent Python system, hierarchically orchestrated via LangGraph,
+that simulates debates between personas on a buying committee (CFO, CTO,
+Procurement, Champion, etc.) to help sales reps stress-test a pitch,
+anticipate objections, and calibrate their talk track before a real meeting.
 
-## 🎬 "A Sala"
+## 🎬 "The Room"
 
-Todo vendedor B2B conhece aquela sala. É onde o maior negócio do trimestre
-vai ser decidido, com o CFO, o CTO e Compras do outro lado da mesa — e uma
-única chance de convencê-los. O problema é que esse comitê existe para
-despedaçar propostas: cada número é questionado, cada promessa é testada, e
-o vendedor quase sempre descobre onde seu pitch tinha furos tarde demais,
-quando o "não" já foi dado. O ensaio real acontece na hora errada, na frente
-das pessoas erradas.
+Every B2B seller knows that room. It's where the biggest deal of the
+quarter gets decided, with the CFO, the CTO, and Procurement on the other
+side of the table — and one shot to convince them. The problem is that
+committee exists to tear proposals apart: every number gets questioned,
+every promise gets tested, and the seller almost always finds out where
+their pitch had holes too late, after the "no" has already been said. The
+real rehearsal happens at the wrong time, in front of the wrong people.
 
-O Digital Twins Sales nasce de uma pergunta simples: e se você pudesse
-entrar nessa sala antes da sala? Em vez de descobrir as objeções na reunião,
-o vendedor as enfrenta antes — contra um comitê de compra sintético que se
-comporta como o real. Cada stakeholder é um gêmeo digital: quando há dados
-reais da conta (de LinkedIn, CRM ou de uma pesquisa automática via EXA), a
-persona é embasada nesses fatos; quando não há, ela cai para um arquétipo
-curado do papel. Não são estereótipos genéricos, e sim personas ancoradas no
-contexto real de mercado.
+Sales Digital Twins was born from a simple question: what if you could
+walk into that room before the room? Instead of discovering objections in
+the actual meeting, the seller faces them beforehand — against a synthetic
+buying committee that behaves like the real one. Each stakeholder is a
+digital twin: when real account data exists (from LinkedIn, CRM, or
+automatic research via EXA), the persona is grounded in those facts; when
+it doesn't, it falls back to a curated archetype for that role. These
+aren't generic stereotypes — they're personas anchored in real market
+context.
 
-E elas não pegam leve. O vendedor cola o próprio pitch de abertura e o
-comitê reage às palavras exatas dele — o CFO cobra os números por trás de um
-"payback em 3 meses", o CTO ataca a integração, Compras exige benchmark.
-Tudo orquestrado por um Facilitador que decide quem fala, quando escalar uma
-objeção bloqueadora e quando o debate chegou ao fim — uma dinâmica de sala de
-reunião de verdade, não respostas isoladas.
+And they don't go easy. The seller pastes their own opening pitch and the
+committee reacts to their exact words — the CFO demands the numbers behind
+a "payback in 3 months," the CTO attacks the integration, Procurement
+demands a benchmark. All of it orchestrated by a Facilitator that decides
+who speaks, when to escalate a blocking objection, and when the debate has
+run its course — a real meeting-room dynamic, not isolated answers.
 
-No fim, o produto entrega o que importa: um veredito acionável. Um scorecard
-MEDDPICC mostra onde o deal está de pé e onde está em risco; e, quando o
-vendedor testou o próprio pitch, um coach avalia o desempenho dele — o que
-ressoou, o que saiu pela culatra e exatamente o que dizer da próxima vez,
-com reescritas linha a linha. O vendedor volta para a sala real com a
-postura de quem já esteve lá.
+In the end, the product delivers what matters: an actionable verdict. A
+MEDDPICC scorecard shows where the deal stands and where it's at risk;
+and, when the seller tested their own pitch, a coach evaluates their
+performance — what landed, what backfired, and exactly what to say next
+time, with line-by-line rewrites. The seller walks back into the real room
+with the posture of someone who's already been there.
 
-É essa a promessa que o produto entrega: **ensaie o pior comitê da sua vida,
-antes que ele seja real.**
+That's the promise the product delivers on: **rehearse the worst committee
+of your life, before it's real.**
 
 ---
 
-Roda em **dois modos**, com o mesmo pipeline:
+Runs in **two modes**, on the same pipeline:
 
-- **War-gaming de deal** (autônomo): o comitê debate sozinho a sua proposta
-  e você lê o relatório. "Antes da call, veja como o comitê vai despedaçar
-  seu deal."
-- **Simulador de treino** (com a sua fala): você cola o seu pitch de
-  abertura, as personas reagem às suas **palavras reais**, e um **Coach**
-  avalia como o pitch se sustentou e reescreve as falas fracas.
+- **Deal war-gaming** (autonomous): the committee debates your proposal on
+  its own and you read the report. "Before the call, see how the committee
+  is going to tear your deal apart."
+- **Training simulator** (with your own pitch): you paste your opening
+  pitch, the personas react to your **real words**, and a **Coach**
+  evaluates how the pitch held up and rewrites the weak lines.
 
-## Conceito chave: fallback real → arquétipo
+## Core concept: real → archetype fallback
 
-Para cada papel no comitê (`AccountContext.roles_in_committee`):
+For each role on the committee (`AccountContext.roles_in_committee`):
 
-- Se `AccountContext.real_data[role]` tiver fatos (de CRM, transcrição de
-  call, LinkedIn, e-mail), a persona é construída como `DataSource.REAL`,
-  com esses fatos injetados diretamente no system prompt do agente.
-- Se não houver dados, cai automaticamente para `DataSource.ARCHETYPE` —
-  uma persona genérica curada em `digital_twins/personas/archetypes.py`.
+- If `AccountContext.real_data[role]` has facts (from CRM, call
+  transcripts, LinkedIn, email), the persona is built as `DataSource.REAL`,
+  with those facts injected directly into the agent's system prompt.
+- If there's no data, it automatically falls back to `DataSource.ARCHETYPE`
+  — a generic persona curated in `digital_twins/personas/archetypes.py`.
 
-Isso significa que o mesmo pipeline funciona tanto para **treino genérico**
-(nenhum dado real, todas as personas são arquétipos) quanto para
-**inteligência de conta real** (CFO grounded em dados reais, resto
-arquétipo) — sem precisar trocar de sistema.
+This means the same pipeline works both for **generic training** (no real
+data, every persona is an archetype) and for **real account intelligence**
+(CFO grounded in real data, the rest archetypes) — with no need to switch
+systems.
 
-## Arquitetura (hierárquica)
+## Architecture (hierarchical)
 
 ```
-START → start_round (Facilitator define ordem de fala)
+START → start_round (Facilitator sets the speaking order)
             ↓
-        persona_turn (uma persona fala por vez, reagindo ao que já foi dito)
-            ↓ (loop até todos falarem na rodada)
-        evaluate_round (Facilitator julga: continue / escalate / conclude)
+        persona_turn (one persona speaks at a time, reacting to what's been said)
+            ↓ (loop until everyone has spoken in the round)
+        evaluate_round (Facilitator judges: continue / escalate / conclude)
             ↓
    ┌────────┴────────┐
    ↓ (continue/escalate)     ↓ (conclude)
- start_round (nova rodada)   synthesize → END
+ start_round (new round)     synthesize → END
 ```
 
-O `Facilitator` é o supervisor: decide ordem de fala e se o debate deve
-continuar, escalar (reordenar para dar a palavra final ao stakeholder de
-maior poder de veto que levantou um bloqueio) ou concluir. As personas não
-têm lógica de orquestração — só geram conteúdo de personagem.
+The `Facilitator` is the supervisor: it decides speaking order and
+whether the debate should continue, escalate (reorder to give the final
+word to the highest-veto stakeholder who raised a blocker), or conclude.
+The personas have no orchestration logic — they only generate
+in-character content.
 
-## Pitch de abertura do vendedor + Coach (MEDDPICC)
+## Seller's opening pitch + Coach (MEDDPICC)
 
-O campo opcional `AccountContext.seller_opening` guarda a **fala real do
-vendedor** (o pitch como ele vai dizer, com as palavras dele):
+The optional `AccountContext.seller_opening` field holds the **seller's
+actual statement** (the pitch as they'll really say it, in their own
+words):
 
-- **Em branco** → o comitê debate de forma autônoma (war-gaming), reagindo
-  apenas ao `pitch_summary` abstrato. Comportamento padrão, inalterado.
-- **Preenchido** → cada persona reage às **palavras exatas** do vendedor, e
-  o Synthesizer vira um **Coach**: além do veredito do comitê, avalia o
-  desempenho do vendedor (`DebateVerdict.seller_coaching`) — nota do pitch,
-  o que ressoou, o que saiu pela culatra, e reescritas concretas linha a
-  linha ("em vez de X, diga Y porque Z").
+- **Blank** → the committee debates autonomously (war-gaming), reacting
+  only to the abstract `pitch_summary`. Default behavior, unchanged.
+- **Filled in** → each persona reacts to the seller's **exact words**, and
+  the Synthesizer becomes a **Coach**: besides the committee's verdict, it
+  evaluates the seller's performance (`DebateVerdict.seller_coaching`) —
+  pitch grade, what landed, what backfired, and concrete line-by-line
+  rewrites ("instead of X, say Y because Z").
 
-Em ambos os modos, o veredito também traz um **scorecard MEDDPICC**
-(`DebateVerdict.meddpicc_scorecard`) com as dimensões que o debate revelou
-(Metrics, Economic Buyer, Identify Pain, Champion). Tudo isso é aditivo: sem
-`seller_opening`, o prompt do Synthesizer é byte-a-byte o de sempre e o
-`seller_coaching` fica `None`.
+In both modes, the verdict also carries a **MEDDPICC scorecard**
+(`DebateVerdict.meddpicc_scorecard`) covering the dimensions the debate
+revealed (Metrics, Economic Buyer, Identify Pain, Champion). All of this
+is additive: without `seller_opening`, the Synthesizer's prompt is
+byte-for-byte the usual one and `seller_coaching` stays `None`.
 
 ## Status
 
-✅ **Web UI (Next.js + FastAPI)** — frontend principal, em `web/` + `api/`,
-com um design system próprio ("Ledger") aplicado ao relatório: o par
-clay/mint distingue visualmente o que foi **medido**
-(contagem do comitê, personas grounded, duração, nº de chamadas LLM) do que
-foi **gerado pelo LLM** (objeções, veredito, scorecard MEDDPICC).
-- Backend (`api/main.py`) é uma camada HTTP fina sobre o mesmo motor
-  `digital_twins/` — nenhuma lógica de debate foi duplicada.
-- Frontend (`web/`) consome a API e roda o fluxo completo: Setup → Run →
-  Resultado (ledger, callout de grounding, flag de arquétipo, transcrição,
-  veredito, export).
-- **Streamlit** (`streamlit_app.py`, `app_v2.py`) continua funcional e é
-  mantido como UI legada — inclui o Office Canvas em pixel-art que ainda
-  não foi portado para o Next.js.
+✅ **Web UI (Next.js + FastAPI)** — the primary frontend, in `web/` +
+`api/`, with its own design system ("Ledger") applied to the report: the
+clay/mint pair visually distinguishes what was **measured** (committee
+count, grounded personas, duration, number of LLM calls) from what was
+**generated by the LLM** (objections, verdict, MEDDPICC scorecard).
+- The backend (`api/main.py`) is a thin HTTP layer over the same
+  `digital_twins/` engine — no debate logic was duplicated.
+- The frontend (`web/`) consumes the API and runs the full flow: Setup →
+  Run → Result (ledger, grounding callout, archetype flag, transcript,
+  verdict, export).
+- **Streamlit** (`streamlit_app.py`, `app_v2.py`) remains functional and is
+  kept as the legacy UI — it includes the pixel-art Office Canvas, which
+  hasn't been ported to Next.js yet.
 
-## Setup local — Web UI (Next.js + FastAPI)
+## Local setup — Web UI (Next.js + FastAPI)
 
 ```bash
-# 1. Backend: crie o virtualenv e instale as dependências
+# 1. Backend: create the virtualenv and install dependencies
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 
-# 2. Configure a chave da Anthropic (ela é passada por request, nunca fica salva)
+# 2. Configure the Anthropic key (it's passed per request, never persisted)
 cp .env.example .env
-# edite o .env e preencha ANTHROPIC_API_KEY=sk-ant-...
+# edit .env and fill in ANTHROPIC_API_KEY=sk-ant-...
 
-# 3. Suba a API
+# 3. Start the API
 uvicorn api.main:app --reload --port 8000
 
-# 4. Em outro terminal, suba o frontend
+# 4. In another terminal, start the frontend
 cd web
 npm install
 npm run dev
-# abre em http://localhost:3000 — a API key também pode ser digitada
-# direto no formulário (fica só em memória durante a run)
+# opens at http://localhost:3000 — the API key can also be typed
+# directly into the form (only kept in memory during the run)
 ```
 
-## Setup local — Streamlit (legado)
+## Local setup — Streamlit (legacy)
 
 ```bash
-# 1. Dentro da pasta do projeto, crie e ative um virtualenv
+# 1. From the project folder, create and activate a virtualenv
 python3 -m venv .venv
 source .venv/bin/activate        # Windows: .venv\Scripts\activate
 
-# 2. Instale as dependências (inclui o Streamlit e o cliente EXA)
+# 2. Install the dependencies (includes Streamlit and the EXA client)
 pip install -r requirements.txt
 
-# 3. Configure a chave da Anthropic (obrigatória — não há mais modo mock)
+# 3. Configure the Anthropic key (required — there's no mock mode anymore)
 cp .env.example .env
-# edite o .env e preencha ANTHROPIC_API_KEY=sk-ant-...
-# opcional: EXA_API_KEY=... (pesquisa automática de stakeholder no Streamlit)
+# edit .env and fill in ANTHROPIC_API_KEY=sk-ant-...
+# optional: EXA_API_KEY=... (automatic stakeholder research in Streamlit)
 ```
 
 ## CLI
 
 ```bash
-# Precisa de ANTHROPIC_API_KEY (no .env ou exportada):
+# Needs ANTHROPIC_API_KEY (in .env or exported):
 python -m digital_twins.main -v
 
-# Com uma conta real (JSON no shape de AccountContext, ex: accounts/ifood.json):
+# With a real account (JSON in the AccountContext shape, e.g. accounts/ifood.json):
 python -m digital_twins.main --account accounts/ifood.json -v
 ```
 
-Cada run grava um relatório em `.md`, um em `.html` (estilizado, ver
-seção abaixo) e um snapshot `.json` (`SimulationRecord`, usado pela
-calibração pós-call) dentro de `reports/`.
+Every run writes a `.md` report, an `.html` one (styled, see the section
+below), and a `.json` snapshot (`SimulationRecord`, used by post-call
+calibration) into `reports/`.
 
-## Cenários what-if ("branch, simulate, compare")
+## What-if scenarios ("branch, simulate, compare")
 
-Em vez de um debate único, declare N variantes do deal (preço A vs B,
-com/sem POC, ancorar em ROI vs risco) num JSON — cada uma é um "branch" do
-`AccountContext` base que só carrega o delta — e rode todas de uma vez:
+Instead of a single debate, declare N deal variants (price A vs. B,
+with/without a POC, anchor on ROI vs. risk) in a JSON file — each one is a
+"branch" of the base `AccountContext` that only carries the delta — and
+run them all at once:
 
 ```bash
 python -m digital_twins.main --scenarios accounts/cenarios_exemplo.json
 ```
 
-Sai um comparativo lado a lado em `reports/<conta>-cenarios-<ts>.md`,
-ordenado por um score de risco agregado (sentimento geral + nº de
-bloqueadores + falta de consenso), com o cenário recomendado no topo.
+This produces a side-by-side comparison in
+`reports/<account>-scenarios-<ts>.md`, ranked by an aggregate risk score
+(overall sentiment + number of blockers + lack of consensus), with the
+recommended scenario at the top.
 
-## Calibração pós-call (twin vs realidade)
+## Post-call calibration (twin vs. reality)
 
-Depois que a call real acontecer, compare o que o twin PREVIU com o que de
-fato foi dito:
+After the real call happens, compare what the twin PREDICTED against what
+was actually said:
 
 ```bash
 python -m digital_twins.calibration \
-  --simulation reports/<conta>-<ts>.json \
+  --simulation reports/<account>-<ts>.json \
   --call-transcript call.txt \
-  --out reports/calibracao.md
+  --out reports/calibration.md
 ```
 
-O relatório traz: fidelidade por persona (objeções previstas que ocorreram),
-pontos cegos (objeções reais não previstas) e sugestões concretas de fatos
-para adicionar em `AccountContext.real_data` — fechando o loop de melhoria
-contínua do twin.
+The report shows: per-persona fidelity (predicted objections that
+actually came up), blind spots (real objections that weren't predicted),
+and concrete suggestions for facts to add to `AccountContext.real_data` —
+closing the twin's continuous-improvement loop.
 
-## Interface Streamlit
+## Streamlit interface
 
 ```bash
 streamlit run streamlit_app.py
 ```
 
-Abre automaticamente em **http://localhost:8501**. Pra parar o servidor,
-`Ctrl+C` no terminal.
+Opens automatically at **http://localhost:8501**. To stop the server,
+`Ctrl+C` in the terminal.
 
-UI com tokens de design proprietários (paleta, tipografia, componentes
-hero/arc/roadmap).
+UI with proprietary design tokens (palette, typography, hero/arc/roadmap
+components).
 
-### Sala de reunião (Office canvas — squad-pod Canvas 2D engine)
+### Meeting room (Office canvas — squad-pod Canvas 2D engine)
 
-`digital_twins/office.py` é uma adaptação do motor Canvas 2D do
-[swigerb/squad-pod](https://github.com/swigerb/squad-pod) (VS Code extension)
-para Streamlit via `st.html()`. O motor é completamente auto-contido em HTML/JS
-embutido no Python — sem dependências de imagens externas.
+`digital_twins/office.py` is an adaptation of the Canvas 2D engine from
+[swigerb/squad-pod](https://github.com/swigerb/squad-pod) (a VS Code
+extension) for Streamlit via `st.html()`. The engine is fully self-contained
+HTML/JS embedded in Python — no external image dependencies.
 
-**Arquitetura do motor (squad-pod style):**
+**Engine architecture (squad-pod style):**
 
-| Componente | Detalhe |
+| Component | Detail |
 |---|---|
-| **Grid** | `TILE=16px`, `ZOOM=3×` → `TS=48px` por tile em tela |
-| **Sprites** | 16×24 px, gerados pixel-a-pixel em JS: 4 frames de caminhada + 2 frames de digitação, 6 paletas de cor (camisa/pele/calça) |
-| **Bolhas de fala** | Arrays pixel-art 12×10 (`?` = aguardando · `...` = digitando), com fade alpha |
-| **Pathfinding** | BFS no `tileMap` — cada personagem caminha até sua mesa ao iniciar, evitando `WALL`/`DESK`/`VOID` |
-| **Z-sort** | Mesas + personagens compartilham `Drawable[]`, ordenados por `bottomY` a cada frame (squad-pod pattern) |
-| **Máquina de estados** | `walk → idle → type → done/error`; `done` adiciona partículas de faísca; `error` overlay vermelho pulsante |
-| **Mesas** | Tampo de madeira com textura, monitor com tela ciano ativa/inativa, teclado pixel-art |
-| **Loop** | `requestAnimationFrame` contínuo; resize reinicializa o canvas |
+| **Grid** | `TILE=16px`, `ZOOM=3×` → `TS=48px` per on-screen tile |
+| **Sprites** | 16×24 px, generated pixel-by-pixel in JS: 4 walking frames + 2 typing frames, 6 color palettes (shirt/skin/pants) |
+| **Speech bubbles** | 12×10 pixel-art arrays (`?` = waiting · `...` = typing), with alpha fade |
+| **Pathfinding** | BFS over the `tileMap` — each character walks to their desk on start, avoiding `WALL`/`DESK`/`VOID` |
+| **Z-sort** | Desks + characters share a `Drawable[]`, sorted by `bottomY` every frame (squad-pod pattern) |
+| **State machine** | `walk → idle → type → done/error`; `done` adds spark particles; `error` shows a pulsing red overlay |
+| **Desks** | Textured wood top, monitor with active/inactive cyan screen, pixel-art keyboard |
+| **Loop** | Continuous `requestAnimationFrame`; resize reinitializes the canvas |
 
-A thread Python injeta `STATES`, `AGENTS` e `LAYOUT` como JSON; o JS
-lê o status de cada agente a cada frame e transiciona os personagens
-automaticamente. A animação ambiente toca client-side enquanto o backend
-processa; os estados finais (`done`/`error`) aparecem no rerender pós-LangGraph.
+The Python thread injects `STATES`, `AGENTS`, and `LAYOUT` as JSON; the JS
+reads each agent's status every frame and transitions the characters
+automatically. The ambient animation plays client-side while the backend
+processes; the final states (`done`/`error`) appear on the post-LangGraph
+rerender.
 
-Na barra lateral dá pra escolher a conta (exemplo Northwind, qualquer
-arquivo em `accounts/`, **digitar manualmente** empresa + stakeholder real,
-ou upload de um JSON customizado), colar opcionalmente a **sua fala de
-abertura** (ativa o modo treino + Coach), informar a chave Anthropic
-(obrigatória, digitada na sessão, nunca salva em disco), e ajustar o número
-máximo de rounds. Ao final, o resultado mostra o comitê, a sala de reunião
-animada, objeções, plano de ação, avaliação de risco, o scorecard MEDDPICC
-e — se você colou seu pitch — a avaliação do Coach; mais dois botões de
-download: relatório `.md` simples e relatório `.html` estilizado,
-prontos pra enviar pro time de vendas.
+In the sidebar you can pick the account (a sample account, any file in
+`accounts/`, **manual entry** of a company + real stakeholder, or upload a
+custom JSON), optionally paste **your opening pitch** (activates training
+mode + Coach), provide the Anthropic key (required, typed into the
+session, never saved to disk), and adjust the maximum number of rounds.
+At the end, the result shows the committee, the animated meeting room,
+objections, action plan, risk assessment, the MEDDPICC scorecard, and — if
+you pasted your pitch — the Coach's evaluation; plus two download buttons:
+a simple `.md` report and a styled `.html` report, ready to send to the
+sales team.
 
-### Pesquisa automática de stakeholder (EXA)
+### Automatic stakeholder research (EXA)
 
-No formulário "Digitar manualmente", em vez de digitar à mão os fatos
-conhecidos sobre o stakeholder real, dá pra informar uma **EXA API Key**
-(opcional) e clicar em "🔎 Pesquisar fatos com EXA" — `digital_twins/research.py`
-usa a Answer API da Exa para trazer fatos públicos, específicos e citados
-sobre a pessoa (mesmo tipo de pesquisa feita manualmente para a conta de
-teste do iFood, agora automatizada).
+In the "Enter manually" form, instead of typing in known facts about the
+real stakeholder by hand, you can provide an **EXA API key** (optional)
+and click "🔎 Research facts with EXA" — `digital_twins/research.py` uses
+Exa's Answer API to pull public, specific, cited facts about the person
+(the same kind of research done manually for the iFood test account, now
+automated).
 
-## Testes
+## Tests
 
 ```bash
 pytest tests/ -v
 ```
 
-Os testes de `PersonaFactory` rodam sempre (não usam LLM). O teste do
-grafo completo (`test_full_graph_runs_end_to_end_with_real_client`) precisa
-de `ANTHROPIC_API_KEY` configurada — sem mock no projeto, ele é pulado
-automaticamente se a chave não estiver presente.
+`PersonaFactory` tests always run (no LLM involved). The full-graph test
+(`test_full_graph_runs_end_to_end_with_real_client`) needs
+`ANTHROPIC_API_KEY` configured — there's no mock in the project, so it's
+skipped automatically if the key isn't present.
 
-## Modelo por camada (custo)
+## Model per layer (cost)
 
-Configurável via env (`digital_twins/config.py`) — tudo usa **Haiku 4.5**
-por padrão para reduzir custo:
+Configurable via env (`digital_twins/config.py`) — everything uses
+**Haiku 4.5** by default to reduce cost:
 
-- `DT_PERSONA_MODEL` — falas de cada persona (volume alto). Default: `claude-haiku-4-5-20251001`.
-- `DT_FACILITATOR_MODEL` / `DT_SYNTHESIZER_MODEL` — julgamento de
-  convergência e síntese final. Default: `claude-haiku-4-5-20251001` (troque
-  para `claude-sonnet-5` se quiser mais qualidade nesses dois nós).
+- `DT_PERSONA_MODEL` — each persona's statements (high volume). Default: `claude-haiku-4-5-20251001`.
+- `DT_FACILITATOR_MODEL` / `DT_SYNTHESIZER_MODEL` — convergence judgment
+  and final synthesis. Default: `claude-haiku-4-5-20251001` (swap to
+  `claude-sonnet-5` if you want higher quality on these two nodes).
 
-## Idioma
+## Language
 
-Todo o pipeline — UI, CLI, relatórios e os prompts que geram a fala das
-personas — está em português do Brasil. Os únicos tokens que permanecem em
-inglês são valores de enum internos usados para parsing de código (ex: a
-tag `SENTIMENT: supportive|neutral|skeptical|blocking` e os campos
-`decision`/role values no JSON do facilitador e do sintetizador) — eles
-nunca aparecem para o usuário final, só circulam entre os nós do grafo.
+The entire pipeline — UI, CLI, reports, and the prompts that generate the
+personas' statements — runs in English. The only tokens that stay in
+English by design are internal enum values used for code parsing (e.g.
+the `SENTIMENT: supportive|neutral|skeptical|blocking` tag and the
+`decision`/role values in the facilitator's and synthesizer's JSON) —
+those never surface to the end user, they only flow between graph nodes.
 
-**Rede de segurança de tradução** (`digital_twins/i18n.py`): mesmo com os
-prompts em português, LLMs ocasionalmente escorregam para o inglês em
-trechos curtos. `to_pt_br()`/`to_pt_br_list()` detectam o idioma
-(`langdetect`) e traduzem automaticamente (`deep-translator`/Google
-Translate) qualquer fala de persona, objeção, item de talk track ou resumo
-de risco que não esteja em português — aplicado em `persona_agent.py` e
-`synthesizer.py`. Falha de forma segura: se a detecção/tradução der erro
-(sem rede, texto curto demais), o texto original é mantido em vez de
-quebrar o debate.
+**Translation safety net** (`digital_twins/i18n.py`): even with prompts in
+English, LLMs occasionally slip into another language in short snippets.
+`to_en()`/`to_en_list()` detect the language (`langdetect`) and
+automatically translate (`deep-translator`/Google Translate) any persona
+statement, objection, talk-track item, or risk summary that isn't in
+English — applied in `persona_agent.py` and `synthesizer.py`. It fails
+safe: if detection/translation errors out (no network, text too short),
+the original text is kept instead of breaking the debate.
 
-## Roadmap de evolução (5 agentes)
+## Evolution roadmap (5 agents)
 
-Mapeado contra a arquitetura conceitual de 5 agentes de um sistema de
-personas sintéticas:
+Mapped against the conceptual 5-agent architecture of a synthetic-persona
+system:
 
-| # | Agente conceitual | Implementação atual | Status |
+| # | Conceptual agent | Current implementation | Status |
 |---|---|---|---|
-| 1 | Data Harvester | `research.py` (EXA Answer API) | Parcial (só no form manual) |
-| 2 | Profiler | `PersonaFactory` + fallback real/arquétipo | ✅ |
-| 3 | Digital Twin (Actor) | `persona_agent.py` (reage ao `seller_opening`) | ✅ |
-| 4 | Moderator | `Facilitator` (grafo hierárquico + escalada) | ✅ |
-| 5 | Coach / Avaliador | `synthesizer.py` (MEDDPICC + `seller_coaching`) | ✅ |
+| 1 | Data Harvester | `research.py` (EXA Answer API) | Partial (manual form only) |
+| 2 | Profiler | `PersonaFactory` + real/archetype fallback | ✅ |
+| 3 | Digital Twin (Actor) | `persona_agent.py` (reacts to `seller_opening`) | ✅ |
+| 4 | Moderator | `Facilitator` (hierarchical graph + escalation) | ✅ |
+| 5 | Coach / Evaluator | `synthesizer.py` (MEDDPICC + `seller_coaching`) | ✅ |
 
-- **Fase 1 (feita)** — pitch de abertura do vendedor: personas reagem às
-  palavras reais.
-- **Fase 2 (feita)** — Coach avalia o pitch do vendedor contra as objeções.
-- **Fase 3 (backlog)** — modo interativo turno-a-turno: `interrupt()` +
-  `MemorySaver` do LangGraph para o vendedor responder a cada rodada, com
-  replay e branching. **Muda a topologia do grafo** (de `invoke` único para
-  execução pausável), então é uma decisão à parte.
+- **Phase 1 (done)** — seller's opening pitch: personas react to real
+  words.
+- **Phase 2 (done)** — Coach evaluates the seller's pitch against the
+  objections.
+- **Phase 3 (backlog)** — turn-by-turn interactive mode: LangGraph's
+  `interrupt()` + `MemorySaver` so the seller can respond each round, with
+  replay and branching. **Changes the graph's topology** (from a single
+  `invoke` to pausable execution), so it's a separate decision.
 
-Outros itens de backlog:
+Other backlog items:
 
-1. **Conector de dados reais**: expandir a pesquisa EXA (hoje só no
-   formulário manual) para enriquecer também contas carregadas via JSON,
-   cruzando o stakeholder com o contexto macro da empresa.
-2. **Guardrail de governança**: ao usar `DataSource.REAL` sobre pessoas
-   reais identificáveis, definir política explícita de consentimento e
-   retenção de dados antes de produção (ver `legal:compliance-check`).
-3. **Avaliação**: dataset de debates anotados para medir se as objeções
-   geradas batem com objeções reais coletadas pós-call (precision/recall
-   de objeção).
+1. **Real-data connector**: extend EXA research (today only in the manual
+   form) to also enrich accounts loaded via JSON, cross-referencing the
+   stakeholder with the company's macro context.
+2. **Governance guardrail**: when using `DataSource.REAL` over identifiable
+   real people, define an explicit consent and data-retention policy
+   before production (see `legal:compliance-check`).
+3. **Evaluation**: an annotated debate dataset to measure whether generated
+   objections match real objections collected post-call
+   (objection precision/recall).
 
 ## 🎨 Web UI — Tabs & Office Canvas
 
@@ -344,175 +350,195 @@ streamlit run streamlit_app.py
 # Opens at http://localhost:8501
 ```
 
-### Abas (Tabs)
+### Tabs
 
-| Aba | O que você vê | Ação |
+| Tab | What you see | Action |
 |-----|---|---|
-| ⚙️ **Configuração** | Selector de conta, pitch de abertura (opcional), número de rounds, API Key auto-load | Clique "Rodar simulação" para iniciar |
-| 🎭 **Office Canvas** | Sala de reunião animada pixel-art — cada persona em uma mesa, Facilitador caminhando entre mesas | Veja em tempo real o estado de cada stakeholder (idle, working, done) |
-| 📊 **Veredito** | Scorecard MEDDPICC, resumo de convergência/divergência, lista de objeções por persona | Entenda onde o deal está de pé e onde falha |
-| 🏆 **Coach** *(se pitch inserido)* | Avaliação de desempenho do seu pitch, reescritas linha a linha, áreas para melhoria | Calibre talk track antes da call real |
-| 📥 **Exportar** | Download `.md` (relatório simples) ou `.html` (estilizado, pronto pra e-mail) | Compartilhe resultados com o time de vendas |
+| ⚙️ **Setup** | Account selector, opening pitch (optional), number of rounds, API key auto-load | Click "Run simulation" to start |
+| 🎭 **Office Canvas** | Animated pixel-art meeting room — each persona at a desk, Facilitator walking between desks | Watch each stakeholder's status in real time (idle, working, done) |
+| 📊 **Verdict** | MEDDPICC scorecard, convergence/divergence summary, per-persona objection list | Understand where the deal stands and where it fails |
+| 🏆 **Coach** *(if a pitch was entered)* | Your pitch's performance review, line-by-line rewrites, areas to improve | Calibrate your talk track before the real call |
+| 📥 **Export** | Download a simple `.md` report or a styled `.html` one (ready for email) | Share results with the sales team |
 
-### 🎮 Office Canvas — Sala de Reunião em Tempo Real
+### 🎮 Office Canvas — Meeting Room in Real Time
 
-`digital_twins/office.py` renderiza um **canvas pixel-art animado** onde cada persona é um personagem em uma mesa:
+`digital_twins/office.py` renders an **animated pixel-art canvas** where
+each persona is a character at a desk:
 
-#### Máquina de Estados por Persona
+#### Per-persona state machine
 
 ```
-idle (sentado, sem fazer nada)
-  ↓ (evento "start" do LangGraph)
-walk (sai da mesa, Facilitador caminha para chegar)
-  ↓ (Facilitador chega)
-working (persona pensa/fala — prompt do LLM rodando)
-  ↓ (resposta LLM pronta)
-done (persona sentada, com balão verde "concluído")
-  ↓ (próxima rodada ou fim)
+idle (seated, doing nothing)
+  ↓ (LangGraph "start" event)
+walk (leaves the desk, Facilitator walks over)
+  ↓ (Facilitator arrives)
+working (persona is thinking/speaking — LLM prompt running)
+  ↓ (LLM response ready)
+done (persona seated, with a green "done" bubble)
+  ↓ (next round or end)
 idle
 ```
 
-#### Animação & Rendering
+#### Animation & rendering
 
-- **60fps game loop** via `requestAnimationFrame` (JavaScript lado cliente)
-- **2-pass rendering**: pass 1 desenha todas as mesas de fundo (backgrounds), pass 2 desenha todos os personagens em cima (evita Facilitador ficar escondido quando cruza células)
-- **Facilitador caminha "mesa a mesa"** sincronizado com eventos de `start` do LangGraph — velocidade real-time, não pré-gravada (17px/frame ≈ 0.38s por mesa, ~2.7s total para todo o grupo)
-- **Balões de fala** com mensagens temáticas por persona (25 variações humorísticas cada; ex: CFO → `"Payback em 3 meses? De qual planeta?"`, CTO → `"Integração com nossa stack legada? Boa sorte 😅"`)
-- **Sparkle particles** ao persona terminar (status `done`)
-- **Auto-height**: `ResizeObserver` no canvas reporta altura real ao iframe do Streamlit
+- **60fps game loop** via `requestAnimationFrame` (client-side JavaScript)
+- **2-pass rendering**: pass 1 draws all the background desks, pass 2 draws
+  all the characters on top (keeps the Facilitator from being hidden when
+  crossing cells)
+- **The Facilitator walks "desk to desk"** synced to LangGraph `start`
+  events — real-time speed, not pre-recorded (17px/frame ≈ 0.38s per desk,
+  ~2.7s total for the whole group)
+- **Speech bubbles** with themed one-liners per persona (25 humorous
+  variations each; e.g. CFO → `"Payback in 3 months? From which planet?"`,
+  CTO → `"Integration with our legacy stack? Good luck 😅"`)
+- **Sparkle particles** when a persona finishes (status `done`)
+- **Auto-height**: a `ResizeObserver` on the canvas reports its real height
+  to the Streamlit iframe
 
-#### Layout de Mesas
+#### Desk layout
 
-- **Linha 1**: Facilitador (supervisor, caminha entre os outros)
-- **Linha 2**: Stakeholders primários (CFO, CTO, Procurement)
-- **Linha 3**: Stakeholders secundários (Champion, Compliance, etc.)
-- **Linha 4**: Synthesizer (gerador de consenso final)
+- **Row 1**: Facilitator (supervisor, walks between everyone else)
+- **Row 2**: Primary stakeholders (CFO, CTO, Procurement)
+- **Row 3**: Secondary stakeholders (Champion, Compliance, etc.)
+- **Row 4**: Synthesizer (final-consensus generator)
 
-#### Integração com LangGraph
+#### LangGraph integration
 
-Enquanto o grafo (`orchestration/graph.py`) executa:
-1. Cada nó dispara eventos via `node.stream(...)` de entrada/saída
-2. Uma thread background consome esses eventos (fila thread-safe)
-3. Streamlit rerun → canvas renderiza estados atualizados
-4. Quando todos os nós terminam, canvas mostra `done` em verde para todos
+While the graph (`orchestration/graph.py`) executes:
+1. Each node fires events via `node.stream(...)` on entry/exit
+2. A background thread consumes those events (a thread-safe queue)
+3. Streamlit rerun → the canvas renders the updated states
+4. Once every node finishes, the canvas shows `done` in green for everyone
 
-Resultado: **você acompanha o debate em tempo real** sem polling, e o estado final é determinístico (não há race conditions).
+Result: **you follow the debate in real time** with no polling, and the
+final state is deterministic (no race conditions).
 
-### ⚙️ Sidebar — Configuração da Rodada
+### ⚙️ Sidebar — Round setup
 
-- **Conta** — Seletor dropdown: contas pré-carregadas em `accounts/`, ou upload JSON customizado
-- **Dados da Conta** — Expander com metadados: Empresa, Pitch, Solução, Valor, Comitê (stakeholders)
-- **Sua Fala de Abertura** — Campo texto (opcional): cole o pitch como você vai dizer. Se preenchido, personas reagem às suas palavras reais + Coach avalia performance
-- **Anthropic API Key** — **Auto-carregada do `.env`** se presente (badge verde: ✓ "API Key carregada de variável de ambiente"). Se ausente, campo de entrada com dica de usar `.env`
-- **Máximo de Rounds** — Slider 1–5 (controla quantas rodadas o debate pode ter)
-- **Botão "Rodar simulação"** — Inicia o grafo LangGraph
+- **Account** — Dropdown selector: accounts pre-loaded in `accounts/`, or a
+  custom JSON upload
+- **Account data** — Expander with metadata: Company, Pitch, Solution,
+  Value, Committee (stakeholders)
+- **Your opening pitch** — Optional text field: paste the pitch as you'll
+  actually say it. If filled in, personas react to your real words + Coach
+  evaluates performance
+- **Anthropic API key** — **Auto-loaded from `.env`** if present (green
+  badge: ✓ "API key loaded from environment variable"). If absent, an
+  input field with a hint to use `.env`
+- **Max rounds** — Slider 1–5 (controls how many rounds the debate can run)
+- **"Run simulation" button** — Starts the LangGraph graph
 
-### 📊 Aba Veredito
+### 📊 Verdict tab
 
-Após a simulação terminar:
+Once the simulation finishes:
 
 ```
 ┌─────────────────────────────────────┐
-│ SCORECARD MEDDPICC                  │
+│ MEDDPICC SCORECARD                  │
 ├─────────────────────────────────────┤
-│ 🎯 Metrics          ✅ Forte        │
-│ 💰 Economic Buyer   ⚠️  Risco       │
-│ 💔 Identify Pain    ✅ Forte        │
-│ 🏆 Champion         ⚠️  Risco       │
+│ 🎯 Metrics          ✅ Strong       │
+│ 💰 Economic Buyer   ⚠️  At risk     │
+│ 💔 Identify Pain    ✅ Strong       │
+│ 🏆 Champion         ⚠️  At risk     │
 └─────────────────────────────────────┘
 
-📍 Convergência: 71% (maioria quer avanço)
-🚨 Objeções Bloqueadoras (2):
-   - CFO: "Payback não bate com caso de uso interno"
-   - CTO: "Integração com sistema legado, demora 6 meses"
+📍 Convergence: 71% (majority wants to move forward)
+🚨 Blocking objections (2):
+   - CFO: "Payback doesn't match our internal use case"
+   - CTO: "Integration with legacy system, takes 6 months"
 ```
 
-### 🏆 Aba Coach *(condicional — só aparece se você inseriu pitch)*
+### 🏆 Coach tab *(conditional — only appears if you entered a pitch)*
 
-Se `AccountContext.seller_opening` foi preenchido, o Synthesizer gera coaching:
+If `AccountContext.seller_opening` was filled in, the Synthesizer
+generates coaching:
 
 ```
-📋 Desempenho do Pitch: 7.2/10
+📋 Pitch performance: 7.2/10
 
-✨ O que funcionou:
-  - "Problema: integração manual" ressoou com CTO
-  - "3 clientes da área de saúde" deu credibilidade
+✨ What landed:
+  - "Problem: manual integration" resonated with the CTO
+  - "3 healthcare clients" gave credibility
 
-❌ O que não funcionou:
-  - "Payback em 3 meses" foi contestado 3 vezes
-  - "Sem custo hidden" foi recebido com ceticismo
+❌ What didn't work:
+  - "Payback in 3 months" was challenged 3 times
+  - "No hidden cost" was met with skepticism
 
-📝 Reescritas (linha a linha):
+📝 Line-by-line rewrites:
 
-Sua fala:        "Payback em 3 meses, totalmente sem custo hidden"
-Sugestão Coach:  "Payback em 12 meses, incluindo integração. 
-                  Custo total visível no quote, aprovado por Procurement."
-Motivo:          CFO esperava realismo; "sem custo" é red flag.
+Your line:      "Payback in 3 months, completely no hidden cost"
+Coach suggests: "Payback in 12 months, including integration.
+                 Full cost visible in the quote, approved by Procurement."
+Reason:         The CFO expected realism; "no cost" is a red flag.
 
 ---
 
-Sua fala:        "Integração rápida com sua infraestrutura"
-Sugestão Coach:  "Integração com seu stack via API-first. 
-                  O CTO vai determinar timeline baseado na complexidade."
-Motivo:          CTO precisa de controle técnico, não promessas vagas.
+Your line:      "Fast integration with your infrastructure"
+Coach suggests: "API-first integration with your stack.
+                 The CTO will set the timeline based on complexity."
+Reason:         The CTO needs technical control, not vague promises.
 ```
 
 ---
 
-## 🔄 Feedback Loop — Sistema Imunológico
+## 🔄 Feedback Loop — Immune System
 
-Inspirado em "Agents são 30% do trabalho. Os outros 70% é o sistema imunológico."
+Inspired by "Agents are 30% of the work. The other 70% is the immune
+system."
 
-Cada finding/objeção pode ser **aprovado** (`👍`) ou **rejeitado** (`👎`):
+Every finding/objection can be **approved** (`👍`) or **rejected** (`👎`):
 
-### Fluxo de Feedback
+### Feedback flow
 
-1. **Salvo** em `~/.digital-twins/feedback/<account>.json` (FIFO, max 100 entradas)
-2. **Injetado** no prompt da próxima simulação da mesma conta:
+1. **Saved** to `~/.digital-twins/feedback/<account>.json` (FIFO, max 100
+   entries)
+2. **Injected** into the prompt for the next simulation of the same
+   account:
    ```
-   ## Feedback de Simulações Anteriores (consulte ANTES de sugerir objeções)
-   
-   ### ❌ REJEITADAS — NÃO sugira novamente:
-     - [2026-07-01 14:30] "Integração leva 6 meses" 
-       → Motivo: Já integramos com esse stack em 2 meses (cliente Y)
-   
-   ### ✅ APROVADAS — procure por padrões similares:
-     - [2026-07-01 14:00] "Não temos budget este ano" 
-       → CFO legítimo mencionou isso; dê peso
+   ## Feedback from previous simulations (check BEFORE suggesting objections)
+
+   ### ❌ REJECTED — do NOT suggest again:
+     - [2026-07-01 14:30] "Integration takes 6 months"
+       → Reason: We already integrated with this stack in 2 months (client Y)
+
+   ### ✅ APPROVED — look for similar patterns:
+     - [2026-07-01 14:00] "We don't have budget this year"
+       → A legitimate CFO raised this; give it weight
    ```
 
-3. **Roteado** por contexto (rejeição de CFO volta para prompt do CFO na próxima rodada, etc.)
+3. **Routed** by context (a CFO rejection goes back into the CFO's prompt
+   next round, etc.)
 
-### Dashboard de Memory *(Futuro)*
+### Memory dashboard *(Future)*
 
-Aba "🧠 Memory" (a implementar) mostrará:
+A "🧠 Memory" tab (to be implemented) will show:
 
-- Feedback loop stats por account
-- Capacidade por account (n/100)
-- Botão "Limpar feedback" para reset
-- Histórico de approved/rejected ao longo do tempo
+- Feedback loop stats per account
+- Capacity per account (n/100)
+- A "Clear feedback" reset button
+- History of approved/rejected items over time
 
 ---
 
-## 📦 Design tokens (UI legada Streamlit)
+## 📦 Design tokens (legacy Streamlit UI)
 
-Os reports (`.md` e `.html`) gerados pelo `streamlit_app.py`/`app_v2.py` e o
-canvas usam uma paleta de design proprietária, definida como custom
-properties CSS (`--dt-orange`, `--dt-aurora`, etc.) em
+The reports (`.md` and `.html`) generated by `streamlit_app.py`/`app_v2.py`
+and the canvas use a proprietary design palette, defined as CSS custom
+properties (`--dt-orange`, `--dt-aurora`, etc.) in
 `digital_twins/reporting.py`:
 
-| Elemento | Token | Cor |
+| Element | Token | Color |
 |----------|-------|-----|
-| Primário | `--dt-orange` | `#FF5800` |
-| Secundário | `--dt-aurora` | `#890078` |
+| Primary | `--dt-orange` | `#FF5800` |
+| Secondary | `--dt-aurora` | `#890078` |
 | Success | `--dt-success` | `#107C10` |
 | Warning | `--dt-warning` | `#FFB900` |
 | Error | `--dt-error` | `#E81123` |
-| Dark mode | `@media (prefers-color-scheme: dark)` | Gold + escala cinza |
+| Dark mode | `@media (prefers-color-scheme: dark)` | Gold + gray scale |
 
-A **Web UI (Next.js)**, em contraste, usa o design system Ledger — papel
-quente, tinta quase preta, e o par clay/mint reservado exclusivamente para
-sinalizar dado medido vs. gerado (ver seção "Status" acima e
+The **Web UI (Next.js)**, by contrast, uses the Ledger design system —
+warm paper, near-black ink, and the clay/mint pair reserved exclusively to
+signal measured vs. generated data (see the "Status" section above and
 `web/app/globals.css`).
 
-Relatórios adaptam-se automaticamente ao tema do navegador (light/dark).
+Reports automatically adapt to the browser's theme (light/dark).

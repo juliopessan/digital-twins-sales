@@ -84,10 +84,11 @@ class AccountContext(BaseModel):
     seller_opening: Optional[str] = Field(
         default=None,
         description=(
-            "Fala de abertura real do vendedor (o pitch como ele vai/foi dito, "
-            "com as palavras dele). Se presente, as personas reagem diretamente "
-            "a estas palavras em vez de apenas ao pitch_summary abstrato. Em "
-            "branco, o comitê roda de forma autônoma (war-gaming)."
+            "The seller's actual opening line (the pitch as it will be/was "
+            "delivered, in their own words). If present, the personas react "
+            "directly to these words instead of only to the abstract "
+            "pitch_summary. If blank, the committee runs autonomously "
+            "(war-gaming)."
         ),
     )
     real_data: dict[StakeholderRole, list[str]] = Field(
@@ -127,13 +128,14 @@ class DebateTurn(BaseModel):
 
 
 class SellerCoaching(BaseModel):
-    """Feedback do Coach sobre a fala de abertura do vendedor.
+    """Coach feedback on the seller's opening line.
 
-    Só é preenchido quando AccountContext.seller_opening existe — o Coach
-    avalia como o pitch real do vendedor se sustentou diante das objeções
-    levantadas no debate (não avalia o comitê, avalia a PESSOA)."""
+    Only populated when AccountContext.seller_opening exists — the Coach
+    evaluates how the seller's actual pitch held up against the objections
+    raised in the debate (it does not evaluate the committee, it evaluates
+    the PERSON)."""
 
-    pitch_grade: str  # nota curta e honesta, ex: "C+ — forte em ROI, fraco em governança"
+    pitch_grade: str  # short, honest grade, e.g. "C+ — strong on ROI, weak on governance"
     what_landed: list[str] = Field(default_factory=list)
     what_backfired: list[str] = Field(default_factory=list)
     rewrite_suggestions: list[str] = Field(default_factory=list)
@@ -149,28 +151,29 @@ class DebateVerdict(BaseModel):
     meddpicc_scorecard: dict[str, str] = Field(
         default_factory=dict,
         description=(
-            "Avaliação tática das dimensões MEDDPICC observáveis no debate "
-            "(ex: Metrics, Economic Buyer, Identify Pain, Champion) -> texto "
-            "de avaliação. Dimensões que o debate não revelou ficam de fora."
+            "Tactical assessment of the MEDDPICC dimensions observable in "
+            "the debate (e.g. Metrics, Economic Buyer, Identify Pain, "
+            "Champion) -> assessment text. Dimensions the debate did not "
+            "reveal are left out."
         ),
     )
     seller_coaching: Optional[SellerCoaching] = Field(
         default=None,
         description=(
-            "Feedback do Coach sobre a fala de abertura do vendedor. Só "
-            "preenchido quando o vendedor forneceu uma fala de abertura "
-            "(AccountContext.seller_opening); caso contrário fica None."
+            "Coach feedback on the seller's opening line. Only populated "
+            "when the seller provided an opening line "
+            "(AccountContext.seller_opening); otherwise stays None."
         ),
     )
 
 
 class SimulationRecord(BaseModel):
-    """Snapshot serializável de uma simulação completa.
+    """Serializable snapshot of a complete simulation.
 
-    É o que o CLI salva em reports/<slug>-<ts>.json e o que a calibração
-    pós-call (digital_twins.calibration) consome para comparar o que o twin
-    PREVIU com o que a call real de fato trouxe — o loop "twin vs
-    realidade" aplicado a vendas.
+    This is what the CLI saves to reports/<slug>-<ts>.json and what the
+    post-call calibration (digital_twins.calibration) consumes to compare
+    what the twin PREDICTED against what the real call actually brought up
+    — the "twin vs reality" loop applied to sales.
     """
 
     created_at: str

@@ -12,10 +12,10 @@ from datetime import datetime, timezone
 from digital_twins.models import AccountContext, DebateTurn, DebateVerdict, StakeholderProfile
 
 _SENTIMENT_LABEL = {
-    "supportive": "Favorável",
-    "neutral": "Neutro",
-    "skeptical": "Cético",
-    "blocking": "Bloqueador",
+    "supportive": "Supportive",
+    "neutral": "Neutral",
+    "skeptical": "Skeptical",
+    "blocking": "Blocking",
 }
 
 
@@ -28,63 +28,63 @@ def build_markdown_report(
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
 
     lines: list[str] = []
-    lines.append(f"# Simulação de Comitê de Compra — {account.account_name}")
+    lines.append(f"# Buying Committee Simulation — {account.account_name}")
     lines.append("")
-    lines.append(f"**Gerado em:** {generated_at}  ")
-    lines.append(f"**Estágio do deal:** {account.deal_stage}  ")
+    lines.append(f"**Generated at:** {generated_at}  ")
+    lines.append(f"**Deal stage:** {account.deal_stage}  ")
     if account.deal_value_usd:
-        lines.append(f"**Valor do deal:** US$ {account.deal_value_usd:,.0f}  ")
+        lines.append(f"**Deal value:** US$ {account.deal_value_usd:,.0f}  ")
     lines.append("")
-    lines.append("## Proposta avaliada")
+    lines.append("## Proposal evaluated")
     lines.append("")
     lines.append(f"- **Pitch:** {account.pitch_summary}")
-    lines.append(f"- **Solução proposta:** {account.proposed_solution}")
+    lines.append(f"- **Proposed solution:** {account.proposed_solution}")
     lines.append("")
 
     if account.seller_opening:
-        lines.append("### Fala de abertura do vendedor")
+        lines.append("### Seller's opening statement")
         lines.append("")
         lines.append(f"> {account.seller_opening}")
         lines.append("")
 
-    lines.append("## Comitê simulado")
+    lines.append("## Simulated committee")
     lines.append("")
-    lines.append("| Stakeholder | Papel | Base de dados | Peso de veto |")
+    lines.append("| Stakeholder | Role | Data source | Veto weight |")
     lines.append("|---|---|---|---|")
     for p in personas:
-        source_label = "Dados reais da conta" if p.source.value == "real" else "Arquétipo genérico"
+        source_label = "Real account data" if p.source.value == "real" else "Generic archetype"
         lines.append(f"| {p.name} | {p.role.value} | {source_label} | {p.decision_power:.2f} |")
     lines.append("")
 
-    lines.append("## Veredito")
+    lines.append("## Verdict")
     lines.append("")
-    consensus_label = "Sim" if verdict.consensus_reached else "Não"
+    consensus_label = "Yes" if verdict.consensus_reached else "No"
     sentiment_label = _SENTIMENT_LABEL.get(verdict.overall_sentiment.value, verdict.overall_sentiment.value)
-    lines.append(f"- **Consenso atingido:** {consensus_label}")
-    lines.append(f"- **Sentimento geral:** {sentiment_label}")
-    blockers = ", ".join(r.value for r in verdict.blocking_stakeholders) or "Nenhum"
-    lines.append(f"- **Stakeholders bloqueadores:** {blockers}")
+    lines.append(f"- **Consensus reached:** {consensus_label}")
+    lines.append(f"- **Overall sentiment:** {sentiment_label}")
+    blockers = ", ".join(r.value for r in verdict.blocking_stakeholders) or "None"
+    lines.append(f"- **Blocking stakeholders:** {blockers}")
     lines.append("")
 
-    lines.append("### Principais objeções")
+    lines.append("### Top objections")
     lines.append("")
     for o in verdict.top_objections:
         lines.append(f"- {o}")
     lines.append("")
 
-    lines.append("### Plano de ação recomendado para o próximo contato")
+    lines.append("### Recommended action plan for the next touchpoint")
     lines.append("")
     for i, t in enumerate(verdict.recommended_talk_track, start=1):
         lines.append(f"{i}. {t}")
     lines.append("")
 
-    lines.append("### Avaliação de risco")
+    lines.append("### Risk assessment")
     lines.append("")
     lines.append(verdict.risk_summary)
     lines.append("")
 
     if verdict.meddpicc_scorecard:
-        lines.append("### Scorecard MEDDPICC")
+        lines.append("### MEDDPICC scorecard")
         lines.append("")
         for dimension, assessment in verdict.meddpicc_scorecard.items():
             lines.append(f"- **{dimension}:** {assessment}")
@@ -92,36 +92,36 @@ def build_markdown_report(
 
     if verdict.seller_coaching:
         sc = verdict.seller_coaching
-        lines.append("## Coach — avaliação do seu pitch")
+        lines.append("## Coach — your pitch review")
         lines.append("")
-        lines.append(f"**Nota:** {sc.pitch_grade}")
+        lines.append(f"**Grade:** {sc.pitch_grade}")
         lines.append("")
         if sc.what_landed:
-            lines.append("**O que funcionou:**")
+            lines.append("**What landed:**")
             lines.append("")
             for item in sc.what_landed:
                 lines.append(f"- {item}")
             lines.append("")
         if sc.what_backfired:
-            lines.append("**O que saiu pela culatra:**")
+            lines.append("**What backfired:**")
             lines.append("")
             for item in sc.what_backfired:
                 lines.append(f"- {item}")
             lines.append("")
         if sc.rewrite_suggestions:
-            lines.append("**Sugestões de reescrita:**")
+            lines.append("**Rewrite suggestions:**")
             lines.append("")
             for i, item in enumerate(sc.rewrite_suggestions, start=1):
                 lines.append(f"{i}. {item}")
             lines.append("")
 
-    lines.append("## Transcrição completa do debate simulado")
+    lines.append("## Full transcript of the simulated debate")
     lines.append("")
     last_round = 0
     for turn in transcript:
         if turn.round_number != last_round:
             last_round = turn.round_number
-            lines.append(f"### Rodada {last_round}")
+            lines.append(f"### Round {last_round}")
             lines.append("")
         sentiment_label = _SENTIMENT_LABEL.get(turn.sentiment.value, turn.sentiment.value)
         lines.append(f"**{turn.name}** _{sentiment_label}_  ")
@@ -130,23 +130,23 @@ def build_markdown_report(
 
     lines.append("---")
     lines.append(
-        "_Relatório gerado automaticamente por uma simulação de IA do comitê de compra. "
-        "Use como preparação tática, não como previsão garantida do comportamento real dos stakeholders._"
+        "_This report was generated automatically by an AI simulation of the buying committee. "
+        "Use it as tactical preparation, not as a guaranteed prediction of real stakeholder behavior._"
     )
 
     return "\n".join(lines)
 
 
-_ROLE_LABEL_PT = {
-    "salesman": "Vendedor",
+_ROLE_LABEL_EN = {
+    "salesman": "Salesperson",
     "ceo": "CEO",
     "cto": "CTO",
     "cfo": "CFO",
     "procurement": "Procurement",
-    "champion": "Champion interno",
-    "end_user": "Usuário final",
-    "legal_compliance": "Jurídico/Compliance",
-    "security": "Segurança",
+    "champion": "Internal champion",
+    "end_user": "End user",
+    "legal_compliance": "Legal/Compliance",
+    "security": "Security",
 }
 
 
@@ -159,13 +159,13 @@ def build_html_report(
     """Standalone HTML report using the Ledger design system — the same one applied
     to the Next.js results page (web/app/runs/[id]/page.tsx) — so a downloaded
     report and the live run look like the same product. The ledger's clay/mint
-    pair marks the same measured/asserted split as the web UI: comitê total vs.
-    personas grounded in real data is computed from the objects passed in here;
-    everything else (objections, veredito, coaching) is left unmarked, per the
-    Ledger rule against badging anything that wasn't actually verified."""
+    pair marks the same measured/asserted split as the web UI: total committee
+    vs. personas grounded in real data is computed from the objects passed in
+    here; everything else (objections, verdict, coaching) is left unmarked, per
+    the Ledger rule against badging anything that wasn't actually verified."""
     e = html.escape
     generated_at = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
-    consensus_label = "Sim" if verdict.consensus_reached else "Não"
+    consensus_label = "Yes" if verdict.consensus_reached else "No"
     sentiment_label = _SENTIMENT_LABEL.get(verdict.overall_sentiment.value, verdict.overall_sentiment.value)
     value_line = f"US$ {account.deal_value_usd:,.0f}" if account.deal_value_usd else "—"
 
@@ -176,13 +176,13 @@ def build_html_report(
     rounds = max((t.round_number for t in transcript), default=0)
 
     def role_label(role_value: str) -> str:
-        return _ROLE_LABEL_PT.get(role_value, role_value)
+        return _ROLE_LABEL_EN.get(role_value, role_value)
 
     committee_rows = "\n".join(
         f"""<tr>
             <td>{e(role_label(p.role.value))}</td>
             <td>{e(p.name)}</td>
-            <td><span class="pill {"pill-mint" if p.source.value == "real" else "pill-clay"}">{"real" if p.source.value == "real" else "arquétipo"}</span></td>
+            <td><span class="pill {"pill-mint" if p.source.value == "real" else "pill-clay"}">{"real" if p.source.value == "real" else "archetype"}</span></td>
             <td class="num">{p.decision_power:.2f}</td>
             <td>{e(", ".join(p.priorities[:3]))}</td>
         </tr>"""
@@ -198,7 +198,7 @@ def build_html_report(
         blockers = ", ".join(role_label(r.value) for r in verdict.blocking_stakeholders)
         blockers_html = f"""
   <div class="flag">
-    <span class="flag-k">Bloqueadores</span>
+    <span class="flag-k">Blockers</span>
     <p>{e(blockers)}</p>
   </div>"""
 
@@ -211,7 +211,7 @@ def build_html_report(
         meddpicc_html = f"""
   <div class="tbl-wrap">
     <table>
-      <tr><th>MEDDPICC</th><th>Avaliação</th></tr>
+      <tr><th>MEDDPICC</th><th>Assessment</th></tr>
       {rows}
     </table>
   </div>"""
@@ -225,10 +225,10 @@ def build_html_report(
 
         coaching_html = f"""
   <div class="card">
-    <p class="h3">Coach — nota: <span class="mono">{e(sc.pitch_grade)}</span></p>
-    <p class="body-text"><strong>O que funcionou:</strong> {_joined(sc.what_landed)}</p>
-    <p class="body-text"><strong>O que pegou mal:</strong> {_joined(sc.what_backfired)}</p>
-    <p class="body-text" style="margin-bottom:0"><strong>Reescreva assim:</strong> {_joined(sc.rewrite_suggestions)}</p>
+    <p class="h3">Coach — grade: <span class="mono">{e(sc.pitch_grade)}</span></p>
+    <p class="body-text"><strong>What landed:</strong> {_joined(sc.what_landed)}</p>
+    <p class="body-text"><strong>What backfired:</strong> {_joined(sc.what_backfired)}</p>
+    <p class="body-text" style="margin-bottom:0"><strong>Rewrite it like this:</strong> {_joined(sc.rewrite_suggestions)}</p>
   </div>"""
 
     transcript_html_parts: list[str] = []
@@ -250,37 +250,37 @@ def build_html_report(
     measured_html = ""
     if real_personas:
         names = ", ".join(f"{e(p.name)} ({e(role_label(p.role.value))})" for p in real_personas)
-        verb = "tem fala apoiada" if len(real_personas) == 1 else "têm falas apoiadas"
+        verb = "has statements backed" if len(real_personas) == 1 else "have statements backed"
         measured_html = f"""
   <div class="measured">
     <span class="tick">✓</span>
-    <p><span class="k">Grounded em dados reais</span>{names} {verb} em fatos verificáveis
-    coletados sobre a pessoa real.</p>
+    <p><span class="k">Grounded in real data</span>{names} {verb} by verifiable facts
+    collected about the real person.</p>
   </div>"""
 
     flag_html = ""
     if archetype_personas:
         names = ", ".join(f"{e(p.name)} ({e(role_label(p.role.value))})" for p in archetype_personas)
-        verb = "não tem" if len(archetype_personas) == 1 else "não têm"
-        pronoun = "a reação dela" if len(archetype_personas) == 1 else "as reações delas"
+        verb = "has" if len(archetype_personas) == 1 else "have"
+        pronoun = "their reaction" if len(archetype_personas) == 1 else "their reactions"
         flag_html = f"""
   <div class="flag">
-    <span class="flag-k">Sem dado real</span>
-    <p>{names} {verb} nenhum fato real associado — {"sua fala vem" if len(archetype_personas) == 1 else "suas falas vêm"}
-    de um arquétipo genérico do papel. Trate {pronoun} como ilustrativa, não preditiva.</p>
+    <span class="flag-k">No real data</span>
+    <p>{names} {verb} no real fact attached — {"their statement comes" if len(archetype_personas) == 1 else "their statements come"}
+    from a generic role archetype. Treat {pronoun} as illustrative, not predictive.</p>
   </div>"""
 
     seller_opening_html = ""
     if account.seller_opening:
         seller_opening_html = f"""
-  <p class="body-text" style="max-width:none"><strong>Fala de abertura do vendedor:</strong></p>
+  <p class="body-text" style="max-width:none"><strong>Seller's opening statement:</strong></p>
   <p class="body-text" style="max-width:none; font-style:italic">"{e(account.seller_opening)}"</p>"""
 
     return f"""<!DOCTYPE html>
-<html lang="pt-BR">
+<html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Simulação de Comitê — {e(account.account_name)}</title>
+<title>Committee Simulation — {e(account.account_name)}</title>
 <style>
 :root {{
   --display: "Helvetica Neue", Helvetica, Arial, sans-serif;
@@ -372,27 +372,27 @@ ul, ol {{ color: var(--ink-soft); }}
 <body>
 <div class="page">
   <p class="eyebrow">Sales Digital Twins — {e(account.account_name)}</p>
-  <h1 class="display">O comitê reagiu. <span class="voice">Agora a leitura é sua.</span></h1>
+  <h1 class="display">The committee reacted. <span class="voice">Now the read is yours.</span></h1>
   <p class="lede">{e(account.pitch_summary)}</p>
   <p class="body-text" style="max-width:none">{e(account.proposed_solution)}</p>
   {seller_opening_html}
 
   <div class="ledger">
     <div class="ledger-head">
-      <span class="live">Concluído</span>
-      <span class="meta">{e(account.deal_stage)} · gerado em {generated_at}{f" · {value_line}" if account.deal_value_usd else ""}</span>
+      <span class="live">Completed</span>
+      <span class="meta">{e(account.deal_stage)} · generated at {generated_at}{f" · {value_line}" if account.deal_value_usd else ""}</span>
     </div>
     <div class="bar-row">
-      <div class="bar-label"><span>Comitê simulado</span><b>{len(committee)}</b></div>
+      <div class="bar-label"><span>Simulated committee</span><b>{len(committee)}</b></div>
       <div class="bar-track"><div class="bar-fill" style="width:100%; background:var(--clay)"></div></div>
-      <div class="bar-label"><span>Grounded em dados reais</span><b>{len(real_personas)}</b></div>
+      <div class="bar-label"><span>Grounded in real data</span><b>{len(real_personas)}</b></div>
       <div class="bar-track"><div class="bar-fill" style="width:{real_pct:.0f}%; background:var(--ledger-mint)"></div></div>
     </div>
     <div class="figs">
       <div class="fig"><b>{rounds}</b><span>rounds</span></div>
-      <div class="fig"><b>{len(transcript)}</b><span>falas no debate</span></div>
-      <div class="fig"><b>{len(verdict.blocking_stakeholders)}</b><span>bloqueadores</span></div>
-      <div class="fig"><b>{len(verdict.top_objections)}</b><span>objeções</span></div>
+      <div class="fig"><b>{len(transcript)}</b><span>debate turns</span></div>
+      <div class="fig"><b>{len(verdict.blocking_stakeholders)}</b><span>blockers</span></div>
+      <div class="fig"><b>{len(verdict.top_objections)}</b><span>objections</span></div>
     </div>
   </div>
 
@@ -400,36 +400,36 @@ ul, ol {{ color: var(--ink-soft); }}
   {flag_html}
 
   <div class="section">
-    <p class="eyebrow">Comitê</p>
+    <p class="eyebrow">Committee</p>
     <div class="tbl-wrap">
       <table>
-        <tr><th>Papel</th><th>Nome</th><th>Fonte</th><th>Peso de decisão</th><th>Prioridades</th></tr>
+        <tr><th>Role</th><th>Name</th><th>Source</th><th>Decision weight</th><th>Priorities</th></tr>
         {committee_rows}
       </table>
     </div>
   </div>
 
   <div class="section">
-    <p class="eyebrow">Transcrição do debate</p>
+    <p class="eyebrow">Debate transcript</p>
     {transcript_html}
   </div>
 
   <div class="section">
-    <p class="eyebrow">Veredito</p>
-    <p class="lede">{"O comitê chegou a um " + '<span class="voice">consenso.</span>' if verdict.consensus_reached else 'O comitê <span class="voice">não chegou a um consenso.</span>'}</p>
+    <p class="eyebrow">Verdict</p>
+    <p class="lede">{"The committee reached a " + '<span class="voice">consensus.</span>' if verdict.consensus_reached else 'The committee <span class="voice">did not reach a consensus.</span>'}</p>
     <p class="body-text" style="max-width:none; margin-bottom:20px">{e(verdict.risk_summary)}</p>
     {blockers_html}
-    <p class="h3" style="margin-top:24px">Principais objeções</p>
+    <p class="h3" style="margin-top:24px">Top objections</p>
     <ul>{objections_html}</ul>
-    <p class="h3" style="margin-top:24px">Plano de ação recomendado</p>
+    <p class="h3" style="margin-top:24px">Recommended action plan</p>
     <ol>{roadmap_html}</ol>
     {meddpicc_html}
     {coaching_html}
   </div>
 
   <p class="meta" style="margin-top:40px">
-    Relatório gerado automaticamente por uma simulação de IA do comitê de compra.
-    Use como preparação tática, não como previsão garantida do comportamento real dos stakeholders.
+    This report was generated automatically by an AI simulation of the buying committee.
+    Use it as tactical preparation, not as a guaranteed prediction of real stakeholder behavior.
   </p>
 </div>
 </body>

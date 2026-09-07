@@ -1,15 +1,15 @@
-"""Feedback Loop — sistema imune para simulações de comitê.
+"""Feedback Loop — immune system for committee simulations.
 
-Salva aprovações/rejeições de objeções em filas FIFO por conta
-(máx. MAX_ENTRIES) em:
+Saves objection approvals/rejections in per-account FIFO queues
+(max MAX_ENTRIES) at:
     ~/.digital-twins/feedback/<account_slug>.json
 
-Cada entrada:
+Each entry:
     {"date": "YYYY-MM-DD", "text": str, "approved": bool, "reason": str | None}
 
-O bloco de feedback é injetado nos prompts de sistema das personas e do
-Synthesizer para que simulações futuras evitem objeções rejeitadas e
-prestem atenção em padrões aprovados.
+The feedback block is injected into the personas' and the Synthesizer's
+system prompts so future simulations avoid rejected objections and pay
+attention to approved patterns.
 """
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ def add_feedback(
     approved: bool,
     reason: str | None = None,
 ) -> None:
-    """Adiciona uma entrada de feedback; mantém FIFO com max MAX_ENTRIES."""
+    """Adds a feedback entry; maintains a FIFO with a max of MAX_ENTRIES."""
     entries = _load(account_slug)
     entry: dict = {
         "date": date.today().isoformat(),
@@ -62,35 +62,35 @@ def add_feedback(
 
 
 def load_feedback(account_slug: str) -> list[dict]:
-    """Retorna todas as entradas de feedback de uma conta."""
+    """Returns all feedback entries for an account."""
     return _load(account_slug)
 
 
 def remove_feedback(account_slug: str, text: str) -> None:
-    """Remove uma entrada específica de feedback pelo texto."""
+    """Removes a specific feedback entry by its text."""
     entries = _load(account_slug)
     entries = [e for e in entries if e["text"] != text]
     _save(account_slug, entries)
 
 
 def clear_feedback(account_slug: str) -> None:
-    """Apaga todo o feedback de uma conta."""
+    """Deletes all feedback for an account."""
     path = _feedback_path(account_slug)
     if path.exists():
         path.unlink()
 
 
 def all_accounts_with_feedback() -> list[str]:
-    """Retorna lista de account_slugs que têm arquivo de feedback."""
+    """Returns the list of account_slugs that have a feedback file."""
     if not FEEDBACK_DIR.exists():
         return []
     return [f.stem for f in sorted(FEEDBACK_DIR.glob("*.json"))]
 
 
 def build_feedback_prompt_block(account_slug: str) -> str:
-    """Retorna bloco formatado para injeção em prompts de sistema.
+    """Returns a formatted block for injection into system prompts.
 
-    Retorna string vazia se não houver feedback registrado.
+    Returns an empty string if there is no feedback on record.
     """
     entries = _load(account_slug)
     if not entries:
@@ -100,17 +100,17 @@ def build_feedback_prompt_block(account_slug: str) -> str:
     approved = [e for e in entries if e["approved"]]
 
     lines = [
-        "## Feedback de Simulações Anteriores (consulte ANTES de gerar)",
+        "## Feedback from Previous Simulations (consult BEFORE generating)",
     ]
 
     if rejected:
-        lines.append("### ❌ REJEITADOS — NÃO levante novamente:")
+        lines.append("### ❌ REJECTED — do NOT raise again:")
         for e in rejected:
             reason_part = f" — {e['reason']}" if e.get("reason") else ""
             lines.append(f'  - [{e["date"]}] "{e["text"]}"{reason_part}')
 
     if approved:
-        lines.append("### ✅ APROVADOS — busque questões similares:")
+        lines.append("### ✅ APPROVED — look for similar questions:")
         for e in approved:
             lines.append(f'  - [{e["date"]}] "{e["text"]}"')
 

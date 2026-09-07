@@ -1,4 +1,4 @@
-"""Testes do motor do office (estado dos agentes e dimensionamento do iframe)."""
+"""Tests for the office engine (agent state and iframe sizing)."""
 from __future__ import annotations
 
 from digital_twins.models import AccountContext, StakeholderRole
@@ -14,8 +14,8 @@ from digital_twins.personas.resolver import PersonaFactory
 
 def _personas():
     account = AccountContext(
-        account_name="Conta",
-        deal_stage="Proposta",
+        account_name="Account",
+        deal_stage="Proposal",
         pitch_summary="p",
         proposed_solution="s",
         roles_in_committee=[StakeholderRole.CHAMPION, StakeholderRole.CFO],
@@ -36,8 +36,9 @@ def test_build_agent_states_lifecycle():
 
 
 def test_build_agent_states_global_error_marks_running_agents():
-    """Erro global (agent fora de keys, ex: 'squad') derruba quem estava rodando —
-    sem isso o boneco fica digitando para sempre depois de uma exceção no debate."""
+    """A global error (agent outside of keys, e.g. 'squad') takes down whoever
+    was running — without this, the character keeps typing forever after an
+    exception in the debate."""
     keys = ["facilitator", "cfo"]
     log = [
         {"event": "start", "agent": "facilitator"},
@@ -47,7 +48,7 @@ def test_build_agent_states_global_error_marks_running_agents():
     ]
     states = build_agent_states(log, keys)
     assert states["cfo"]["status"] == "error"
-    # Quem já concluiu não é retroativamente marcado como erro.
+    # Whoever already finished isn't retroactively marked as an error.
     assert states["facilitator"]["status"] == "done"
 
 
@@ -61,8 +62,8 @@ def test_build_office_html_embeds_state_and_is_full_document():
     layout, ncols, nrows = build_layout(len(personas))
     states = build_agent_states([], [d["key"] for d in defs])
     html = build_office_html(defs, layout, ncols, nrows, states)
-    # Documento completo com JS — precisa rodar em components.html (iframe),
-    # nunca em st.html (que não executa <script>).
+    # Full document with JS — must run inside components.html (iframe),
+    # never st.html (which doesn't execute <script>).
     assert html.startswith("<!DOCTYPE html>")
     assert "<script>" in html
     assert "requestAnimationFrame" in html

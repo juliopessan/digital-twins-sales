@@ -1,10 +1,10 @@
 """
 CLI entry point.
 
-    python -m digital_twins.main                          # precisa de ANTHROPIC_API_KEY
-    python -m digital_twins.main --account minha_conta.json  # carrega uma AccountContext real do disco
+    python -m digital_twins.main                          # needs ANTHROPIC_API_KEY
+    python -m digital_twins.main --account my_account.json  # loads a real AccountContext from disk
 
-Saída: transcrição completa rodada a rodada, seguida do veredito final.
+Output: full transcript round by round, followed by the final verdict.
 """
 from __future__ import annotations
 
@@ -26,17 +26,17 @@ from digital_twins.scenarios import ScenarioSpec, build_comparison_markdown, run
 
 
 def _sample_account() -> AccountContext:
-    """Exemplo de trabalho: deal corporativo de Gen AI, CFO com dados reais de embasamento, resto arquétipos."""
+    """Working example: corporate Gen AI deal, CFO with real grounding data, the rest archetypes."""
     return AccountContext(
         account_name="Northwind Logistics",
-        deal_stage="Proposta enviada, aguardando revisão do comitê",
+        deal_stage="Proposal sent, awaiting committee review",
         pitch_summary=(
-            "Plataforma multiagente de Gen AI para automatizar o processamento de documentos de frete, "
-            "substituindo uma equipe de revisão manual de 14 pessoas por uma equipe de supervisão de 3."
+            "Multi-agent Gen AI platform to automate freight document processing, "
+            "replacing a 14-person manual review team with a 3-person oversight team."
         ),
         proposed_solution=(
-            "Pipeline agêntico hospedado na Azure: agentes de OCR + extração + tratamento de exceções "
-            "com humano no loop, implementação de 18 semanas, $640 mil no Ano 1 (licença + serviços)."
+            "Agentic pipeline hosted on Azure: OCR + extraction + exception-handling agents "
+            "with a human in the loop, 18-week rollout, $640k in Year 1 (license + services)."
         ),
         deal_value_usd=640_000,
         roles_in_committee=[
@@ -46,11 +46,11 @@ def _sample_account() -> AccountContext:
             StakeholderRole.PROCUREMENT,
         ],
         real_data={
-            # Apenas o CFO tem embasamento real — os demais caem para o arquétipo.
+            # Only the CFO has real grounding data — the rest fall back to the archetype.
             StakeholderRole.CFO: [
-                "Publicou no LinkedIn no trimestre passado sobre 'fazer mais com menos' após um congelamento de contratações",
-                "Já rejeitou um fornecedor de automação parecido (categoria diferente) por matemática de ROI pouco clara",
-                "Reporta diretamente a um CEO que assumiu publicamente o compromisso de reduzir o opex em 15% neste ano fiscal",
+                "Posted on LinkedIn last quarter about 'doing more with less' after a hiring freeze",
+                "Already rejected a similar automation vendor (different category) over unclear ROI math",
+                "Reports directly to a CEO who publicly committed to cutting opex by 15% this fiscal year",
             ]
         },
     )
@@ -62,20 +62,20 @@ def _load_account(path: str) -> AccountContext:
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Roda uma simulação de comitê de compra com digital twins de vendas.")
-    parser.add_argument("--account", type=str, default=None, help="Caminho para um arquivo JSON de AccountContext")
+    parser = argparse.ArgumentParser(description="Runs a buying-committee simulation with sales digital twins.")
+    parser.add_argument("--account", type=str, default=None, help="Path to an AccountContext JSON file")
     parser.add_argument("--max-rounds", type=int, default=settings.max_rounds)
     parser.add_argument(
         "--report-dir", type=str, default="reports",
-        help="Diretório onde salvar o relatório para o time de vendas (padrão: reports/)",
+        help="Directory to save the sales-team report to (default: reports/)",
     )
-    parser.add_argument("--no-report", action="store_true", help="Não gerar o relatório")
+    parser.add_argument("--no-report", action="store_true", help="Do not generate the report")
     parser.add_argument(
         "--scenarios", type=str, default=None,
         help=(
-            "Caminho para um JSON com uma lista de cenários what-if (ScenarioSpec). "
-            "Em vez de um debate único, roda um debate por cenário e gera um "
-            "comparativo lado a lado ordenado por risco."
+            "Path to a JSON file with a list of what-if scenarios (ScenarioSpec). "
+            "Instead of a single debate, runs one debate per scenario and generates "
+            "a side-by-side comparison sorted by risk."
         ),
     )
     parser.add_argument("-v", "--verbose", action="store_true")
@@ -93,9 +93,9 @@ def main() -> int:
 
     personas = PersonaFactory.build_committee(account)
 
-    print(f"\n=== Comitê: {account.account_name} ({account.deal_stage}) ===")
+    print(f"\n=== Committee: {account.account_name} ({account.deal_stage}) ===")
     for p in personas:
-        tag = "REAL" if p.source.value == "real" else "ARQUÉTIPO"
+        tag = "REAL" if p.source.value == "real" else "ARCHETYPE"
         print(f"  - {p.name} [{p.role.value}] ({tag}, veto={p.decision_power})")
     print()
 
@@ -119,41 +119,41 @@ def main() -> int:
     for turn in final_state["transcript"]:
         if turn.round_number != last_round:
             last_round = turn.round_number
-            print(f"\n--- Rodada {last_round} ---")
+            print(f"\n--- Round {last_round} ---")
         print(f"[{turn.sentiment.value:>10}] {turn.name}: {turn.statement}")
 
     verdict = final_state["verdict"]
-    print("\n=== VEREDITO ===")
-    print(f"Consenso atingido: {verdict.consensus_reached}")
-    print(f"Sentimento geral: {verdict.overall_sentiment.value}")
-    print(f"Stakeholders bloqueadores: {[r.value for r in verdict.blocking_stakeholders]}")
-    print("\nPrincipais objeções:")
+    print("\n=== VERDICT ===")
+    print(f"Consensus reached: {verdict.consensus_reached}")
+    print(f"Overall sentiment: {verdict.overall_sentiment.value}")
+    print(f"Blocking stakeholders: {[r.value for r in verdict.blocking_stakeholders]}")
+    print("\nTop objections:")
     for o in verdict.top_objections:
         print(f"  - {o}")
-    print("\nPlano de ação recomendado:")
+    print("\nRecommended action plan:")
     for t in verdict.recommended_talk_track:
         print(f"  - {t}")
-    print(f"\nAvaliação de risco: {verdict.risk_summary}")
+    print(f"\nRisk assessment: {verdict.risk_summary}")
 
     if verdict.meddpicc_scorecard:
-        print("\nScorecard MEDDPICC:")
+        print("\nMEDDPICC scorecard:")
         for dimension, assessment in verdict.meddpicc_scorecard.items():
             print(f"  - {dimension}: {assessment}")
 
     if verdict.seller_coaching:
         sc = verdict.seller_coaching
-        print("\n=== COACH — AVALIAÇÃO DO SEU PITCH ===")
-        print(f"Nota: {sc.pitch_grade}")
+        print("\n=== COACH — EVALUATION OF YOUR PITCH ===")
+        print(f"Grade: {sc.pitch_grade}")
         if sc.what_landed:
-            print("O que funcionou:")
+            print("What landed:")
             for item in sc.what_landed:
                 print(f"  - {item}")
         if sc.what_backfired:
-            print("O que saiu pela culatra:")
+            print("What backfired:")
             for item in sc.what_backfired:
                 print(f"  - {item}")
         if sc.rewrite_suggestions:
-            print("Sugestões de reescrita:")
+            print("Rewrite suggestions:")
             for item in sc.rewrite_suggestions:
                 print(f"  - {item}")
 
@@ -172,8 +172,8 @@ def main() -> int:
         html_path = report_dir / f"{slug}-{timestamp}.html"
         html_path.write_text(html_report, encoding="utf-8")
 
-        # Snapshot completo para a calibração pós-call (digital_twins.calibration):
-        # compara depois o que o twin previu com a transcrição da call real.
+        # Full snapshot for post-call calibration (digital_twins.calibration):
+        # later compares what the twin predicted with the real call transcript.
         record = SimulationRecord(
             created_at=datetime.now(timezone.utc).isoformat(),
             account=account,
@@ -183,26 +183,26 @@ def main() -> int:
         json_path = report_dir / f"{slug}-{timestamp}.json"
         json_path.write_text(record.model_dump_json(indent=2), encoding="utf-8")
 
-        print(f"\nRelatório salvo em: {md_path}")
-        print(f"Relatório estilizado (HTML) salvo em: {html_path}")
-        print(f"Snapshot para calibração pós-call salvo em: {json_path}")
+        print(f"\nReport saved to: {md_path}")
+        print(f"Styled (HTML) report saved to: {html_path}")
+        print(f"Post-call calibration snapshot saved to: {json_path}")
         print(
-            "Depois da call real: python -m digital_twins.calibration "
-            f"--simulation {json_path} --call-transcript <arquivo.txt>"
+            "After the real call: python -m digital_twins.calibration "
+            f"--simulation {json_path} --call-transcript <file.txt>"
         )
 
     return 0
 
 
 def _run_scenario_mode(account: AccountContext, args) -> int:
-    """Modo cenários what-if: um debate por variante do deal, comparativo por risco."""
+    """What-if scenario mode: one debate per deal variant, compared by risk."""
     with open(args.scenarios, "r", encoding="utf-8") as f:
         specs = [ScenarioSpec.model_validate(s) for s in json.load(f)]
     if not specs:
-        print("Arquivo de cenários vazio — nada a rodar.")
+        print("Scenario file is empty — nothing to run.")
         return 1
 
-    print(f"\n=== Cenários what-if: {account.account_name} ({len(specs)} branches) ===")
+    print(f"\n=== What-if scenarios: {account.account_name} ({len(specs)} branches) ===")
     for s in specs:
         print(f"  - {s.name}" + (f": {s.description}" if s.description else ""))
 
@@ -217,9 +217,9 @@ def _run_scenario_mode(account: AccountContext, args) -> int:
         report_dir.mkdir(parents=True, exist_ok=True)
         slug = re.sub(r"[^a-z0-9]+", "-", account.account_name.lower()).strip("-")
         timestamp = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
-        cmp_path = report_dir / f"{slug}-cenarios-{timestamp}.md"
+        cmp_path = report_dir / f"{slug}-scenarios-{timestamp}.md"
         cmp_path.write_text(comparison, encoding="utf-8")
-        print(f"\nComparativo salvo em: {cmp_path}")
+        print(f"\nComparison saved to: {cmp_path}")
 
     return 0
 

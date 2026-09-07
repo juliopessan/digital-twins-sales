@@ -1,19 +1,19 @@
 {
   "account_name": "Nubank",
-  "deal_stage": "Descoberta técnica concluída, proposta em elaboração",
-  "pitch_summary": "Plataforma multiagente de Gen AI para triagem e resolução de disputas de transação e chargebacks, absorvendo o volume crescente de reclamações trazido pela expansão internacional (EUA, Oriente Médio) sem multiplicar o headcount de operações de risco.",
-  "proposed_solution": "Pipeline agêntico hospedado na Azure com agentes de classificação de disputa, cruzamento de evidências (extrato, geolocalização, padrão comportamental) e resolução automática de casos de baixa complexidade, com humano no loop para casos de alto valor. Implementação de 16 semanas, US$ 850 mil no Ano 1 (licença + serviços).",
+  "deal_stage": "Technical discovery completed, proposal in progress",
+  "pitch_summary": "Multi-agent Gen AI platform to triage and resolve transaction disputes and chargebacks, absorbing the growing complaint volume driven by international expansion (US, Middle East) without multiplying risk-operations headcount.",
+  "proposed_solution": "Agentic pipeline hosted on Azure with dispute-classification agents, evidence cross-referencing (statement, geolocation, behavioral pattern), and automatic resolution of low-complexity cases, with a human in the loop for high-value cases. 16-week implementation, US$850k in Year 1 (license + services).",
   "deal_value_usd": 850000,
   "roles_in_committee": ["ceo", "cto", "cfo", "procurement"],
   "real_data": {
     "ceo": [
-      "David Vélez é fundador e CEO do Nu Holdings/Nubank, mantendo cerca de 75% do poder de voto via ações super-votantes",
-      "Em fevereiro de 2026, a Bloomberg reportou Vélez trabalhando para expandir a base global do Nubank para mais de 127 milhões de clientes, incluindo quase 60% da população adulta brasileira",
-      "O retorno sobre patrimônio (ROE) do Nubank no trimestre mais recente citado pela Bloomberg foi de 31%, ante 23,3% do Itaú Unibanco",
-      "Vélez confirmou que a aprovação condicional para uma licença bancária nacional nos EUA (obtida em janeiro de 2026) — chamada internamente de 'Act Three' — é um objetivo de longo prazo, mantendo o foco declarado em Brasil, México e Colômbia",
-      "Em abril de 2026, o Nubank formalizou entrada no Oriente Médio, com sede em Abu Dhabi em parceria com o Wio Bank, mirando expansão para Ásia e MENA",
-      "A companhia opera com 131 milhões de clientes, US$ 78 bilhões em ativos e US$ 2,82 bilhões de lucro líquido em 2025, além de estar entre os quatro finalistas para adquirir o Banco Caixa Geral Brasil e obter licença bancária doméstica completa",
-      "Dado esse histórico de expansão agressiva multi-geografia sob controle acionário concentrado, Vélez tende a avaliar qualquer proposta de automação pela lente de 'isso libera capacidade operacional para sustentar o ritmo de expansão internacional sem comprometer a eficiência de capital que hoje supera a de bancos tradicionais?'"
+      "David Vélez is founder and CEO of Nu Holdings/Nubank, holding roughly 75% of voting power via super-voting shares",
+      "In February 2026, Bloomberg reported Vélez working to expand Nubank's global base to more than 127 million customers, including nearly 60% of Brazil's adult population",
+      "Nubank's return on equity (ROE) in the most recent quarter cited by Bloomberg was 31%, versus 23.3% for Itaú Unibanco",
+      "Vélez confirmed that the conditional approval for a national US banking license (obtained in January 2026) — internally called 'Act Three' — is a long-term goal, while the stated focus remains Brazil, Mexico, and Colombia",
+      "In April 2026, Nubank formalized its entry into the Middle East, headquartered in Abu Dhabi in partnership with Wio Bank, targeting expansion into Asia and MENA",
+      "The company operates with 131 million customers, US$78 billion in assets, and US$2.82 billion in net income in 2025, and is among the four finalists to acquire Banco Caixa Geral Brasil and obtain a full domestic banking license",
+      "Given this track record of aggressive multi-geography expansion under concentrated shareholder control, Vélez tends to evaluate any automation proposal through the lens of 'does this free up operational capacity to sustain the pace of international expansion without compromising the capital efficiency that today outperforms traditional banks?'"
     ]
   }
 }

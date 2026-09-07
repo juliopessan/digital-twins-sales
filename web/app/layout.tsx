@@ -24,14 +24,14 @@ const mono = IBM_Plex_Mono({
 export const metadata: Metadata = {
   title: "Sales Digital Twins — Board Simulator",
   description:
-    "Ensaie o pior comitê de compra da sua vida antes que ele seja real.",
+    "Rehearse the worst buying committee of your life before it's real.",
 };
 
 export default function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="pt-BR">
+    <html lang="en">
       <body className={`${display.variable} ${voice.variable} ${mono.variable}`}>
         {children}
       </body>

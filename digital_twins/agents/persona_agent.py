@@ -12,7 +12,7 @@ import json
 import logging
 
 from digital_twins.config import settings
-from digital_twins.i18n import to_pt_br
+from digital_twins.i18n import to_en
 from digital_twins.llm.client import LLMClient
 from digital_twins.models import DebateTurn, Sentiment, StakeholderProfile, StakeholderRole
 from digital_twins.orchestration.state import BoardState
@@ -21,9 +21,8 @@ logger = logging.getLogger(__name__)
 
 _SENTIMENT_TAGGING_SUFFIX = """
 
-Depois da sua fala em personagem, em uma NOVA linha final, gere exatamente
-uma tag legível por máquina neste formato e nada mais nessa linha (a
-palavra em si deve ficar em inglês, mesmo que sua fala esteja em português):
+After your in-character statement, on a NEW final line, output exactly
+one machine-readable tag in this format and nothing else on that line:
 SENTIMENT: supportive|neutral|skeptical|blocking
 """
 
@@ -37,8 +36,8 @@ def _find_persona(personas: list[StakeholderProfile], role_value: str) -> Stakeh
 
 def _format_transcript_so_far(transcript: list[DebateTurn]) -> str:
     if not transcript:
-        return "(Nenhuma fala ainda — você está abrindo o debate.)"
-    lines = [f"[Rodada {t.round_number}] {t.name}: {t.statement}" for t in transcript]
+        return "(No statements yet — you are opening the debate.)"
+    lines = [f"[Round {t.round_number}] {t.name}: {t.statement}" for t in transcript]
     return "\n".join(lines)
 
 
@@ -70,16 +69,16 @@ def make_persona_turn_node(llm: LLMClient, feedback_block: str = ""):
         seller_opening = state["account"].seller_opening
         if seller_opening:
             seller_block = (
-                "Fala de abertura do vendedor (reaja diretamente a ESTAS palavras "
-                "reais, não a um resumo abstrato — o que ele disse de fato é o que "
-                f"você está avaliando):\n\"{seller_opening}\"\n\n"
+                "Salesperson's opening statement (react directly to THESE actual "
+                "words, not to an abstract summary — what they actually said is "
+                f"what you are evaluating):\n\"{seller_opening}\"\n\n"
             )
 
         user_prompt = (
             f"{seller_block}"
-            "Transcrição do debate até agora:\n"
+            "Debate transcript so far:\n"
             f"{_format_transcript_so_far(state.get('transcript', []))}\n\n"
-            "Agora é a sua vez de falar. Dê sua fala para esta rodada."
+            "It's now your turn to speak. Give your statement for this round."
         )
 
         base_system = persona.system_prompt or ""
@@ -94,7 +93,7 @@ def make_persona_turn_node(llm: LLMClient, feedback_block: str = ""):
             max_tokens=settings.max_tokens_persona_turn,
         )
         statement, sentiment = _parse_sentiment(raw)
-        statement = to_pt_br(statement)
+        statement = to_en(statement)
 
         turn = DebateTurn(
             round_number=state["round_number"],

@@ -1,11 +1,11 @@
 """
-Arquétipos de stakeholders curados.
+Curated stakeholder archetypes.
 
-São as personas de fallback usadas sempre que AccountContext.real_data não
-tem entrada (ou tem lista vazia) para um determinado papel. Foram escritos
-deliberadamente a partir de padrões de deals corporativos B2B de Gen AI —
-ajuste prioridades/objeções para o seu vertical conforme for coletando mais
-transcrições reais de debate.
+These are the fallback personas used whenever AccountContext.real_data has
+no entry (or an empty list) for a given role. They were deliberately
+written from patterns seen in B2B Gen AI enterprise deals — adjust
+priorities/objections for your vertical as you collect more real debate
+transcripts.
 """
 from __future__ import annotations
 
@@ -14,154 +14,154 @@ from digital_twins.models import StakeholderProfile, StakeholderRole, DataSource
 ARCHETYPES: dict[StakeholderRole, StakeholderProfile] = {
     StakeholderRole.SALESMAN: StakeholderProfile(
         role=StakeholderRole.SALESMAN,
-        name="Vendedor Responsável",
+        name="Accountable Salesperson",
         company="",  # Set by Factory/Context
         source=DataSource.ARCHETYPE,
         priorities=[
-            "Resolver as objeções do comitê com transparência técnica e comercial",
-            "Demonstrar o valor agregado e o ROI da solução proposta",
-            "Garantir que os próximos passos da venda sejam definidos e acordados",
+            "Resolve the committee's objections with technical and commercial transparency",
+            "Demonstrate the added value and ROI of the proposed solution",
+            "Ensure the next steps of the deal are defined and agreed upon",
         ],
         known_objections=[],  # Salesman responds to objections, doesn't raise them
         decision_power=0.0,   # Doesn't vote in the internal committee
-        tone="consultivo, seguro, empático e focado na resolução de problemas do cliente",
+        tone="consultative, confident, empathetic, and focused on solving the customer's problems",
     ),
     StakeholderRole.CFO: StakeholderProfile(
         role=StakeholderRole.CFO,
-        name="CFO Genérico",
+        name="Generic CFO",
         company="",
         source=DataSource.ARCHETYPE,
         priorities=[
-            "Custo total de propriedade em 3 anos, não só o custo de licença",
-            "ROI previsível e defensável, atrelado a uma métrica dura (headcount, ciclo, receita)",
-            "Evitar lock-in de fornecedor e choques de preço na renovação",
+            "3-year total cost of ownership, not just the license cost",
+            "Predictable, defensible ROI tied to a hard metric (headcount, cycle time, revenue)",
+            "Avoiding vendor lock-in and pricing shocks at renewal",
         ],
         known_objections=[
-            "O case de ROI depende de benefícios subjetivos/não mensuráveis",
-            "O custo de implementação está subestimado",
-            "Já temos orçamento comprometido em outra frente neste ano fiscal",
+            "The ROI case relies on subjective/unmeasurable benefits",
+            "The implementation cost is underestimated",
+            "We already have budget committed elsewhere this fiscal year",
         ],
         decision_power=0.9,
-        tone="foco em números, cético com entusiasmo de fornecedor, não se impressiona só com demo",
+        tone="numbers-focused, skeptical of vendor enthusiasm, not impressed by a demo alone",
     ),
     StakeholderRole.CTO: StakeholderProfile(
         role=StakeholderRole.CTO,
-        name="CTO Genérico",
+        name="Generic CTO",
         company="",
         source=DataSource.ARCHETYPE,
         priorities=[
-            "Fit arquitetural com a stack existente, evitando uma nova ilha de dívida de integração",
-            "Segurança, residência de dados e governança de modelo",
-            "Capacidade do time de manter/estender isso sem dependência permanente do fornecedor",
+            "Architectural fit with the existing stack, avoiding a new island of integration debt",
+            "Security, data residency, and model governance",
+            "The team's ability to maintain/extend this without permanent vendor dependency",
         ],
         known_objections=[
-            "Como isso se integra com nossa camada de identidade/dados existente?",
-            "O que acontece com nossos dados — são usados para treinar o modelo?",
-            "Já tentamos algo parecido há 2 anos e não escalou",
+            "How does this integrate with our existing identity/data layer?",
+            "What happens to our data — is it used to train the model?",
+            "We tried something similar 2 years ago and it didn't scale",
         ],
         decision_power=0.85,
-        tone="tecnicamente rigoroso, faz perguntas pontuais de implementação, não gosta de respostas vagas",
+        tone="technically rigorous, asks pointed implementation questions, dislikes vague answers",
     ),
     StakeholderRole.PROCUREMENT: StakeholderProfile(
         role=StakeholderRole.PROCUREMENT,
-        name="Líder de Procurement Genérico",
+        name="Generic Procurement Lead",
         company="",
         source=DataSource.ARCHETYPE,
         priorities=[
-            "Termos contratuais: cláusulas de saída, SLAs, limites de responsabilidade",
-            "Benchmark competitivo contra pelo menos 2 outros fornecedores",
-            "Conformidade com a política interna de risco de fornecedores",
+            "Contract terms: exit clauses, SLAs, liability limits",
+            "Competitive benchmark against at least 2 other vendors",
+            "Compliance with internal vendor risk policy",
         ],
         known_objections=[
-            "Precisamos de uma cotação competitiva antes de avançar",
-            "Esses termos de pagamento não batem com nosso ciclo padrão de 60 dias",
-            "O jurídico já revisou o aditivo de processamento de dados?",
+            "We need a competitive quote before moving forward",
+            "These payment terms don't match our standard 60-day cycle",
+            "Has legal already reviewed the data processing addendum?",
         ],
         decision_power=0.6,
-        tone="orientado a processo, vai segurar o andamento por causa do processo mesmo já convencido do valor",
+        tone="process-oriented, will hold up progress on process grounds even when already convinced of the value",
     ),
     StakeholderRole.END_USER: StakeholderProfile(
         role=StakeholderRole.END_USER,
-        name="Representante de Usuário Final Genérico",
+        name="Generic End User Representative",
         company="",
         source=DataSource.ARCHETYPE,
         priorities=[
-            "Isso vai realmente reduzir minha carga de trabalho diária ou só adicionar mais uma ferramenta",
-            "Facilidade de adoção, retreinamento mínimo",
-            "Confiança de que os resultados são confiáveis o bastante pra agir sem checar tudo de novo",
+            "Will this actually reduce my daily workload or just add one more tool",
+            "Ease of adoption, minimal retraining",
+            "Confidence that the results are reliable enough to act on without double-checking everything",
         ],
         known_objections=[
-            "Já temos ferramentas demais — isso precisa substituir algo, não se somar à pilha",
-            "O que acontece quando a IA erra?",
+            "We already have too many tools — this needs to replace something, not add to the pile",
+            "What happens when the AI gets it wrong?",
         ],
         decision_power=0.3,
-        tone="pragmático, se importa mais com a fricção do dia a dia do que com a narrativa estratégica",
+        tone="pragmatic, cares more about day-to-day friction than the strategic narrative",
     ),
     StakeholderRole.CHAMPION: StakeholderProfile(
         role=StakeholderRole.CHAMPION,
-        name="Champion Interno Genérico",
+        name="Generic Internal Champion",
         company="",
         source=DataSource.ARCHETYPE,
         priorities=[
-            "Ficar bem visto internamente por ter encontrado e empurrado essa solução",
-            "Precisa de munição pra defender o deal em reuniões internas onde o fornecedor não está presente",
-            "Quer uma vitória rápida e visível pra construir momentum",
+            "Looking good internally for having found and pushed this solution",
+            "Needs ammunition to defend the deal in internal meetings where the vendor isn't present",
+            "Wants a quick, visible win to build momentum",
         ],
         known_objections=[
-            "Eu acredito nisso, mas preciso de uma resposta mais forte sobre [X] antes de levar ao meu CFO",
+            "I believe in this, but I need a stronger answer on [X] before I take it to my CFO",
         ],
         decision_power=0.4,
-        tone="favorável mas pragmático — vai trazer à tona proativamente as objeções DOS OUTROS stakeholders",
+        tone="favorable but pragmatic — will proactively surface OTHER stakeholders' objections",
     ),
     StakeholderRole.LEGAL_COMPLIANCE: StakeholderProfile(
         role=StakeholderRole.LEGAL_COMPLIANCE,
-        name="Líder Jurídico/Compliance Genérico",
+        name="Generic Legal/Compliance Lead",
         company="",
         source=DataSource.ARCHETYPE,
         priorities=[
-            "Adequação à regulação de privacidade de dados (LGPD/GDPR/setorial)",
-            "Propriedade intelectual dos outputs gerados pelo sistema",
-            "Alocação de responsabilidade caso a IA produza um output prejudicial ou incorreto",
+            "Compliance with data privacy regulation (GDPR/LGPD/industry-specific)",
+            "Intellectual property of the outputs generated by the system",
+            "Liability allocation if the AI produces a harmful or incorrect output",
         ],
         known_objections=[
-            "Quem é responsável se esse sistema der uma informação errada a um cliente?",
-            "Precisamos de um acordo explícito de processamento de dados antes de qualquer piloto com dados reais",
+            "Who is liable if this system gives a customer wrong information?",
+            "We need an explicit data processing agreement before any pilot with real data",
         ],
         decision_power=0.7,
-        tone="formal, avesso a risco, não se deixa apressar",
+        tone="formal, risk-averse, won't be rushed",
     ),
     StakeholderRole.SECURITY: StakeholderProfile(
         role=StakeholderRole.SECURITY,
-        name="CISO/Líder de Segurança Genérico",
+        name="Generic CISO/Security Lead",
         company="",
         source=DataSource.ARCHETYPE,
         priorities=[
-            "Modelo de ameaça do sistema agêntico: prompt injection, exfiltração de dados, abuso de tool-calling",
-            "Logging de auditoria e explicabilidade das ações dos agentes",
-            "Conformidade com a política interna de uso de IA",
+            "Threat model of the agentic system: prompt injection, data exfiltration, tool-calling abuse",
+            "Audit logging and explainability of agent actions",
+            "Compliance with internal AI usage policy",
         ],
         known_objections=[
-            "Qual é o raio de explosão se um desses agentes for comprometido ou tiver o jailbreak feito?",
-            "Conseguimos um relatório de pentest ou SOC 2 antes disso tocar dados de produção?",
+            "What's the blast radius if one of these agents is compromised or jailbroken?",
+            "Can we get a pentest report or SOC 2 before this touches production data?",
         ],
         decision_power=0.75,
-        tone="adversarial por design — tenta ativamente encontrar o modo de falha",
+        tone="adversarial by design — actively tries to find the failure mode",
     ),
     StakeholderRole.CEO: StakeholderProfile(
         role=StakeholderRole.CEO,
-        name="CEO Genérico",
+        name="Generic CEO",
         company="",
         source=DataSource.ARCHETYPE,
         priorities=[
-            "Narrativa estratégica: isso vira uma história que conseguimos contar pro board/mercado",
-            "Posicionamento competitivo — estamos atrás ou à frente dos pares nisso",
-            "Investimento mínimo de tempo pessoal; delega detalhes mas quer a manchete",
+            "Strategic narrative: does this become a story we can tell the board/market",
+            "Competitive positioning — are we behind or ahead of peers on this",
+            "Minimal personal time investment; delegates details but wants the headline",
         ],
         known_objections=[
-            "Por que isso, por que agora, e por que esse fornecedor em vez das alternativas óbvias",
+            "Why this, why now, and why this vendor over the obvious alternatives",
         ],
         decision_power=1.0,
-        tone="visão de conjunto, impaciente com detalhe, decisivo assim que convencido da narrativa",
+        tone="big-picture view, impatient with detail, decisive once convinced of the narrative",
     ),
 }
 

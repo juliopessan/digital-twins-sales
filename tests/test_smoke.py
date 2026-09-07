@@ -1,9 +1,9 @@
 """
 Smoke tests.
 
-A factory-level tests (sem LLM) sempre rodam. O teste do grafo completo
-precisa de uma chave Anthropic real (não há mais MockLLMClient no projeto)
-e é pulado automaticamente se ANTHROPIC_API_KEY não estiver configurada.
+Factory-level tests (no LLM) always run. The full-graph test needs a real
+Anthropic key (there's no MockLLMClient in the project anymore) and is
+skipped automatically if ANTHROPIC_API_KEY isn't configured.
 """
 from __future__ import annotations
 
@@ -21,12 +21,12 @@ _HAS_API_KEY = bool(os.getenv("ANTHROPIC_API_KEY"))
 
 def _make_account(with_real_cfo: bool = True) -> AccountContext:
     return AccountContext(
-        account_name="Empresa Teste",
-        deal_stage="Descoberta",
-        pitch_summary="Um pipeline multiagente para X.",
-        proposed_solution="Sistema agêntico Y.",
+        account_name="Test Company",
+        deal_stage="Discovery",
+        pitch_summary="A multi-agent pipeline for X.",
+        proposed_solution="Agentic system Y.",
         roles_in_committee=[StakeholderRole.CHAMPION, StakeholderRole.CFO, StakeholderRole.CTO],
-        real_data={StakeholderRole.CFO: ["Mencionou congelamento de orçamento na última call de resultados"]}
+        real_data={StakeholderRole.CFO: ["Mentioned a budget freeze on the last earnings call"]}
         if with_real_cfo
         else {},
     )
@@ -46,11 +46,11 @@ def test_persona_factory_uses_real_data_when_present():
     other = next(p for p in committee if p.role == StakeholderRole.CHAMPION)
 
     assert cfo.source == DataSource.REAL
-    assert "congelamento de orçamento" in cfo.system_prompt
+    assert "budget freeze" in cfo.system_prompt
     assert other.source == DataSource.ARCHETYPE
 
 
-@pytest.mark.skipif(not _HAS_API_KEY, reason="ANTHROPIC_API_KEY não configurada — sem mock, este teste exige a API real")
+@pytest.mark.skipif(not _HAS_API_KEY, reason="ANTHROPIC_API_KEY not configured — no mock, this test requires the real API")
 def test_full_graph_runs_end_to_end_with_real_client():
     account = _make_account()
     personas = PersonaFactory.build_committee(account)
@@ -70,14 +70,14 @@ def test_full_graph_runs_end_to_end_with_real_client():
 
     final_state = app.invoke(initial_state)
 
-    # Toda persona deve ter falado pelo menos uma vez.
+    # Every persona should have spoken at least once.
     spoken_roles = {t.role for t in final_state["transcript"]}
     expected_roles = {p.role for p in personas}
     assert spoken_roles == expected_roles
 
-    # A síntese deve ter produzido um veredito válido.
+    # The synthesis should have produced a valid verdict.
     assert final_state["verdict"] is not None
     assert final_state["verdict"].top_objections
 
-    # Hard stop respeitado: nunca excede max_rounds.
+    # Hard stop respected: never exceeds max_rounds.
     assert max(t.round_number for t in final_state["transcript"]) <= 2

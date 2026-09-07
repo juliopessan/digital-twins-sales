@@ -4,9 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { useParams } from "next/navigation";
 import { getRun, reportUrl } from "@/lib/api";
 import type { RunSnapshot, StakeholderProfile } from "@/lib/types";
-import { ROLE_LABEL_PT, SENTIMENT_LABEL_PT } from "@/lib/types";
-
-const ARCHETYPE_NOTE: Record<string, string> = {};
+import { ROLE_LABEL, SENTIMENT_LABEL } from "@/lib/types";
 
 function fmtDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -57,11 +55,11 @@ export default function RunPage() {
       <div className="page" style={{ paddingTop: 68 }}>
         <p className="eyebrow">Sales Digital Twins</p>
         <h1 className="display" style={{ marginBottom: 24 }}>
-          O comitê está <span className="voice">deliberando.</span>
+          The committee is <span className="voice">deliberating.</span>
         </h1>
         <div className="ledger" style={{ maxWidth: 480 }}>
           <div className="ledger-head">
-            <span className="live">Rodando</span>
+            <span className="live">Running</span>
             <span className="meta">run {id.slice(0, 8)}</span>
           </div>
           <div className="figs">
@@ -83,10 +81,10 @@ export default function RunPage() {
       <div className="page" style={{ paddingTop: 68 }}>
         <p className="eyebrow">Sales Digital Twins</p>
         <h1 className="display" style={{ marginBottom: 24 }}>
-          A simulação falhou.
+          The simulation failed.
         </h1>
         <div className="flag" style={{ maxWidth: 640 }}>
-          <span className="flag-k">Erro</span>
+          <span className="flag-k">Error</span>
           <p>{snap.error}</p>
         </div>
       </div>
@@ -108,8 +106,8 @@ export default function RunPage() {
       <div className="hero" style={{ marginBottom: 56 }}>
         <div>
           <h1 className="display" style={{ marginBottom: 18 }}>
-            O comitê reagiu.{" "}
-            <span className="voice">Agora a leitura é sua.</span>
+            The committee reacted.{" "}
+            <span className="voice">Now the read is yours.</span>
           </h1>
           <p className="lede">{account.pitch_summary}</p>
           <p className="body-text" style={{ marginTop: 14 }}>
@@ -119,20 +117,20 @@ export default function RunPage() {
 
         <div className="ledger">
           <div className="ledger-head">
-            <span className="live">Concluído</span>
+            <span className="live">Completed</span>
             <span className="meta">{fmtDuration(result.duration_seconds)}</span>
           </div>
 
           <div className="bar-row">
             <div className="bar-label">
-              <span>Comitê simulado</span>
+              <span>Simulated committee</span>
               <b>{committee.length}</b>
             </div>
             <div className="bar-track">
               <div className="bar-fill" style={{ width: "100%", background: "var(--clay)" }} />
             </div>
             <div className="bar-label">
-              <span>Grounded em dados reais</span>
+              <span>Grounded in real data</span>
               <b>{realPersonas.length}</b>
             </div>
             <div className="bar-track">
@@ -143,11 +141,11 @@ export default function RunPage() {
           <div className="figs">
             <div className="fig">
               <b>{result.llm_calls}</b>
-              <span>chamadas LLM</span>
+              <span>LLM calls</span>
             </div>
             <div className="fig">
               <b>{transcript.length}</b>
-              <span>falas no debate</span>
+              <span>debate turns</span>
             </div>
             <div className="fig">
               <b>{Math.max(...transcript.map((t) => t.round_number), 0)}</b>
@@ -157,13 +155,13 @@ export default function RunPage() {
 
           <div className="figs" style={{ borderTop: "1px solid var(--ledger-rule)" }}>
             <div className="fig" style={{ flexDirection: "column", alignItems: "flex-start", gap: 2 }}>
-              <span>modelo persona</span>
+              <span>persona model</span>
               <span className="mono" style={{ fontSize: 11, color: "var(--ledger-ink)" }}>
                 {result.model_persona}
               </span>
             </div>
             <div className="fig" style={{ flexDirection: "column", alignItems: "flex-start", gap: 2 }}>
-              <span>modelo síntese</span>
+              <span>synthesizer model</span>
               <span className="mono" style={{ fontSize: 11, color: "var(--ledger-ink)" }}>
                 {result.model_synthesizer}
               </span>
@@ -176,49 +174,49 @@ export default function RunPage() {
         <div className="measured on-paper" style={{ marginBottom: 24 }}>
           <span className="tick">✓</span>
           <p>
-            <span className="k">Grounded em dados reais</span>
+            <span className="k">Grounded in real data</span>
             {realPersonas
-              .map((p) => `${p.name} (${ROLE_LABEL_PT[p.role]})`)
+              .map((p) => `${p.name} (${ROLE_LABEL[p.role]})`)
               .join(", ")}{" "}
-            {realPersonas.length === 1 ? "tem falas apoiadas" : "têm falas apoiadas"} em fatos
-            verificáveis coletados sobre a pessoa real — veja{" "}
-            <code>grounding_facts</code> de cada perfil abaixo para conferir a fonte.
+            {realPersonas.length === 1 ? "has statements backed" : "have statements backed"} by verifiable
+            facts collected about the real person — see{" "}
+            <code>grounding_facts</code> on each profile below to check the source.
           </p>
         </div>
       )}
 
       {archetypePersonas.length > 0 && (
         <div className="flag" style={{ marginBottom: 56 }}>
-          <span className="flag-k">Sem dado real</span>
+          <span className="flag-k">No real data</span>
           <p>
             {archetypePersonas
-              .map((p) => `${p.name} (${ROLE_LABEL_PT[p.role]})`)
+              .map((p) => `${p.name} (${ROLE_LABEL[p.role]})`)
               .join(", ")}{" "}
-            {archetypePersonas.length === 1 ? "não tem" : "não têm"} nenhum fato real
-            associado — {archetypePersonas.length === 1 ? "sua fala" : "suas falas"} vem de um arquétipo
-            genérico do papel. Trate {archetypePersonas.length === 1 ? "a reação dela" : "as reações delas"} como
-            ilustrativa, não preditiva.
+            {archetypePersonas.length === 1 ? "has" : "have"} no real fact
+            attached — {archetypePersonas.length === 1 ? "their statement comes" : "their statements come"} from a
+            generic role archetype. Treat {archetypePersonas.length === 1 ? "their reaction" : "their reactions"} as
+            illustrative, not predictive.
           </p>
         </div>
       )}
 
       <div className="section">
-        <p className="eyebrow">Comitê</p>
+        <p className="eyebrow">Committee</p>
         <div className="tbl-wrap">
           <table>
             <thead>
               <tr>
-                <th>Papel</th>
-                <th>Nome</th>
-                <th>Fonte</th>
-                <th className="num">Peso de decisão</th>
-                <th>Prioridades</th>
+                <th>Role</th>
+                <th>Name</th>
+                <th>Source</th>
+                <th className="num">Decision weight</th>
+                <th>Priorities</th>
               </tr>
             </thead>
             <tbody>
               {personas.map((p: StakeholderProfile) => (
                 <tr key={p.role}>
-                  <td>{ROLE_LABEL_PT[p.role]}</td>
+                  <td>{ROLE_LABEL[p.role]}</td>
                   <td>{p.name}</td>
                   <td>
                     {p.source === "real" ? (
@@ -227,7 +225,7 @@ export default function RunPage() {
                       </span>
                     ) : (
                       <span className="pill" style={{ borderColor: "var(--clay)", color: "var(--clay)" }}>
-                        arquétipo
+                        archetype
                       </span>
                     )}
                   </td>
@@ -243,16 +241,16 @@ export default function RunPage() {
       </div>
 
       <div className="section">
-        <p className="eyebrow">Transcrição do debate</p>
+        <p className="eyebrow">Debate transcript</p>
         <div className="stack">
           {transcript.map((t, i) => (
             <div key={i} className="card">
               <div className="row" style={{ justifyContent: "space-between", marginBottom: 10 }}>
                 <span className="h3" style={{ margin: 0 }}>
-                  {t.name} · {ROLE_LABEL_PT[t.role]}
+                  {t.name} · {ROLE_LABEL[t.role]}
                 </span>
                 <span className="mono" style={{ fontSize: 11, color: "var(--ink-faint)" }}>
-                  round {t.round_number} · {SENTIMENT_LABEL_PT[t.sentiment]}
+                  round {t.round_number} · {SENTIMENT_LABEL[t.sentiment]}
                 </span>
               </div>
               <p className="body-text" style={{ maxWidth: "none" }}>{t.statement}</p>
@@ -272,20 +270,20 @@ export default function RunPage() {
 
       {verdict && (
         <div className="section">
-          <p className="eyebrow">Veredito</p>
+          <p className="eyebrow">Verdict</p>
           <p className="lede" style={{ marginBottom: 24 }}>
             {verdict.consensus_reached ? (
-              <>O comitê chegou a um <span className="voice">consenso.</span></>
+              <>The committee reached a <span className="voice">consensus.</span></>
             ) : (
-              <>O comitê <span className="voice">não chegou a um consenso.</span></>
+              <>The committee <span className="voice">did not reach a consensus.</span></>
             )}
           </p>
           <p className="body-text" style={{ marginBottom: 24 }}>{verdict.risk_summary}</p>
 
           {verdict.blocking_stakeholders.length > 0 && (
             <div className="flag" style={{ marginBottom: 24, maxWidth: 640 }}>
-              <span className="flag-k">Bloqueadores</span>
-              <p>{verdict.blocking_stakeholders.map((r) => ROLE_LABEL_PT[r]).join(", ")}</p>
+              <span className="flag-k">Blockers</span>
+              <p>{verdict.blocking_stakeholders.map((r) => ROLE_LABEL[r]).join(", ")}</p>
             </div>
           )}
 
@@ -294,7 +292,7 @@ export default function RunPage() {
               <thead>
                 <tr>
                   <th>MEDDPICC</th>
-                  <th>Avaliação</th>
+                  <th>Assessment</th>
                 </tr>
               </thead>
               <tbody>
@@ -311,18 +309,18 @@ export default function RunPage() {
           {verdict.seller_coaching && (
             <div className="card" style={{ marginBottom: 24 }}>
               <p className="h3">
-                Coach — nota: <span className="mono">{verdict.seller_coaching.pitch_grade}</span>
+                Coach — grade: <span className="mono">{verdict.seller_coaching.pitch_grade}</span>
               </p>
               <p className="body-text" style={{ maxWidth: "none" }}>
-                <strong>O que funcionou:</strong>{" "}
+                <strong>What landed:</strong>{" "}
                 {verdict.seller_coaching.what_landed.join(" · ")}
               </p>
               <p className="body-text" style={{ maxWidth: "none" }}>
-                <strong>O que pegou mal:</strong>{" "}
+                <strong>What backfired:</strong>{" "}
                 {verdict.seller_coaching.what_backfired.join(" · ")}
               </p>
               <p className="body-text" style={{ maxWidth: "none", marginBottom: 0 }}>
-                <strong>Reescreva assim:</strong>{" "}
+                <strong>Rewrite it like this:</strong>{" "}
                 {verdict.seller_coaching.rewrite_suggestions.join(" · ")}
               </p>
             </div>
@@ -331,13 +329,13 @@ export default function RunPage() {
       )}
 
       <div className="section">
-        <p className="eyebrow">Exportar</p>
+        <p className="eyebrow">Export</p>
         <div className="row gap-12">
           <a className="btn secondary" href={reportUrl(id, "html")} target="_blank" rel="noreferrer">
-            Relatório HTML
+            HTML report
           </a>
           <a className="btn secondary" href={reportUrl(id, "md")} target="_blank" rel="noreferrer">
-            Relatório Markdown
+            Markdown report
           </a>
         </div>
       </div>

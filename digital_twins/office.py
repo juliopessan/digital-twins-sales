@@ -1,4 +1,4 @@
-﻿"""
+"""
 Sales Board Office — squad-pod Canvas 2D engine adapted for Streamlit.
 
 Adapts swigerb/squad-pod's architecture:
@@ -50,16 +50,16 @@ _LABEL_PAD = 28
 
 
 def office_canvas_height(nrows: int) -> int:
-    """Altura em px do canvas do office para `nrows` fileiras de layout."""
+    """Height in px of the office canvas for `nrows` layout rows."""
     g_rows = _BORDER * 2 + nrows * _CELL_H
     return g_rows * _TILE * _ZOOM + _LABEL_PAD + 16
 
 
 def build_agent_defs(personas: list[StakeholderProfile]) -> list[dict]:
-    defs = [{"key": FACILITATOR_KEY, "ic": "🎯", "nm": "Facilitador", "variant": 0}]
+    defs = [{"key": FACILITATOR_KEY, "ic": "🎯", "nm": "Facilitator", "variant": 0}]
     for i, p in enumerate(personas):
         defs.append({"key": p.role.value, "ic": ROLE_ICON.get(p.role, "🧑"), "nm": p.name, "variant": (i + 1) % 6})
-    defs.append({"key": SYNTHESIZER_KEY, "ic": "🧠", "nm": "Síntese", "variant": (len(personas) + 1) % 6})
+    defs.append({"key": SYNTHESIZER_KEY, "ic": "🧠", "nm": "Synthesis", "variant": (len(personas) + 1) % 6})
     return defs
 
 
@@ -81,8 +81,8 @@ def build_layout(n_personas: int) -> tuple[list[list[int]], int, int]:
 
 
 def build_agent_states(log: list[dict], keys: list[str]) -> dict:
-    # Um erro global (agent fora de `keys`, ex: "squad") derruba quem estava
-    # rodando — sem isso o boneco fica digitando para sempre após uma falha.
+    # A global error (agent outside `keys`, e.g. "squad") knocks down whoever
+    # was running — without this the character keeps typing forever after a failure.
     global_error = any(e["event"] == "error" and e.get("agent") not in keys for e in log)
     states = {}
     for key in keys:
@@ -111,7 +111,7 @@ def build_office_html(
     ncols: int,
     nrows: int,
     agent_states: dict,
-    facilitator_label: str = "Facilitador",
+    facilitator_label: str = "Facilitator",
 ) -> str:
     agents_json = json.dumps(agent_defs)
     layout_json = json.dumps(layout)
@@ -711,8 +711,8 @@ function initOffice() {{
   canvasH = G_ROWS * TS + 28;  // extra room for name labels
   const cv = document.getElementById('cv');
   cv.width  = canvasW; cv.height = canvasH;
-  // Responsivo: encolhe com o container (mantendo proporção via height:auto),
-  // mas nunca estica além do tamanho nativo do pixel-art.
+  // Responsive: shrinks with the container (keeping aspect ratio via height:auto),
+  // but never stretches beyond the pixel-art's native size.
   cv.style.width = '100%';
   cv.style.maxWidth = canvasW+'px';
   cv.style.height = 'auto';
