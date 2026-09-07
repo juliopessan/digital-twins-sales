@@ -287,3 +287,53 @@ input:focus, textarea:focus, select:focus {
   font-family: var(--mono); font-size: 10.5px; letter-spacing: .1em;
   text-transform: uppercase; padding: 4px 10px; border: 1px solid var(--rule); color: var(--ink-soft);
 }
+
+/* ---------- Motion ----------
+   Kept subtle and functional, per the Ledger system's "no shadow, no
+   elevation" spirit: entrances read as a document settling into place, not
+   as a product flourish. Respects reduced-motion. */
+
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes livePulse {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in srgb, var(--ledger-mint) 55%, transparent); }
+  50%      { box-shadow: 0 0 0 4px color-mix(in srgb, var(--ledger-mint) 0%, transparent); }
+}
+@keyframes barSweep {
+  0%   { transform: translateX(-100%); }
+  100% { transform: translateX(220%); }
+}
+
+.animate-in {
+  animation: fadeInUp .5s cubic-bezier(.16,1,.3,1) both;
+}
+
+.ledger-head .live::before { animation: livePulse 1.8s ease-in-out infinite; }
+.ledger-head .live.is-error::before { animation: none; }
+
+/* Indeterminate progress rail — shown in the ledger while a run is in
+   flight, replacing dead air with a sense of forward motion. */
+.bar-track.indeterminate { position: relative; overflow: hidden; }
+.bar-track.indeterminate .bar-fill {
+  position: absolute; inset: 0; width: 40%;
+  animation: barSweep 1.4s ease-in-out infinite;
+}
+
+/* Cycling status word (spinner verb) in the "running" header — fades/lifts
+   in on every word change via a React `key` remount. */
+.spinner-verb {
+  display: inline-block;
+  animation: fadeInUp .35s ease both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-in, .spinner-verb { animation: none; }
+  .ledger-head .live::before { animation: none; }
+  .bar-track.indeterminate .bar-fill { animation: none; width: 100%; opacity: .5; }
+}

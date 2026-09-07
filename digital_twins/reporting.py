@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import html
 from datetime import datetime, timezone
+from urllib.parse import quote
 
 from digital_twins.models import AccountContext, DebateTurn, DebateVerdict, StakeholderProfile
 
@@ -17,6 +18,16 @@ _SENTIMENT_LABEL = {
     "skeptical": "Skeptical",
     "blocking": "Blocking",
 }
+
+# Matches web/app/icon.tsx (an italic "S" in ink-on-paper) so the downloaded
+# report and the live web app carry the same mark in the browser tab.
+_FAVICON_SVG = (
+    '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">'
+    '<rect width="32" height="32" fill="#11110f"/>'
+    '<text x="16" y="23" font-family="Georgia, serif" font-style="italic" '
+    'font-weight="700" font-size="20" fill="#f2efe8" text-anchor="middle">S</text>'
+    "</svg>"
+)
 
 
 def build_markdown_report(
@@ -281,6 +292,7 @@ def build_html_report(
 <head>
 <meta charset="utf-8">
 <title>Committee Simulation — {e(account.account_name)}</title>
+<link rel="icon" href="data:image/svg+xml,{quote(_FAVICON_SVG)}">
 <style>
 :root {{
   --display: "Helvetica Neue", Helvetica, Arial, sans-serif;

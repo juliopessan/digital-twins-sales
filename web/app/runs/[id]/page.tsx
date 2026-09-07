@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { getRun, reportUrl } from "@/lib/api";
 import type { RunSnapshot, StakeholderProfile } from "@/lib/types";
 import { ROLE_LABEL, SENTIMENT_LABEL } from "@/lib/types";
+import { SPINNER_VERBS } from "@/lib/spinnerVerbs";
 
 function fmtDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -12,11 +13,22 @@ function fmtDuration(seconds: number): string {
   return m > 0 ? `${m}m ${s}s` : `${s}s`;
 }
 
+function useSpinnerVerb(active: boolean, intervalMs = 1700): string {
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    if (!active) return;
+    const t = setInterval(() => setI((n) => (n + 1) % SPINNER_VERBS.length), intervalMs);
+    return () => clearInterval(t);
+  }, [active, intervalMs]);
+  return SPINNER_VERBS[i];
+}
+
 export default function RunPage() {
   const { id } = useParams<{ id: string }>();
   const [snap, setSnap] = useState<RunSnapshot | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const timer = useRef<ReturnType<typeof setInterval> | null>(null);
+  const verb = useSpinnerVerb(!err && (!snap || snap.status === "running"));
 
   useEffect(() => {
     let cancelled = false;
@@ -51,20 +63,32 @@ export default function RunPage() {
   }
 
   if (!snap || snap.status === "running") {
+    const log = snap?.log ?? [];
     return (
-      <div className="page" style={{ paddingTop: 68 }}>
+      <div className="page animate-in" style={{ paddingTop: 68 }}>
         <p className="eyebrow">Sales Digital Twins</p>
         <h1 className="display" style={{ marginBottom: 24 }}>
-          The committee is <span className="voice">deliberating.</span>
+          The committee is{" "}
+          <span className="voice spinner-verb" key={verb}>
+            {verb}
+          </span>
+          .
         </h1>
         <div className="ledger" style={{ maxWidth: 480 }}>
           <div className="ledger-head">
             <span className="live">Running</span>
             <span className="meta">run {id.slice(0, 8)}</span>
           </div>
+          <div className="bar-track indeterminate">
+            <div className="bar-fill" style={{ background: "var(--ledger-mint)" }} />
+          </div>
           <div className="figs">
-            {(snap?.log ?? []).slice(-6).map((ev, i) => (
-              <div className="fig" key={i}>
+            {log.slice(-6).map((ev, i) => (
+              <div
+                className="fig animate-in"
+                key={`${log.length - 6 + i}-${ev.agent}-${ev.event}`}
+                style={{ animationDelay: `${i * 40}ms` }}
+              >
                 <span>
                   {ev.event === "start" ? "▸" : "✓"} {ev.agent}
                 </span>
@@ -78,12 +102,12 @@ export default function RunPage() {
 
   if (snap.status === "error") {
     return (
-      <div className="page" style={{ paddingTop: 68 }}>
+      <div className="page animate-in" style={{ paddingTop: 68 }}>
         <p className="eyebrow">Sales Digital Twins</p>
         <h1 className="display" style={{ marginBottom: 24 }}>
           The simulation failed.
         </h1>
-        <div className="flag" style={{ maxWidth: 640 }}>
+        <div className="flag animate-in" style={{ maxWidth: 640, animationDelay: "80ms" }}>
           <span className="flag-k">Error</span>
           <p>{snap.error}</p>
         </div>
@@ -100,11 +124,11 @@ export default function RunPage() {
   const realPct = committee.length > 0 ? (realPersonas.length / committee.length) * 100 : 0;
 
   return (
-    <div className="page" style={{ paddingTop: 68, paddingBottom: 90 }}>
+    <div className="page animate-in" style={{ paddingTop: 68, paddingBottom: 90 }}>
       <p className="eyebrow">Sales Digital Twins — {account.account_name}</p>
 
       <div className="hero" style={{ marginBottom: 56 }}>
-        <div>
+        <div className="animate-in">
           <h1 className="display" style={{ marginBottom: 18 }}>
             The committee reacted.{" "}
             <span className="voice">Now the read is yours.</span>
@@ -115,7 +139,7 @@ export default function RunPage() {
           </p>
         </div>
 
-        <div className="ledger">
+        <div className="ledger animate-in" style={{ animationDelay: "80ms" }}>
           <div className="ledger-head">
             <span className="live">Completed</span>
             <span className="meta">{fmtDuration(result.duration_seconds)}</span>
@@ -171,7 +195,7 @@ export default function RunPage() {
       </div>
 
       {realPersonas.length > 0 && (
-        <div className="measured on-paper" style={{ marginBottom: 24 }}>
+        <div className="measured on-paper animate-in" style={{ marginBottom: 24, animationDelay: "140ms" }}>
           <span className="tick">✓</span>
           <p>
             <span className="k">Grounded in real data</span>
@@ -186,7 +210,7 @@ export default function RunPage() {
       )}
 
       {archetypePersonas.length > 0 && (
-        <div className="flag" style={{ marginBottom: 56 }}>
+        <div className="flag animate-in" style={{ marginBottom: 56, animationDelay: "190ms" }}>
           <span className="flag-k">No real data</span>
           <p>
             {archetypePersonas
@@ -244,7 +268,7 @@ export default function RunPage() {
         <p className="eyebrow">Debate transcript</p>
         <div className="stack">
           {transcript.map((t, i) => (
-            <div key={i} className="card">
+            <div key={i} className="card animate-in" style={{ animationDelay: `${Math.min(i * 60, 480)}ms` }}>
               <div className="row" style={{ justifyContent: "space-between", marginBottom: 10 }}>
                 <span className="h3" style={{ margin: 0 }}>
                   {t.name} · {ROLE_LABEL[t.role]}
