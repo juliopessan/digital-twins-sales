@@ -122,9 +122,8 @@ count, grounded personas, duration, number of LLM calls) from what was
 - The frontend (`web/`) consumes the API and runs the full flow: Setup →
   Run → Result (ledger, grounding callout, archetype flag, transcript,
   verdict, export).
-- **Streamlit** (`streamlit_app.py`, `app_v2.py`) remains functional and is
-  kept as the legacy UI — it includes the pixel-art Office Canvas, which
-  hasn't been ported to Next.js yet.
+- The previous **Streamlit** UI has been archived under `legacy/`
+  (`legacy/streamlit_app.py`, `legacy/app_v2.py`) — see below.
 
 ## Local setup — Web UI (Next.js + FastAPI)
 
@@ -149,21 +148,23 @@ npm run dev
 # directly into the form (only kept in memory during the run)
 ```
 
-## Local setup — Streamlit (legacy)
+## Legacy Streamlit UI
+
+Before the Next.js + FastAPI stack above, the project shipped as a
+Streamlit app — including a pixel-art "Office Canvas" (an animated meeting
+room where each persona is a character at a desk) that hasn't been ported
+to the new frontend yet. It's archived under `legacy/`, still fully
+functional, and kept around for that canvas:
 
 ```bash
-# 1. From the project folder, create and activate a virtualenv
-python3 -m venv .venv
-source .venv/bin/activate        # Windows: .venv\Scripts\activate
-
-# 2. Install the dependencies (includes Streamlit and the EXA client)
-pip install -r requirements.txt
-
-# 3. Configure the Anthropic key (required — there's no mock mode anymore)
-cp .env.example .env
-# edit .env and fill in ANTHROPIC_API_KEY=sk-ant-...
-# optional: EXA_API_KEY=... (automatic stakeholder research in Streamlit)
+# From the same virtualenv/requirements.txt used by the Web UI above:
+streamlit run legacy/streamlit_app.py
+# or the version with a navigation bar:
+streamlit run legacy/app_v2.py
 ```
+
+See `legacy/README_APP_V2.md` for the full tour (tabs, Office Canvas
+architecture, the feedback loop, and the legacy design tokens).
 
 ## CLI
 
@@ -212,63 +213,14 @@ actually came up), blind spots (real objections that weren't predicted),
 and concrete suggestions for facts to add to `AccountContext.real_data` —
 closing the twin's continuous-improvement loop.
 
-## Streamlit interface
+## Automatic stakeholder research (EXA)
 
-```bash
-streamlit run streamlit_app.py
-```
-
-Opens automatically at **http://localhost:8501**. To stop the server,
-`Ctrl+C` in the terminal.
-
-UI with proprietary design tokens (palette, typography, hero/arc/roadmap
-components).
-
-### Meeting room (Office canvas — squad-pod Canvas 2D engine)
-
-`digital_twins/office.py` is an adaptation of the Canvas 2D engine from
-[swigerb/squad-pod](https://github.com/swigerb/squad-pod) (a VS Code
-extension) for Streamlit via `st.html()`. The engine is fully self-contained
-HTML/JS embedded in Python — no external image dependencies.
-
-**Engine architecture (squad-pod style):**
-
-| Component | Detail |
-|---|---|
-| **Grid** | `TILE=16px`, `ZOOM=3×` → `TS=48px` per on-screen tile |
-| **Sprites** | 16×24 px, generated pixel-by-pixel in JS: 4 walking frames + 2 typing frames, 6 color palettes (shirt/skin/pants) |
-| **Speech bubbles** | 12×10 pixel-art arrays (`?` = waiting · `...` = typing), with alpha fade |
-| **Pathfinding** | BFS over the `tileMap` — each character walks to their desk on start, avoiding `WALL`/`DESK`/`VOID` |
-| **Z-sort** | Desks + characters share a `Drawable[]`, sorted by `bottomY` every frame (squad-pod pattern) |
-| **State machine** | `walk → idle → type → done/error`; `done` adds spark particles; `error` shows a pulsing red overlay |
-| **Desks** | Textured wood top, monitor with active/inactive cyan screen, pixel-art keyboard |
-| **Loop** | Continuous `requestAnimationFrame`; resize reinitializes the canvas |
-
-The Python thread injects `STATES`, `AGENTS`, and `LAYOUT` as JSON; the JS
-reads each agent's status every frame and transitions the characters
-automatically. The ambient animation plays client-side while the backend
-processes; the final states (`done`/`error`) appear on the post-LangGraph
-rerender.
-
-In the sidebar you can pick the account (a sample account, any file in
-`accounts/`, **manual entry** of a company + real stakeholder, or upload a
-custom JSON), optionally paste **your opening pitch** (activates training
-mode + Coach), provide the Anthropic key (required, typed into the
-session, never saved to disk), and adjust the maximum number of rounds.
-At the end, the result shows the committee, the animated meeting room,
-objections, action plan, risk assessment, the MEDDPICC scorecard, and — if
-you pasted your pitch — the Coach's evaluation; plus two download buttons:
-a simple `.md` report and a styled `.html` report, ready to send to the
-sales team.
-
-### Automatic stakeholder research (EXA)
-
-In the "Enter manually" form, instead of typing in known facts about the
-real stakeholder by hand, you can provide an **EXA API key** (optional)
-and click "🔎 Research facts with EXA" — `digital_twins/research.py` uses
-Exa's Answer API to pull public, specific, cited facts about the person
-(the same kind of research done manually for the iFood test account, now
-automated).
+In the "Enter manually" form (both the Web UI and the legacy Streamlit
+one), instead of typing in known facts about the real stakeholder by
+hand, you can provide an **EXA API key** (optional) and click "🔎 Research
+facts with EXA" — `digital_twins/research.py` uses Exa's Answer API to
+pull public, specific, cited facts about the person (the same kind of
+research done manually for the iFood test account, now automated).
 
 ## Tests
 
@@ -343,202 +295,9 @@ Other backlog items:
    objections match real objections collected post-call
    (objection precision/recall).
 
-## 🎨 Web UI — Tabs & Office Canvas
-
-```bash
-streamlit run streamlit_app.py
-# Opens at http://localhost:8501
-```
-
-### Tabs
-
-| Tab | What you see | Action |
-|-----|---|---|
-| ⚙️ **Setup** | Account selector, opening pitch (optional), number of rounds, API key auto-load | Click "Run simulation" to start |
-| 🎭 **Office Canvas** | Animated pixel-art meeting room — each persona at a desk, Facilitator walking between desks | Watch each stakeholder's status in real time (idle, working, done) |
-| 📊 **Verdict** | MEDDPICC scorecard, convergence/divergence summary, per-persona objection list | Understand where the deal stands and where it fails |
-| 🏆 **Coach** *(if a pitch was entered)* | Your pitch's performance review, line-by-line rewrites, areas to improve | Calibrate your talk track before the real call |
-| 📥 **Export** | Download a simple `.md` report or a styled `.html` one (ready for email) | Share results with the sales team |
-
-### 🎮 Office Canvas — Meeting Room in Real Time
-
-`digital_twins/office.py` renders an **animated pixel-art canvas** where
-each persona is a character at a desk:
-
-#### Per-persona state machine
-
-```
-idle (seated, doing nothing)
-  ↓ (LangGraph "start" event)
-walk (leaves the desk, Facilitator walks over)
-  ↓ (Facilitator arrives)
-working (persona is thinking/speaking — LLM prompt running)
-  ↓ (LLM response ready)
-done (persona seated, with a green "done" bubble)
-  ↓ (next round or end)
-idle
-```
-
-#### Animation & rendering
-
-- **60fps game loop** via `requestAnimationFrame` (client-side JavaScript)
-- **2-pass rendering**: pass 1 draws all the background desks, pass 2 draws
-  all the characters on top (keeps the Facilitator from being hidden when
-  crossing cells)
-- **The Facilitator walks "desk to desk"** synced to LangGraph `start`
-  events — real-time speed, not pre-recorded (17px/frame ≈ 0.38s per desk,
-  ~2.7s total for the whole group)
-- **Speech bubbles** with themed one-liners per persona (25 humorous
-  variations each; e.g. CFO → `"Payback in 3 months? From which planet?"`,
-  CTO → `"Integration with our legacy stack? Good luck 😅"`)
-- **Sparkle particles** when a persona finishes (status `done`)
-- **Auto-height**: a `ResizeObserver` on the canvas reports its real height
-  to the Streamlit iframe
-
-#### Desk layout
-
-- **Row 1**: Facilitator (supervisor, walks between everyone else)
-- **Row 2**: Primary stakeholders (CFO, CTO, Procurement)
-- **Row 3**: Secondary stakeholders (Champion, Compliance, etc.)
-- **Row 4**: Synthesizer (final-consensus generator)
-
-#### LangGraph integration
-
-While the graph (`orchestration/graph.py`) executes:
-1. Each node fires events via `node.stream(...)` on entry/exit
-2. A background thread consumes those events (a thread-safe queue)
-3. Streamlit rerun → the canvas renders the updated states
-4. Once every node finishes, the canvas shows `done` in green for everyone
-
-Result: **you follow the debate in real time** with no polling, and the
-final state is deterministic (no race conditions).
-
-### ⚙️ Sidebar — Round setup
-
-- **Account** — Dropdown selector: accounts pre-loaded in `accounts/`, or a
-  custom JSON upload
-- **Account data** — Expander with metadata: Company, Pitch, Solution,
-  Value, Committee (stakeholders)
-- **Your opening pitch** — Optional text field: paste the pitch as you'll
-  actually say it. If filled in, personas react to your real words + Coach
-  evaluates performance
-- **Anthropic API key** — **Auto-loaded from `.env`** if present (green
-  badge: ✓ "API key loaded from environment variable"). If absent, an
-  input field with a hint to use `.env`
-- **Max rounds** — Slider 1–5 (controls how many rounds the debate can run)
-- **"Run simulation" button** — Starts the LangGraph graph
-
-### 📊 Verdict tab
-
-Once the simulation finishes:
-
-```
-┌─────────────────────────────────────┐
-│ MEDDPICC SCORECARD                  │
-├─────────────────────────────────────┤
-│ 🎯 Metrics          ✅ Strong       │
-│ 💰 Economic Buyer   ⚠️  At risk     │
-│ 💔 Identify Pain    ✅ Strong       │
-│ 🏆 Champion         ⚠️  At risk     │
-└─────────────────────────────────────┘
-
-📍 Convergence: 71% (majority wants to move forward)
-🚨 Blocking objections (2):
-   - CFO: "Payback doesn't match our internal use case"
-   - CTO: "Integration with legacy system, takes 6 months"
-```
-
-### 🏆 Coach tab *(conditional — only appears if you entered a pitch)*
-
-If `AccountContext.seller_opening` was filled in, the Synthesizer
-generates coaching:
-
-```
-📋 Pitch performance: 7.2/10
-
-✨ What landed:
-  - "Problem: manual integration" resonated with the CTO
-  - "3 healthcare clients" gave credibility
-
-❌ What didn't work:
-  - "Payback in 3 months" was challenged 3 times
-  - "No hidden cost" was met with skepticism
-
-📝 Line-by-line rewrites:
-
-Your line:      "Payback in 3 months, completely no hidden cost"
-Coach suggests: "Payback in 12 months, including integration.
-                 Full cost visible in the quote, approved by Procurement."
-Reason:         The CFO expected realism; "no cost" is a red flag.
-
----
-
-Your line:      "Fast integration with your infrastructure"
-Coach suggests: "API-first integration with your stack.
-                 The CTO will set the timeline based on complexity."
-Reason:         The CTO needs technical control, not vague promises.
-```
-
----
-
-## 🔄 Feedback Loop — Immune System
-
-Inspired by "Agents are 30% of the work. The other 70% is the immune
-system."
-
-Every finding/objection can be **approved** (`👍`) or **rejected** (`👎`):
-
-### Feedback flow
-
-1. **Saved** to `~/.digital-twins/feedback/<account>.json` (FIFO, max 100
-   entries)
-2. **Injected** into the prompt for the next simulation of the same
-   account:
-   ```
-   ## Feedback from previous simulations (check BEFORE suggesting objections)
-
-   ### ❌ REJECTED — do NOT suggest again:
-     - [2026-07-01 14:30] "Integration takes 6 months"
-       → Reason: We already integrated with this stack in 2 months (client Y)
-
-   ### ✅ APPROVED — look for similar patterns:
-     - [2026-07-01 14:00] "We don't have budget this year"
-       → A legitimate CFO raised this; give it weight
-   ```
-
-3. **Routed** by context (a CFO rejection goes back into the CFO's prompt
-   next round, etc.)
-
-### Memory dashboard *(Future)*
-
-A "🧠 Memory" tab (to be implemented) will show:
-
-- Feedback loop stats per account
-- Capacity per account (n/100)
-- A "Clear feedback" reset button
-- History of approved/rejected items over time
-
----
-
-## 📦 Design tokens (legacy Streamlit UI)
-
-The reports (`.md` and `.html`) generated by `streamlit_app.py`/`app_v2.py`
-and the canvas use a proprietary design palette, defined as CSS custom
-properties (`--dt-orange`, `--dt-aurora`, etc.) in
-`digital_twins/reporting.py`:
-
-| Element | Token | Color |
-|----------|-------|-----|
-| Primary | `--dt-orange` | `#FF5800` |
-| Secondary | `--dt-aurora` | `#890078` |
-| Success | `--dt-success` | `#107C10` |
-| Warning | `--dt-warning` | `#FFB900` |
-| Error | `--dt-error` | `#E81123` |
-| Dark mode | `@media (prefers-color-scheme: dark)` | Gold + gray scale |
-
-The **Web UI (Next.js)**, by contrast, uses the Ledger design system —
-warm paper, near-black ink, and the clay/mint pair reserved exclusively to
-signal measured vs. generated data (see the "Status" section above and
-`web/app/globals.css`).
-
-Reports automatically adapt to the browser's theme (light/dark).
+The downloadable `.md`/`.html` reports (`digital_twins/reporting.py`) use
+the same Ledger design system as the Web UI — see the "Status" section
+above and `web/app/globals.css`. The legacy Streamlit UI's own in-app
+screens (not the reports) still use an older proprietary palette; see
+`legacy/README_APP_V2.md` for its tabs, the pixel-art Office Canvas
+architecture, and the feedback loop it implements.

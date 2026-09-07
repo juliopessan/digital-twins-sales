@@ -21,7 +21,16 @@ Python API is identical to the previous implementation:
 from __future__ import annotations
 
 import json
+import sys
+from pathlib import Path
 
+# legacy/ sits one level below the repo root, so the digital_twins/ package
+# (which stays at the top level — it's still imported by the current
+# Next.js/FastAPI stack) isn't on sys.path by default when this file is run
+# or imported from here.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+from digital_twins.constants import FACILITATOR_KEY, SYNTHESIZER_KEY  # noqa: F401 (re-exported)
 from digital_twins.models import StakeholderProfile, StakeholderRole
 
 ROLE_ICON = {
@@ -36,8 +45,6 @@ ROLE_ICON = {
     StakeholderRole.SECURITY: "🔒",
 }
 
-FACILITATOR_KEY = "facilitator"
-SYNTHESIZER_KEY = "synthesizer"
 NCOLS = 4
 
 # Mirrors the JS engine constants below — needed Python-side so the Streamlit

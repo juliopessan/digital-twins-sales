@@ -1,7 +1,10 @@
 """
-Streamlit front-end for the Sales Digital Twins board simulator.
+Legacy Streamlit front-end for the Sales Digital Twins board simulator.
+Archived under legacy/ once the Next.js + FastAPI web UI (web/, api/)
+became the primary frontend — kept because its pixel-art Office Canvas
+hasn't been ported over yet.
 
-    streamlit run streamlit_app.py
+    streamlit run legacy/streamlit_app.py
 
 Visual language: custom design tokens (palette, typography, components)
 applied to the report layout. The live debate is rendered as a pixel-art
@@ -11,15 +14,22 @@ debate via .stream() and pushes start/done events per node into a queue;
 the main thread polls the queue inside a spinner and reruns once finished
 so the canvas bakes in the accurate final per-persona states. The canvas
 engine itself (sprites, desks, bubbles, state machine) is a generalized
-port of that project's web/squad_office.py — see digital_twins/office.py.
+port of that project's web/squad_office.py — see legacy/office.py.
 """
 from __future__ import annotations
 
 import html
 import json
+import sys
 import threading
 from pathlib import Path
 from queue import Empty, Queue
+
+# legacy/ sits one level below the repo root; add the root to sys.path so
+# `digital_twins` (which stayed at the top level) and the sibling `office`
+# module both resolve regardless of the current working directory.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -36,7 +46,11 @@ from digital_twins.feedback import (
 )
 from digital_twins.llm.client import build_default_client
 from digital_twins.models import AccountContext, StakeholderRole
-from digital_twins.office import (
+from digital_twins.orchestration.graph import build_board_graph
+from digital_twins.personas.resolver import PersonaFactory
+from digital_twins.reporting import build_html_report, build_markdown_report
+from digital_twins.research import ResearchError, research_stakeholder
+from office import (
     FACILITATOR_KEY,
     SYNTHESIZER_KEY,
     build_agent_defs,
@@ -45,12 +59,8 @@ from digital_twins.office import (
     build_office_html,
     office_canvas_height,
 )
-from digital_twins.orchestration.graph import build_board_graph
-from digital_twins.personas.resolver import PersonaFactory
-from digital_twins.reporting import build_html_report, build_markdown_report
-from digital_twins.research import ResearchError, research_stakeholder
 
-ACCOUNTS_DIR = Path(__file__).parent / "accounts"
+ACCOUNTS_DIR = Path(__file__).resolve().parent.parent / "accounts"
 
 ROLE_ICON = {
     StakeholderRole.CEO: "👑",
@@ -625,7 +635,7 @@ def _render_memory_dashboard(account_slug: str) -> None:
 
 def main() -> None:
     # Load favicon
-    favicon_path = Path(__file__).parent / "favicon.ico"
+    favicon_path = Path(__file__).resolve().parent.parent / "favicon.ico"
     with open(favicon_path, "rb") as f:
         favicon = f.read()
     

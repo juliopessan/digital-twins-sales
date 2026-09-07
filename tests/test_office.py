@@ -1,15 +1,25 @@
-"""Tests for the office engine (agent state and iframe sizing)."""
+"""Tests for the legacy office engine (agent state and iframe sizing).
+
+digital_twins/office.py was archived under legacy/ once the Next.js +
+FastAPI web UI became the primary frontend; this test covers what's left
+on legacy/streamlit_app.py's/app_v2.py's pixel-art Office Canvas.
+"""
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "legacy"))
+
 from digital_twins.models import AccountContext, StakeholderRole
-from digital_twins.office import (
+from digital_twins.personas.resolver import PersonaFactory
+from office import (
     build_agent_defs,
     build_agent_states,
     build_layout,
     build_office_html,
     office_canvas_height,
 )
-from digital_twins.personas.resolver import PersonaFactory
 
 
 def _personas():

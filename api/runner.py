@@ -1,9 +1,8 @@
 """
 Runs a debate in a background thread, pushing start/done events into a
-RunState so the API can be polled for progress — same event shape as
-streamlit_app.py's _run_debate_with_events, decoupled from any UI framework
-so both frontends could poll the same log format if the Streamlit app stays
-around during the transition.
+RunState so the API can be polled for progress — same event shape as the
+archived legacy/streamlit_app.py's _run_debate_with_events, decoupled from
+any UI framework.
 """
 from __future__ import annotations
 
@@ -14,9 +13,9 @@ import time
 from datetime import datetime, timezone
 
 from digital_twins.config import settings
+from digital_twins.constants import FACILITATOR_KEY, SYNTHESIZER_KEY
 from digital_twins.llm.client import build_default_client
 from digital_twins.models import AccountContext, DebateVerdict, StakeholderProfile
-from digital_twins.office import FACILITATOR_KEY, SYNTHESIZER_KEY
 from digital_twins.orchestration.graph import build_board_graph
 
 from api.store import RunState, runs

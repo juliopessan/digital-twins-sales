@@ -2,14 +2,26 @@
 Digital Twins Sales Simulator — UI v2 with Navigation Bar.
 Applies Streamlit multipage-app pattern with a custom theme.
 Full functionality ported from streamlit_app.py — tabs replaced by st_navbar.
+
+Archived under legacy/ once the Next.js + FastAPI web UI (web/, api/)
+became the primary frontend — kept for its pixel-art Office Canvas.
+
+    streamlit run legacy/app_v2.py
 """
 from __future__ import annotations
 
 import html as html_module
 import json
+import sys
 import threading
 from pathlib import Path
 from queue import Empty, Queue
+
+# legacy/ sits one level below the repo root; add the root to sys.path so
+# `digital_twins` (which stayed at the top level) and the sibling `office`
+# module both resolve regardless of the current working directory.
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 import streamlit as st
 import streamlit.components.v1 as components
@@ -27,7 +39,11 @@ from digital_twins.feedback import (
 )
 from digital_twins.llm.client import build_default_client
 from digital_twins.models import AccountContext, StakeholderRole
-from digital_twins.office import (
+from digital_twins.orchestration.graph import build_board_graph
+from digital_twins.personas.resolver import PersonaFactory
+from digital_twins.reporting import build_html_report, build_markdown_report
+from digital_twins.research import ResearchError, research_stakeholder
+from office import (
     FACILITATOR_KEY,
     SYNTHESIZER_KEY,
     build_agent_defs,
@@ -36,12 +52,8 @@ from digital_twins.office import (
     build_office_html,
     office_canvas_height,
 )
-from digital_twins.orchestration.graph import build_board_graph
-from digital_twins.personas.resolver import PersonaFactory
-from digital_twins.reporting import build_html_report, build_markdown_report
-from digital_twins.research import ResearchError, research_stakeholder
 
-ACCOUNTS_DIR = Path(__file__).parent / "accounts"
+ACCOUNTS_DIR = Path(__file__).resolve().parent.parent / "accounts"
 
 ROLE_ICON = {
     StakeholderRole.SALESMAN: "🎤",
@@ -91,7 +103,7 @@ def _role_color(role_value: str) -> str:
 # ─────────────────────────────────────────────────────────────────────────
 # Page Config
 # ─────────────────────────────────────────────────────────────────────────
-_favicon_path = Path(__file__).parent / "favicon.ico"
+_favicon_path = Path(__file__).resolve().parent.parent / "favicon.ico"
 _favicon_bytes = None
 try:
     with open(_favicon_path, "rb") as _f:
