@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono, Instrument_Serif, Inter_Tight } from "next/font/google";
+import Nav from "@/components/Nav";
 import "./globals.css";
 
 const display = Inter_Tight({
@@ -33,6 +34,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${display.variable} ${voice.variable} ${mono.variable}`}>
+        <Nav />
         {children}
       </body>
     </html>

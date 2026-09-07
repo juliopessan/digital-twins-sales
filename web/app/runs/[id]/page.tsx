@@ -146,8 +146,7 @@ export default function RunPage() {
     const phaseLabel = last ? PHASE_LABEL[last.phase] : "Getting started";
 
     return (
-      <div className="page animate-in" style={{ paddingTop: 68 }}>
-        <p className="eyebrow">Sales Digital Twins</p>
+      <div className="page animate-in" style={{ paddingTop: 48 }}>
         <h1 className="display" style={{ marginBottom: 24 }}>
           The committee is{" "}
           <span className="voice spinner-verb" key={verb}>
@@ -181,8 +180,7 @@ export default function RunPage() {
 
   if (snap.status === "error") {
     return (
-      <div className="page animate-in" style={{ paddingTop: 68 }}>
-        <p className="eyebrow">Sales Digital Twins</p>
+      <div className="page animate-in" style={{ paddingTop: 48 }}>
         <h1 className="display" style={{ marginBottom: 24 }}>
           The simulation failed.
         </h1>
@@ -190,6 +188,11 @@ export default function RunPage() {
           <span className="flag-k">Error</span>
           <p>{snap.error}</p>
         </div>
+        <p style={{ marginTop: 24 }}>
+          <a className="btn secondary" href="/">
+            ← Back to Setup
+          </a>
+        </p>
       </div>
     );
   }
@@ -203,8 +206,8 @@ export default function RunPage() {
   const realPct = committee.length > 0 ? (realPersonas.length / committee.length) * 100 : 0;
 
   return (
-    <div className="page animate-in" style={{ paddingTop: 68, paddingBottom: 90 }}>
-      <p className="eyebrow">Sales Digital Twins — {account.account_name}</p>
+    <div className="page animate-in" style={{ paddingTop: 48, paddingBottom: 90 }}>
+      <p className="eyebrow">{account.account_name}</p>
 
       <div className="hero" style={{ marginBottom: 56 }}>
         <div className="animate-in">

@@ -157,8 +157,7 @@ export default function SetupPage() {
   }
 
   return (
-    <div className="page" style={{ paddingTop: 68, paddingBottom: 68 }}>
-      <p className="eyebrow">Sales Digital Twins</p>
+    <div className="page" style={{ paddingTop: 48, paddingBottom: 68 }}>
       <h1 className="display" style={{ marginBottom: 14 }}>
         Rehearse the worst committee of your life,{" "}
         <span className="voice">before it's real.</span>
