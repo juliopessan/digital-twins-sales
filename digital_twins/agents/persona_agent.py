@@ -89,7 +89,7 @@ def make_persona_turn_node(llm: LLMClient, feedback_block: str = ""):
         raw = llm.complete(
             system=base_system,
             user=user_prompt,
-            model=settings.persona_model,
+            model=state.get("model_persona") or settings.persona_model,
             max_tokens=settings.max_tokens_persona_turn,
         )
         statement, sentiment = _parse_sentiment(raw)

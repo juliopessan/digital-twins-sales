@@ -87,14 +87,17 @@ def get_account(account_id: str) -> dict:
 class RunRequest(BaseModel):
     account: AccountContext
     api_key: str
+    provider: str = "anthropic"  # "anthropic" | "deepseek"
     max_rounds: int = 3
 
 
 @app.post("/api/runs")
 def create_run(payload: RunRequest) -> dict:
+    if payload.provider not in ("anthropic", "deepseek"):
+        raise HTTPException(400, f"Unknown provider '{payload.provider}'.")
     if not payload.api_key.strip():
-        raise HTTPException(400, "Please provide the Anthropic API key.")
-    run_id = start_run(payload.account, payload.api_key, payload.max_rounds)
+        raise HTTPException(400, f"Please provide the {payload.provider.title()} API key.")
+    run_id = start_run(payload.account, payload.api_key, payload.max_rounds, payload.provider)
     return {"run_id": run_id}
 
 

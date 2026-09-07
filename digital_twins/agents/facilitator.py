@@ -92,7 +92,7 @@ def make_evaluate_round_node(llm: LLMClient):
             raw = llm.complete(
                 system=_DECISION_SYSTEM_PROMPT,
                 user=f"Statements from round {round_number}:\n{summary}",
-                model=settings.facilitator_model,
+                model=state.get("model_facilitator") or settings.facilitator_model,
                 max_tokens=settings.max_tokens_facilitator,
                 json_mode=True,
             )

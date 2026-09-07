@@ -27,23 +27,32 @@ def slugify(name: str) -> str:
     return re.sub(r"[^a-z0-9]+", "-", name.lower()).strip("-")
 
 
-def start_run(account: AccountContext, api_key: str, max_rounds: int) -> str:
+def start_run(account: AccountContext, api_key: str, max_rounds: int, provider: str = "anthropic") -> str:
     run = runs.create()
     thread = threading.Thread(
-        target=_execute, args=(run, account, api_key, max_rounds), daemon=True
+        target=_execute, args=(run, account, api_key, max_rounds, provider), daemon=True
     )
     thread.start()
     return run.run_id
 
 
-def _execute(run: RunState, account: AccountContext, api_key: str, max_rounds: int) -> None:
+def _execute(
+    run: RunState, account: AccountContext, api_key: str, max_rounds: int, provider: str = "anthropic"
+) -> None:
     from digital_twins.personas.resolver import PersonaFactory
+
+    if provider == "deepseek":
+        model_persona = model_facilitator = model_synthesizer = settings.deepseek_model
+    else:
+        model_persona = settings.persona_model
+        model_facilitator = settings.facilitator_model
+        model_synthesizer = settings.synthesizer_model
 
     t0 = time.monotonic()
     llm_calls = 0
     try:
         personas: list[StakeholderProfile] = PersonaFactory.build_committee(account)
-        llm = build_default_client(api_key=api_key)
+        llm = build_default_client(api_key=api_key, provider=provider)
         app = build_board_graph(llm)
 
         initial_state = {
@@ -55,6 +64,9 @@ def _execute(run: RunState, account: AccountContext, api_key: str, max_rounds: i
             "current_index": 0,
             "speaking_order": [],
             "facilitator_decision": "continue",
+            "model_persona": model_persona,
+            "model_facilitator": model_facilitator,
+            "model_synthesizer": model_synthesizer,
         }
 
         transcript: list = []
@@ -103,9 +115,9 @@ def _execute(run: RunState, account: AccountContext, api_key: str, max_rounds: i
                 "verdict": verdict.model_dump(mode="json") if verdict else None,
                 "duration_seconds": duration_seconds,
                 "llm_calls": llm_calls,
-                "model_persona": settings.persona_model,
-                "model_facilitator": settings.facilitator_model,
-                "model_synthesizer": settings.synthesizer_model,
+                "model_persona": model_persona,
+                "model_facilitator": model_facilitator,
+                "model_synthesizer": model_synthesizer,
                 "slug": slugify(account.account_name),
                 "finished_at": datetime.now(timezone.utc).isoformat(),
             }

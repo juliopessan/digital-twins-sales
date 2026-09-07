@@ -1,5 +1,6 @@
 langgraph>=0.2.60
 anthropic>=0.40.0
+requests>=2.31
 pydantic>=2.7
 python-dotenv>=1.0
 pytest>=8.0

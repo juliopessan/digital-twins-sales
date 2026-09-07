@@ -28,15 +28,18 @@ export function getAccount(id: string): Promise<AccountContext> {
   return fetch(`${API_URL}/api/accounts/${id}`).then((r) => json(r));
 }
 
+export type LLMProvider = "anthropic" | "deepseek";
+
 export function createRun(
   account: AccountContext,
   apiKey: string,
-  maxRounds: number
+  maxRounds: number,
+  provider: LLMProvider = "anthropic"
 ): Promise<{ run_id: string }> {
   return fetch(`${API_URL}/api/runs`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ account, api_key: apiKey, max_rounds: maxRounds }),
+    body: JSON.stringify({ account, api_key: apiKey, max_rounds: maxRounds, provider }),
   }).then((r) => json(r));
 }
 

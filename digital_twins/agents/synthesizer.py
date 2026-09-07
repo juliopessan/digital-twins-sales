@@ -104,7 +104,7 @@ def make_synthesize_node(llm: LLMClient, feedback_block: str = ""):
         raw = llm.complete(
             system=system_prompt,
             user=user_content,
-            model=settings.synthesizer_model,
+            model=state.get("model_synthesizer") or settings.synthesizer_model,
             max_tokens=settings.max_tokens_synthesis,
             json_mode=True,
         )

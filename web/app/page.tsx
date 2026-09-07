@@ -3,8 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createRun, getAccount, listAccounts, researchStakeholder } from "@/lib/api";
+import type { LLMProvider } from "@/lib/api";
 import type { AccountContext, AccountSummary, StakeholderRole } from "@/lib/types";
 import { ROLE_LABEL } from "@/lib/types";
+
+const PROVIDER_LABEL: Record<LLMProvider, string> = {
+  anthropic: "Anthropic",
+  deepseek: "DeepSeek",
+};
 
 const ALL_ROLES: StakeholderRole[] = [
   "champion",
@@ -51,6 +57,7 @@ export default function SetupPage() {
   const [researchError, setResearchError] = useState<string | null>(null);
 
   const [sellerOpening, setSellerOpening] = useState("");
+  const [provider, setProvider] = useState<LLMProvider>("anthropic");
   const [apiKey, setApiKey] = useState("");
   const [maxRounds, setMaxRounds] = useState(3);
   const [submitting, setSubmitting] = useState(false);
@@ -132,7 +139,7 @@ export default function SetupPage() {
       return;
     }
     if (!apiKey.trim()) {
-      setFormError("Please provide the Anthropic API key.");
+      setFormError(`Please provide the ${PROVIDER_LABEL[provider]} API key.`);
       return;
     }
     const account: AccountContext = {
@@ -141,7 +148,7 @@ export default function SetupPage() {
     };
     setSubmitting(true);
     try {
-      const { run_id } = await createRun(account, apiKey.trim(), maxRounds);
+      const { run_id } = await createRun(account, apiKey.trim(), maxRounds, provider);
       router.push(`/runs/${run_id}`);
     } catch (e) {
       setFormError(e instanceof Error ? e.message : String(e));
@@ -324,8 +331,21 @@ export default function SetupPage() {
         </div>
 
         <div style={{ display: "flex", gap: 32, flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div className="field" style={{ width: 200 }}>
+            <label>LLM provider</label>
+            <select
+              value={provider}
+              onChange={(e) => {
+                setProvider(e.target.value as LLMProvider);
+                setApiKey("");
+              }}
+            >
+              <option value="anthropic">Anthropic</option>
+              <option value="deepseek">DeepSeek</option>
+            </select>
+          </div>
           <div className="field" style={{ width: 320 }}>
-            <label>Anthropic API key</label>
+            <label>{PROVIDER_LABEL[provider]} API key</label>
             <input type="password" value={apiKey} onChange={(e) => setApiKey(e.target.value)} />
             <div className="hint">Only kept in memory for this session — never saved.</div>
           </div>

@@ -22,6 +22,13 @@ class BoardState(TypedDict, total=False):
     round_number: int
     max_rounds: int
 
+    # Per-run model override (set by callers that support multiple LLM
+    # providers, e.g. api/runner.py). Falls back to config.settings.*_model
+    # when absent — CLI and the legacy Streamlit apps never set these.
+    model_persona: str
+    model_facilitator: str
+    model_synthesizer: str
+
     transcript: Annotated[list[DebateTurn], operator.add]
 
     speaking_order: list[str]   # StakeholderRole values, this round's order
