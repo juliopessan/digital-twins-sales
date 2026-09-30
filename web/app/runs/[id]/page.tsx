@@ -126,11 +126,25 @@ export default function RunPage() {
   }, [id]);
 
   if (err) {
+    const gone = /not found/i.test(err);
     return (
-      <div className="page" style={{ paddingTop: 68 }}>
-        <div className="flag">
-          <p>{err}</p>
+      <div className="page" style={{ paddingTop: 48 }}>
+        <h1 className="display" style={{ marginBottom: 24 }}>
+          {gone ? "This run isn't available." : "Something went wrong."}
+        </h1>
+        <div className="flag" style={{ maxWidth: 640 }}>
+          <span className="flag-k">{gone ? "Run not found" : "Error"}</span>
+          <p>
+            {gone
+              ? "Runs that were still in progress when the server restarted are lost — finished runs are kept on disk. Start a new simulation to try again."
+              : err}
+          </p>
         </div>
+        <p style={{ marginTop: 24 }}>
+          <a className="btn secondary" href="/">
+            ← Back to Setup
+          </a>
+        </p>
       </div>
     );
   }

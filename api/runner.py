@@ -182,9 +182,11 @@ def _execute(
             }
             run.status = "done"
             run.finished_at = run.result["finished_at"]
+        runs.persist(run)
     except Exception as exc:
         logger.exception("Run %s failed", run.run_id)
         with run.lock:
             run.status = "error"
             run.error = str(exc)
             run.finished_at = datetime.now(timezone.utc).isoformat()
+        runs.persist(run)
