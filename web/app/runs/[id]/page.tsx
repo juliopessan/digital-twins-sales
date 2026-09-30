@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 import { getRun, reportUrl } from "@/lib/api";
 import type { RunEvent, RunPhase, RunSnapshot, StakeholderProfile, StakeholderRole } from "@/lib/types";
@@ -142,9 +143,9 @@ export default function RunPage() {
           </p>
         </div>
         <p style={{ marginTop: 24 }}>
-          <a className="btn secondary" href="/">
+          <Link className="btn secondary" href="/">
             ← Back to Setup
-          </a>
+          </Link>
         </p>
       </div>
     );
@@ -204,9 +205,9 @@ export default function RunPage() {
           <p>{snap.error}</p>
         </div>
         <p style={{ marginTop: 24 }}>
-          <a className="btn secondary" href="/">
+          <Link className="btn secondary" href="/">
             ← Back to Setup
-          </a>
+          </Link>
         </p>
       </div>
     );

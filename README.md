@@ -215,12 +215,23 @@ closing the twin's continuous-improvement loop.
 
 ## Automatic stakeholder research (EXA)
 
-In the "Enter manually" form (both the Web UI and the legacy Streamlit
-one), instead of typing in known facts about the real stakeholder by
-hand, you can provide an **EXA API key** (optional) and click "🔎 Research
-facts with EXA" — `digital_twins/research.py` uses Exa's Answer API to
-pull public, specific, cited facts about the person (the same kind of
-research done manually for the iFood test account, now automated).
+**Map the committee** (Setup screen, both for saved and manually entered
+accounts): with an **EXA API key**, "🔎 Research committee" looks up every
+role on the committee in parallel (`POST /api/research/committee`). Give a
+name to research a specific person, or leave it blank and the current
+holder of that role is looked up and named for you to confirm.
+
+Nothing reaches a persona until you approve it. Each role shows its facts
+as checkboxes, with the cited sources next to them; only the facts you keep
+are layered on top of whatever the account file already has. A role with no
+approved facts stays a generic archetype, and the results page flags it as
+such. One role failing (no public facts, wrong key) never fails the others.
+
+Web search can pick the wrong person or a stale fact — that's why the review
+step exists — and grounding real, identifiable people carries the consent and
+retention questions listed in the roadmap below. `digital_twins/research.py`
+uses Exa's Answer API (cited answers), not direct scraping of any social
+network.
 
 ## Tests
 

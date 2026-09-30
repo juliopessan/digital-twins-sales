@@ -19,7 +19,7 @@ from pydantic import BaseModel
 
 from digital_twins.models import AccountContext
 from digital_twins.reporting import build_html_report, build_markdown_report
-from digital_twins.research import ResearchError, research_stakeholder
+from digital_twins.research import ResearchError, research_committee, research_stakeholder
 
 from api.runner import start_run
 from api.store import runs
@@ -219,3 +219,52 @@ def suggest_pitch(payload: PitchRequest) -> dict:
     except Exception as exc:  # noqa: BLE001 - surface provider errors to the UI
         raise HTTPException(502, f"Could not generate the pitch: {exc}") from exc
     return {"pitch": text.strip()}
+
+
+# ---------------------------------------------------------------------------
+# Committee mapping (EXA, all roles at once)
+# ---------------------------------------------------------------------------
+
+class CommitteeMember(BaseModel):
+    role: str
+    role_label: str
+    name: str | None = None
+
+
+class CommitteeResearchRequest(BaseModel):
+    company: str
+    members: list[CommitteeMember]
+    exa_api_key: str
+
+
+@app.post("/api/research/committee")
+def research_committee_endpoint(payload: CommitteeResearchRequest) -> dict:
+    """Research every committee role in parallel so the seller can review the
+    facts (with sources) before any of them is injected into a persona."""
+    from digital_twins.models import StakeholderRole
+
+    if not payload.exa_api_key.strip():
+        raise HTTPException(400, "Please provide the EXA API key.")
+    if not payload.company.strip():
+        raise HTTPException(400, "Company name is required.")
+    if not payload.members or len(payload.members) > 8:
+        raise HTTPException(400, "Provide between 1 and 8 committee members.")
+
+    people = []
+    for m in payload.members:
+        try:
+            role = StakeholderRole(m.role)
+        except ValueError:
+            raise HTTPException(400, f"Unknown role '{m.role}'.") from None
+        if role == StakeholderRole.SALESMAN:
+            raise HTTPException(400, "The salesperson isn't part of the buying committee.")
+        people.append((role.value, m.role_label[:60], (m.name or "").strip()[:120] or None))
+
+    outcome = research_committee(payload.company.strip(), people, payload.exa_api_key.strip())
+    results = []
+    for role, res in outcome.items():
+        if isinstance(res, ResearchError):
+            results.append({"role": role, "name": "", "facts": [], "sources": [], "error": str(res)})
+        else:
+            results.append({"role": role, "name": res.name, "facts": res.facts, "sources": res.sources, "error": None})
+    return {"results": results}

@@ -2,6 +2,7 @@ import type {
   AccountContext,
   AccountSummary,
   RunSnapshot,
+  StakeholderRole,
 } from "./types";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:8000";
@@ -82,5 +83,25 @@ export function suggestPitch(
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ account, api_key: apiKey, provider }),
+  }).then((r) => json(r));
+}
+
+export interface CommitteeResearchResult {
+  role: StakeholderRole;
+  name: string;
+  facts: string[];
+  sources: string[];
+  error: string | null;
+}
+
+export function researchCommittee(
+  company: string,
+  members: { role: StakeholderRole; role_label: string; name?: string }[],
+  exaApiKey: string
+): Promise<{ results: CommitteeResearchResult[] }> {
+  return fetch(`${API_URL}/api/research/committee`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ company, members, exa_api_key: exaApiKey }),
   }).then((r) => json(r));
 }

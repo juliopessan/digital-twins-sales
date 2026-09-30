@@ -6,6 +6,8 @@ import { createRun, getAccount, listAccounts, researchStakeholder, suggestPitch 
 import type { LLMProvider } from "@/lib/api";
 import type { AccountContext, AccountSummary, StakeholderRole } from "@/lib/types";
 import { ROLE_LABEL } from "@/lib/types";
+import CommitteeMapper from "@/components/CommitteeMapper";
+import type { Mapping } from "@/components/CommitteeMapper";
 
 const PROVIDER_LABEL: Record<LLMProvider, string> = {
   anthropic: "Anthropic",
@@ -61,6 +63,7 @@ export default function SetupPage() {
   const [apiKey, setApiKey] = useState("");
   const [maxRounds, setMaxRounds] = useState(3);
   const [submitting, setSubmitting] = useState(false);
+  const [mapping, setMapping] = useState<Mapping>({});
   const [pitching, setPitching] = useState(false);
   const [pitchError, setPitchError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -129,6 +132,18 @@ export default function SetupPage() {
     };
   }
 
+  /** Layer the seller-approved research on top of whatever the account already has. */
+  function withMapping(base: AccountContext): AccountContext {
+    const real_data = { ...base.real_data };
+    const real_names = { ...base.real_names };
+    for (const [role, m] of Object.entries(mapping) as [StakeholderRole, Mapping[StakeholderRole]][]) {
+      if (!m) continue;
+      real_data[role] = Array.from(new Set([...(real_data[role] ?? []), ...m.facts]));
+      if (m.name) real_names[role] = m.name;
+    }
+    return { ...base, real_data, real_names };
+  }
+
   async function handleSuggestPitch() {
     setPitchError(null);
     const base = mode === "pick" ? pickedAccount : buildManualAccount();
@@ -171,7 +186,7 @@ export default function SetupPage() {
       return;
     }
     const account: AccountContext = {
-      ...base,
+      ...withMapping(base),
       seller_opening: sellerOpening.trim() || null,
     };
     setSubmitting(true);
@@ -188,11 +203,11 @@ export default function SetupPage() {
     <div className="page" style={{ paddingTop: 48, paddingBottom: 68 }}>
       <h1 className="display" style={{ marginBottom: 14 }}>
         Rehearse the worst committee of your life,{" "}
-        <span className="voice">before it's real.</span>
+        <span className="voice">before it&apos;s real.</span>
       </h1>
       <p className="lede" style={{ marginBottom: 48 }}>
         A synthetic buying committee — grounded in real data when it exists,
-        archetype when it doesn't — debates your proposal. Paste your pitch and
+        archetype when it doesn&apos;t — debates your proposal. Paste your pitch and
         a coach evaluates how it held up; leave it blank and the committee
         debates on its own.
       </p>
@@ -345,6 +360,22 @@ export default function SetupPage() {
           </div>
         )}
       </div>
+
+      {(() => {
+        const acct = mode === "pick" ? pickedAccount : manual;
+        if (!acct || !acct.account_name) return null;
+        return (
+          <CommitteeMapper
+            key={mode === "pick" ? `pick:${selectedId}` : "manual"}
+            company={acct.account_name}
+            roles={acct.roles_in_committee}
+            existingFacts={acct.real_data}
+            exaKey={exaKey}
+            onExaKeyChange={setExaKey}
+            onChange={setMapping}
+          />
+        );
+      })()}
 
       <div className="section">
         <div className="field" style={{ maxWidth: 640 }}>
