@@ -6,6 +6,7 @@ import { getRun, reportUrl } from "@/lib/api";
 import type { RunEvent, RunPhase, RunSnapshot, StakeholderProfile, StakeholderRole } from "@/lib/types";
 import { ROLE_LABEL, SENTIMENT_LABEL } from "@/lib/types";
 import { SPINNER_VERBS } from "@/lib/spinnerVerbs";
+import { dimensionLabel, parseRewrite, renderInline, splitGrade } from "@/lib/format";
 
 function fmtDuration(seconds: number): string {
   const m = Math.floor(seconds / 60);
@@ -373,7 +374,7 @@ export default function RunPage() {
                   round {t.round_number} · {SENTIMENT_LABEL[t.sentiment]}
                 </span>
               </div>
-              <p className="body-text" style={{ maxWidth: "none" }}>{t.statement}</p>
+              <p className="body-text" style={{ maxWidth: "none" }}>{renderInline(t.statement)}</p>
               {t.objections_raised.length > 0 && (
                 <ul style={{ margin: "10px 0 0", paddingLeft: 18 }}>
                   {t.objections_raised.map((o, j) => (
@@ -418,33 +419,68 @@ export default function RunPage() {
               <tbody>
                 {Object.entries(verdict.meddpicc_scorecard).map(([k, v]) => (
                   <tr key={k}>
-                    <td style={{ textTransform: "capitalize" }}>{k}</td>
-                    <td className="body-text" style={{ margin: 0 }}>{v}</td>
+                    <td className="dim">{dimensionLabel(k)}</td>
+                    <td className="body-text" style={{ margin: 0 }}>{renderInline(v)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
 
-          {verdict.seller_coaching && (
-            <div className="card" style={{ marginBottom: 24 }}>
-              <p className="h3">
-                Coach — grade: <span className="mono">{verdict.seller_coaching.pitch_grade}</span>
-              </p>
-              <p className="body-text" style={{ maxWidth: "none" }}>
-                <strong>What landed:</strong>{" "}
-                {verdict.seller_coaching.what_landed.join(" · ")}
-              </p>
-              <p className="body-text" style={{ maxWidth: "none" }}>
-                <strong>What backfired:</strong>{" "}
-                {verdict.seller_coaching.what_backfired.join(" · ")}
-              </p>
-              <p className="body-text" style={{ maxWidth: "none", marginBottom: 0 }}>
-                <strong>Rewrite it like this:</strong>{" "}
-                {verdict.seller_coaching.rewrite_suggestions.join(" · ")}
-              </p>
-            </div>
-          )}
+          {verdict.seller_coaching && (() => {
+            const sc = verdict.seller_coaching;
+            const { letter, note } = splitGrade(sc.pitch_grade);
+            const bullets = (items: string[]) =>
+              items.length === 0 ? (
+                <p className="body-text">—</p>
+              ) : (
+                <ul className="tight">
+                  {items.map((it, i) => (
+                    <li key={i}>{renderInline(it)}</li>
+                  ))}
+                </ul>
+              );
+            return (
+              <div className="coach animate-in">
+                <div className="grade-row">
+                  <div className="grade" aria-label="Pitch grade">{letter}</div>
+                  <div>
+                    <p className="eyebrow" style={{ margin: "0 0 6px" }}>Coach · pitch grade</p>
+                    {note && <p className="grade-note">{renderInline(note)}</p>}
+                  </div>
+                </div>
+                <p className="h3 coach-h">What landed</p>
+                {bullets(sc.what_landed)}
+                <p className="h3 coach-h">What backfired</p>
+                {bullets(sc.what_backfired)}
+                <p className="h3 coach-h">Rewrite it like this</p>
+                {sc.rewrite_suggestions.length === 0 && <p className="body-text">—</p>}
+                {sc.rewrite_suggestions.map((item, i) => {
+                  const r = parseRewrite(item);
+                  return (
+                    <div className="rw" key={i}>
+                      {r.before && (
+                        <div className="rw-row">
+                          <span className="rw-k">Instead of</span>
+                          <p className="rw-before">{renderInline(r.before)}</p>
+                        </div>
+                      )}
+                      <div className="rw-row">
+                        <span className="rw-k">Say</span>
+                        <p className="rw-after">{renderInline(r.after)}</p>
+                      </div>
+                      {r.why && (
+                        <div className="rw-row">
+                          <span className="rw-k">Why</span>
+                          <p className="rw-why">{renderInline(r.why)}</p>
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
         </div>
       )}
 

@@ -380,3 +380,27 @@ input:focus, textarea:focus, select:focus {
   .ledger-head .live::before { animation: none; }
   .bar-track.indeterminate .bar-fill { animation: none; width: 100%; opacity: .5; }
 }
+
+/* ---------- Coach (verdict section) ---------- */
+
+ul.tight { margin: 0 0 8px; padding-left: 18px; color: var(--ink-soft); }
+ul.tight li { margin-bottom: 8px; line-height: 1.6; font-size: 14px; max-width: 74ch; }
+td.dim { white-space: nowrap; font-weight: 600; color: var(--ink); vertical-align: top; }
+.coach { border: 1px solid var(--rule); padding: 28px 30px; margin-bottom: 24px; }
+.grade-row { display: flex; gap: 22px; align-items: center; padding-bottom: 22px; border-bottom: 1px solid var(--rule); margin-bottom: 8px; }
+.grade {
+  flex: none; width: 76px; height: 76px; display: grid; place-items: center;
+  border: 2px solid var(--ink); font-family: var(--display); font-weight: 800; font-size: 38px;
+  letter-spacing: -0.03em;
+}
+.grade-note { margin: 0; font-size: 15.5px; line-height: 1.5; color: var(--ink-soft); max-width: 60ch; }
+.coach-h { margin-top: 26px; }
+.rw { border-top: 1px solid var(--rule); padding: 16px 0; }
+.rw:first-of-type { border-top: none; }
+.rw-row { display: flex; gap: 16px; align-items: baseline; margin-bottom: 8px; }
+.rw-k { flex: none; width: 76px; font-family: var(--mono); font-size: 10px; letter-spacing: .13em; text-transform: uppercase; color: var(--ink-faint); }
+.rw p { margin: 0; font-size: 14px; line-height: 1.6; max-width: 70ch; }
+.rw-before { color: var(--ink-faint); text-decoration: line-through; text-decoration-color: var(--rule); }
+.rw-after { color: var(--ink); font-weight: 500; }
+.rw-why { color: var(--ink-soft); font-size: 13px; }
+@media (max-width: 700px) { .rw-row { flex-direction: column; gap: 2px; } }

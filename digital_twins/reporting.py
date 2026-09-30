@@ -7,6 +7,7 @@ terminal output by hand to share a verdict.
 from __future__ import annotations
 
 import html
+import re
 from datetime import datetime, timezone
 from urllib.parse import quote
 
@@ -28,6 +29,46 @@ _FAVICON_SVG = (
     'font-weight="700" font-size="20" fill="#f2efe8" text-anchor="middle">S</text>'
     "</svg>"
 )
+
+
+_GRADE_RE = re.compile(r"^\s*([A-F][+\-]?)(?=[\s—–:\-]|$)\s*[—–:\-]?\s*(.*)$", re.DOTALL)
+_WHY_SPLIT_RE = re.compile(r"\s*\*Why:?\*:?\s*", re.IGNORECASE)
+_REWRITE_RE = re.compile(
+    r"^Instead of\s+(.+?)[,\s]+(?:say|open with)[^:]*:\s*(.+)$", re.DOTALL | re.IGNORECASE
+)
+
+
+def split_grade(grade: str) -> tuple[str, str]:
+    """The model returns e.g. "C — strong on X, weak on Y" in one field; split
+    it into the letter (shown big) and the qualifier (shown as a sentence)."""
+    m = _GRADE_RE.match(grade or "")
+    if not m:
+        return (grade.strip() or "—", "")
+    return m.group(1), m.group(2).strip()
+
+
+def parse_rewrite(item: str) -> dict[str, str]:
+    """Best-effort split of "Instead of 'X', say: 'Y' *Why:* Z" into parts;
+    anything that doesn't fit falls back to the raw text as `after`."""
+    parts = _WHY_SPLIT_RE.split(item.strip(), maxsplit=1)
+    main, why = parts[0], (parts[1] if len(parts) > 1 else "")
+    quotes = "'\"\u2018\u2019\u201c\u201d "
+    m = _REWRITE_RE.match(main.strip())
+    if m:
+        return {"before": m.group(1).strip(quotes + ","), "after": m.group(2).strip(quotes), "why": why.strip()}
+    return {"before": "", "after": main.strip(), "why": why.strip()}
+
+
+def _inline_md(text: str) -> str:
+    """Escape, then render the **bold** / *italic* the models like to emit."""
+    out = html.escape(text)
+    out = re.sub(r"\*\*(.+?)\*\*", r"<strong>\1</strong>", out, flags=re.DOTALL)
+    out = re.sub(r"(?<![\w*])\*(?!\s)(.+?)(?<!\s)\*(?![\w*])", r"<em>\1</em>", out, flags=re.DOTALL)
+    return out
+
+
+def _dimension_label(key: str) -> str:
+    return key.replace("_", " ").strip().title()
 
 
 def build_markdown_report(
@@ -105,7 +146,8 @@ def build_markdown_report(
         sc = verdict.seller_coaching
         lines.append("## Coach — your pitch review")
         lines.append("")
-        lines.append(f"**Grade:** {sc.pitch_grade}")
+        letter, note = split_grade(sc.pitch_grade)
+        lines.append(f"**Grade:** {letter}" + (f" — {note}" if note else ""))
         lines.append("")
         if sc.what_landed:
             lines.append("**What landed:**")
@@ -200,9 +242,9 @@ def build_html_report(
         for p in committee
     )
 
-    objections_html = "\n".join(f"<li>{e(o)}</li>" for o in verdict.top_objections)
+    objections_html = "\n".join(f"<li>{_inline_md(o)}</li>" for o in verdict.top_objections)
 
-    roadmap_html = "\n".join(f"<li>{e(t)}</li>" for t in verdict.recommended_talk_track)
+    roadmap_html = "\n".join(f"<li>{_inline_md(t)}</li>" for t in verdict.recommended_talk_track)
 
     blockers_html = ""
     if verdict.blocking_stakeholders:
@@ -216,7 +258,7 @@ def build_html_report(
     meddpicc_html = ""
     if verdict.meddpicc_scorecard:
         rows = "\n".join(
-            f"<tr><td style=\"text-transform:capitalize\">{e(dim)}</td><td>{e(assessment)}</td></tr>"
+            f"<tr><td class=\"dim\">{e(_dimension_label(dim))}</td><td>{_inline_md(assessment)}</td></tr>"
             for dim, assessment in verdict.meddpicc_scorecard.items()
         )
         meddpicc_html = f"""
@@ -230,16 +272,45 @@ def build_html_report(
     coaching_html = ""
     if verdict.seller_coaching:
         sc = verdict.seller_coaching
+        letter, note = split_grade(sc.pitch_grade)
 
-        def _joined(items: list[str]) -> str:
-            return e(" · ".join(items)) if items else "—"
+        def _bullets(items: list[str]) -> str:
+            if not items:
+                return '<p class="body-text">—</p>'
+            return "<ul class=\"tight\">" + "".join(f"<li>{_inline_md(i)}</li>" for i in items) + "</ul>"
+
+        rewrites = []
+        for item in sc.rewrite_suggestions:
+            r = parse_rewrite(item)
+            before = (
+                f'<div class="rw-row"><span class="rw-k">Instead of</span><p class="rw-before">{_inline_md(r["before"])}</p></div>'
+                if r["before"] else ""
+            )
+            why = (
+                f'<div class="rw-row"><span class="rw-k">Why</span><p class="rw-why">{_inline_md(r["why"])}</p></div>'
+                if r["why"] else ""
+            )
+            rewrites.append(
+                f'<div class="rw">{before}'
+                f'<div class="rw-row"><span class="rw-k">Say</span><p class="rw-after">{_inline_md(r["after"])}</p></div>'
+                f"{why}</div>"
+            )
 
         coaching_html = f"""
-  <div class="card">
-    <p class="h3">Coach — grade: <span class="mono">{e(sc.pitch_grade)}</span></p>
-    <p class="body-text"><strong>What landed:</strong> {_joined(sc.what_landed)}</p>
-    <p class="body-text"><strong>What backfired:</strong> {_joined(sc.what_backfired)}</p>
-    <p class="body-text" style="margin-bottom:0"><strong>Rewrite it like this:</strong> {_joined(sc.rewrite_suggestions)}</p>
+  <div class="coach">
+    <div class="grade-row">
+      <div class="grade" aria-label="Pitch grade">{e(letter)}</div>
+      <div>
+        <p class="eyebrow" style="margin:0 0 6px">Coach · pitch grade</p>
+        <p class="grade-note">{_inline_md(note) if note else "&nbsp;"}</p>
+      </div>
+    </div>
+    <p class="h3 coach-h">What landed</p>
+    {_bullets(sc.what_landed)}
+    <p class="h3 coach-h">What backfired</p>
+    {_bullets(sc.what_backfired)}
+    <p class="h3 coach-h">Rewrite it like this</p>
+    {"".join(rewrites) if rewrites else '<p class="body-text">—</p>'}
   </div>"""
 
     transcript_html_parts: list[str] = []
@@ -252,7 +323,7 @@ def build_html_report(
           <span class="h3" style="margin:0">{e(turn.name)} · {e(role_label(turn.role.value))}</span>
           <span class="mono meta">round {turn.round_number} · {e(turn_sentiment)}</span>
         </div>
-        <p class="body-text" style="max-width:none">{e(turn.statement)}</p>
+        <p class="body-text" style="max-width:none">{_inline_md(turn.statement)}</p>
         {f'<ul style="margin:10px 0 0; padding-left:18px">{objections_li}</ul>' if turn.objections_raised else ""}
       </div>"""
         )
@@ -285,7 +356,7 @@ def build_html_report(
     if account.seller_opening:
         seller_opening_html = f"""
   <p class="body-text" style="max-width:none"><strong>Seller's opening statement:</strong></p>
-  <p class="body-text" style="max-width:none; font-style:italic">"{e(account.seller_opening)}"</p>"""
+  <blockquote class="quote">{_inline_md(account.seller_opening)}</blockquote>"""
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -379,6 +450,34 @@ td.num {{ text-align: right; font-variant-numeric: tabular-nums; font-family: va
 .card {{ border: 1px solid var(--rule); padding: 18px 20px; margin-bottom: 14px; }}
 .row {{ display: flex; align-items: center; }}
 ul, ol {{ color: var(--ink-soft); }}
+ul.tight {{ margin: 0 0 8px; padding-left: 18px; }}
+ul.tight li, ol li {{ margin-bottom: 8px; line-height: 1.6; font-size: 14px; max-width: 74ch; }}
+td.dim {{ white-space: nowrap; font-weight: 600; color: var(--ink); vertical-align: top; }}
+.quote {{
+  margin: 6px 0 4px; padding: 4px 0 4px 18px; border-left: 2px solid var(--rule);
+  font-family: var(--voice); font-style: italic; font-size: 15.5px; line-height: 1.65;
+  color: var(--ink-soft); max-width: 74ch;
+}}
+.coach {{ border: 1px solid var(--rule); padding: 28px 30px; margin-top: 32px; }}
+.grade-row {{ display: flex; gap: 22px; align-items: center; padding-bottom: 22px; border-bottom: 1px solid var(--rule); margin-bottom: 8px; }}
+.grade {{
+  flex: none; width: 76px; height: 76px; display: grid; place-items: center;
+  border: 2px solid var(--ink); font-family: var(--display); font-weight: 800; font-size: 38px;
+  letter-spacing: -0.03em; font-variant-numeric: tabular-nums;
+}}
+.grade-note {{ margin: 0; font-size: 15.5px; line-height: 1.5; color: var(--ink-soft); max-width: 60ch; }}
+.coach-h {{ margin-top: 26px; }}
+.rw {{ border-top: 1px solid var(--rule); padding: 16px 0; }}
+.rw:first-of-type {{ border-top: none; }}
+.rw-row {{ display: flex; gap: 16px; align-items: baseline; margin-bottom: 8px; }}
+.rw-k {{
+  flex: none; width: 76px; font-family: var(--mono); font-size: 10px; letter-spacing: .13em;
+  text-transform: uppercase; color: var(--ink-faint);
+}}
+.rw p {{ margin: 0; font-size: 14px; line-height: 1.6; max-width: 70ch; }}
+.rw-before {{ color: var(--ink-faint); text-decoration: line-through; text-decoration-color: var(--rule); }}
+.rw-after {{ color: var(--ink); font-weight: 500; }}
+.rw-why {{ color: var(--ink-soft); font-size: 13px; }}
 </style>
 </head>
 <body>
@@ -429,7 +528,7 @@ ul, ol {{ color: var(--ink-soft); }}
   <div class="section">
     <p class="eyebrow">Verdict</p>
     <p class="lede">{"The committee reached a " + '<span class="voice">consensus.</span>' if verdict.consensus_reached else 'The committee <span class="voice">did not reach a consensus.</span>'}</p>
-    <p class="body-text" style="max-width:none; margin-bottom:20px">{e(verdict.risk_summary)}</p>
+    <p class="body-text" style="margin-bottom:20px">{_inline_md(verdict.risk_summary)}</p>
     {blockers_html}
     <p class="h3" style="margin-top:24px">Top objections</p>
     <ul>{objections_html}</ul>
