@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { createRun, getAccount, listAccounts, researchStakeholder } from "@/lib/api";
+import { createRun, getAccount, listAccounts, researchStakeholder, suggestPitch } from "@/lib/api";
 import type { LLMProvider } from "@/lib/api";
 import type { AccountContext, AccountSummary, StakeholderRole } from "@/lib/types";
 import { ROLE_LABEL } from "@/lib/types";
@@ -61,6 +61,8 @@ export default function SetupPage() {
   const [apiKey, setApiKey] = useState("");
   const [maxRounds, setMaxRounds] = useState(3);
   const [submitting, setSubmitting] = useState(false);
+  const [pitching, setPitching] = useState(false);
+  const [pitchError, setPitchError] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -125,6 +127,32 @@ export default function SetupPage() {
       real_data: facts.length > 0 ? { [realRole]: facts } : {},
       real_names: facts.length > 0 && realName ? { [realRole]: realName } : {},
     };
+  }
+
+  async function handleSuggestPitch() {
+    setPitchError(null);
+    const base = mode === "pick" ? pickedAccount : buildManualAccount();
+    if (!base) {
+      setPitchError(
+        mode === "pick"
+          ? "Choose an account first."
+          : "Fill in the company, pitch, proposed solution, and a committee role first."
+      );
+      return;
+    }
+    if (!apiKey.trim()) {
+      setPitchError(`Enter the ${PROVIDER_LABEL[provider]} API key below to generate a pitch.`);
+      return;
+    }
+    setPitching(true);
+    try {
+      const { pitch } = await suggestPitch(base, apiKey.trim(), provider);
+      setSellerOpening(pitch);
+    } catch (e) {
+      setPitchError(e instanceof Error ? e.message : String(e));
+    } finally {
+      setPitching(false);
+    }
   }
 
   async function handleSubmit() {
@@ -320,7 +348,25 @@ export default function SetupPage() {
 
       <div className="section">
         <div className="field" style={{ maxWidth: 640 }}>
-          <label>Your opening statement (optional)</label>
+          <div className="row" style={{ justifyContent: "space-between", marginBottom: 8 }}>
+            <label style={{ margin: 0 }}>Your opening statement (optional)</label>
+            <button
+              type="button"
+              className="btn secondary"
+              style={{ padding: "6px 12px" }}
+              onClick={handleSuggestPitch}
+              disabled={pitching}
+              title="Draft an opening statement from the selected account's pitch and committee"
+              aria-label="Generate opening statement with AI"
+            >
+              {pitching ? "Drafting…" : "✨ Draft from pitch"}
+            </button>
+          </div>
+          {pitchError && (
+            <div className="flag" style={{ marginBottom: 12 }}>
+              <p>{pitchError}</p>
+            </div>
+          )}
           <textarea
             value={sellerOpening}
             onChange={(e) => setSellerOpening(e.target.value)}

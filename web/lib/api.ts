@@ -72,3 +72,15 @@ export function reportUrl(runId: string, kind: "md" | "html"): string {
 }
 
 export { API_URL };
+
+export function suggestPitch(
+  account: AccountContext,
+  apiKey: string,
+  provider: LLMProvider = "anthropic"
+): Promise<{ pitch: string }> {
+  return fetch(`${API_URL}/api/pitch`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ account, api_key: apiKey, provider }),
+  }).then((r) => json(r));
+}

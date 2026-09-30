@@ -164,3 +164,58 @@ def research(payload: ResearchRequest) -> dict:
         raise HTTPException(422, str(exc)) from exc
     return {"facts": facts}
 
+
+
+# ---------------------------------------------------------------------------
+# Opening-pitch suggestion
+# ---------------------------------------------------------------------------
+
+class PitchRequest(BaseModel):
+    account: AccountContext
+    api_key: str
+    provider: str = "anthropic"
+
+
+@app.post("/api/pitch")
+def suggest_pitch(payload: PitchRequest) -> dict:
+    """Draft an opening statement from the account's pitch and committee, as
+    a starting point the seller edits before running the simulation."""
+    from digital_twins.config import settings
+    from digital_twins.llm.client import build_default_client
+    from digital_twins.models import StakeholderRole
+
+    if payload.provider not in ("anthropic", "deepseek"):
+        raise HTTPException(400, f"Unknown provider '{payload.provider}'.")
+    if not payload.api_key.strip():
+        raise HTTPException(400, f"Please provide the {payload.provider.title()} API key.")
+
+    account = payload.account
+    committee = ", ".join(
+        r.value.replace("_", " ").upper() if r in (StakeholderRole.CEO, StakeholderRole.CTO, StakeholderRole.CFO)
+        else r.value.replace("_", " ").title()
+        for r in account.roles_in_committee
+    )
+    model = settings.deepseek_model if payload.provider == "deepseek" else settings.persona_model
+    try:
+        llm = build_default_client(api_key=payload.api_key.strip(), provider=payload.provider)
+        text = llm.complete(
+            system=(
+                "You are a B2B sales coach. Write a natural, focused, persuasive opening "
+                "pitch in English, spoken in first person by the seller. No markdown, "
+                "headings, or lists."
+            ),
+            user=(
+                f"Write a ~90-second opening pitch for {account.account_name}.\n"
+                f"Deal stage: {account.deal_stage}\n"
+                f"Problem/pitch: {account.pitch_summary}\n"
+                f"Proposed solution: {account.proposed_solution}\n"
+                f"Buying committee in the room: {committee}\n"
+                "Anticipate what this committee will care about, and include the value, "
+                "the differentiator, and a concrete next step."
+            ),
+            model=model,
+            max_tokens=1500,
+        )
+    except Exception as exc:  # noqa: BLE001 - surface provider errors to the UI
+        raise HTTPException(502, f"Could not generate the pitch: {exc}") from exc
+    return {"pitch": text.strip()}
